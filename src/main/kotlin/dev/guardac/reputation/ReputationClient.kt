@@ -52,7 +52,7 @@ class ReputationClient(private val plugin: GuardAC) {
     @Volatile private var shuttingDown = false
 
     private fun build(): HttpClient = HttpClient.newBuilder()
-        .version(HttpClient.Version.HTTP_1_1)
+        .version(HttpClient.Version.HTTP_2)
         .connectTimeout(Duration.ofSeconds(plugin.configManager.aiTimeoutSeconds))
         .executor(executor)
         .build()
