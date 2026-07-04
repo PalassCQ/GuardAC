@@ -138,11 +138,6 @@ class HttpAiTransport(private val plugin: GuardAC) : AiTransport {
     }
 
     private fun buildClient(): HttpClient = HttpClient.newBuilder()
-        // HTTP/2: many concurrent inference calls (one per flagged player) share a
-        // single multiplexed connection instead of a pool of HTTP/1.1 sockets, so
-        // there are far fewer TCP/TLS handshakes under load. The client negotiates
-        // via ALPN and transparently falls back to HTTP/1.1 if the endpoint (or a
-        // proxy in front of it) doesn't offer h2 -- so this is safe everywhere.
         .version(HttpClient.Version.HTTP_2)
         .connectTimeout(Duration.ofSeconds(plugin.configManager.aiTimeoutSeconds))
         .executor(executor)
