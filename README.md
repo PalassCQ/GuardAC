@@ -1,11 +1,19 @@
-# GuardAC
+<div align="center">
 
-A modern, AI-assisted anti-cheat for Minecraft, focused on detecting aim
-assistance and aimbots. Free and open-source, licensed under the GPLv3.
+<h1>GuardAC</h1>
 
+**An AI-powered, free and open-source anti-cheat for Minecraft servers.**
+
+[![CI](https://github.com/PalassCQ/GuardAC/actions/workflows/build.yml/badge.svg)](https://github.com/PalassCQ/GuardAC/actions/workflows/build.yml)
 [![License](https://img.shields.io/badge/license-GPLv3-blue.svg)](LICENSE)
 [![Minecraft](https://img.shields.io/badge/minecraft-1.21.x-brightgreen.svg)](#requirements)
-[![Platform](https://img.shields.io/badge/platform-spigot%20%7C%20paper%20%7C%20folia-lightgrey.svg)](#requirements)
+[![Discord](https://img.shields.io/badge/discord-join-5865F2.svg)](https://guardac.net)
+
+English · Русский
+
+</div>
+
+---
 
 ## Overview
 

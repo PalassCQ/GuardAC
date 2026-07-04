@@ -20,6 +20,7 @@
 # 2) Re-include ONLY the plugin (Kotlin) and what is needed to build it.
 !/.gitignore
 !/.gitattributes
+!/.github/
 !/README.md
 !/LICENSE
 !/build.gradle.kts
