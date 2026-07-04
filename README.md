@@ -4,10 +4,9 @@
 
 **An AI-powered, free and open-source anti-cheat for Minecraft servers.**
 
-[![CI](https://github.com/PalassCQ/GuardAC/actions/workflows/build.yml/badge.svg)](https://github.com/PalassCQ/GuardAC/actions/workflows/build.yml)
+[![Discord](https://img.shields.io/badge/discord-join%20server-5865F2.svg)](https://discord.gg/pee2vTCpK)
+[![Issues](https://img.shields.io/badge/bugs-report-critical.svg)](https://github.com/PalassCQ/GuardAC/issues)
 [![License](https://img.shields.io/badge/license-GPLv3-blue.svg)](LICENSE)
-[![Minecraft](https://img.shields.io/badge/minecraft-1.21.x-brightgreen.svg)](#requirements)
-[![Discord](https://img.shields.io/badge/discord-join-5865F2.svg)](https://guardac.net)
 
 English · Русский
 
