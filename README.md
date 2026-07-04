@@ -1,124 +1,149 @@
 <div align="center">
 
-# GuardAC
+# 🛡️ GuardAC
 
-**An AI-powered, free and open-source anti-cheat for Minecraft servers.**
+### AI anti-cheat for Minecraft that catches aim hacks by how the mouse *moves*.
 
-[![License: GPLv3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
-![Java](https://img.shields.io/badge/Java-17%2B-orange.svg)
-![Minecraft](https://img.shields.io/badge/Minecraft-1.21.x-brightgreen.svg)
+[![License](https://img.shields.io/badge/license-GPLv3-22d3ee.svg)](LICENSE)
+[![Java](https://img.shields.io/badge/java-17%2B-3b82f6.svg)](#-build-from-source)
+[![Minecraft](https://img.shields.io/badge/minecraft-1.21.x-brightgreen.svg)](#-requirements)
+[![Platform](https://img.shields.io/badge/spigot%20%7C%20paper%20%7C%20folia-lightgrey.svg)](#-requirements)
 
-English · Русский (in-game locale)
+**Free · Open-source · Neural-network powered**
 
 </div>
 
+> GuardAC studies the *physics* of a player's aim in real time and asks a neural
+> network one question — "is this a human or an aimbot?" No static reach/CPS
+> rules, no guesswork: just the model, a confidence buffer, and your call on
+> what to do about it.
+
 ---
 
-## What GuardAC is
+## ✨ Features
 
-GuardAC is an open-source anti-cheat plugin for Minecraft servers. It analyzes the
-physics of a player's aim and sends short windows of that data to a neural-network
-model, which returns the probability that the player is using an aim hack. The
-plugin buffers those probabilities and, above a threshold, alerts your staff
-and/or applies punishments.
+- 🧠 **Neural-network aim detection** — a TCN model scores short windows of aim behavior.
+- 🕒 **Real-time & on-demand** — passive checking plus a `/guard scan` deep dive.
+- 🔒 **Safe by design** — `only-alert` mode lets you watch before you ban.
+- 🧩 **Fingerprint check** — flags a player who switches on a cheat mid-session.
+- 🌐 **Cross-server reputation** — a detection on one server is visible to others.
+- 🎭 **Rich response** — clickable alerts, suspect menu, holograms, punishment animations.
+- ⚙️ **Plays nice** — skips Bedrock (Geyser) players and excluded WorldGuard regions.
 
-## Important before you install
+---
 
-GuardAC's AI check uses the official **GuardAC API**. You need an API key:
+## 📋 Requirements
 
-1. Get a key at **https://guardac.net** (a free tier is available).
-2. Put it in `config.yml` under `ai.api-key`, and set `ai.server` to
-   `https://guardac.net`.
+| Need | Version |
+|------|---------|
+| Run the plugin | **Java 17+** |
+| Build from source | **JDK 21+** |
+| Server | **Spigot / Paper / Folia**, MC **1.21.x** |
+| AI check (optional) | a **GuardAC API key** |
 
-If you don't have API access yet, disable the AI check for now
-(`ai.enabled: false` in `config.yml`).
+---
 
-## Requirements
+## 🚀 Quick start
 
-- **Java 17 or newer** to run the plugin
-- **JDK 21 or newer** if you want to build from source
-- A **Spigot / Paper / Folia**-based server (1.21.x)
-- A configured **GuardAC API key** if the AI check is enabled
+```text
+1. Grab the latest jar from GitHub Releases.
+2. Drop GuardAC-<version>.jar into your server's plugins/ folder.
+3. Start the server once — GuardAC writes its config files.
+4. Set your API key (see below), then /guard reload.
+```
 
-## Installation
+> [!IMPORTANT]
+> The AI check talks to the official **GuardAC API**. Get a key (free tier
+> available) at **https://guardac.net**, then in `plugins/GuardAC/config.yml`:
+> ```yaml
+> ai:
+>   server: "https://guardac.net"
+>   api-key: "YOUR-KEY-HERE"
+> ```
+> No key yet? Set `ai.enabled: false` to run the rest of the plugin without it.
 
-1. Download the latest release from **GitHub Releases**.
-2. Place `GuardAC-<version>.jar` in the server's `plugins/` directory.
-3. Start the server once so GuardAC can generate its configuration files.
-4. Open `plugins/GuardAC/config.yml` and set your `ai.server` and `ai.api-key`.
-5. If **WorldGuard** is installed, specific regions can be excluded from the AI check.
-6. Restart the server or run `/guard reload`.
+---
 
-Bedrock players (via Geyser) are automatically excluded from the AI check.
+## ⚙️ Configuration
 
-## Configuration files
+| File | Controls |
+|------|----------|
+| `config.yml` | AI connection, alerts, combat handling, cross-server reputation, packets |
+| `monitor.yml` | layout of `/guard monitor` |
+| `hologram.yml` | suspect hologram display |
+| `punishments.yml` | punishment ladder & animations |
+| `messages/messages_en.yml` | English text |
+| `messages/messages_ru.yml` | Russian text |
 
-- `config.yml` - AI connection, alerts, combat handling, cross-server reputation,
-  anti-relog, packet handling
-- `monitor.yml` - formatting for `/guard monitor`
-- `hologram.yml` - suspect hologram display
-- `punishments.yml` - punishment rules and animations
-- `messages/messages_en.yml` - English messages
-- `messages/messages_ru.yml` - Russian messages
+---
 
-## Main commands
+## 🎮 Commands
 
-| Command | Purpose |
-|---|---|
-| `/guard monitor <player>` | Watch AI data for one player in real time |
-| `/guard profile <player>` | Open a player's live profile |
-| `/guard suspicious` | Review currently suspicious online players |
-| `/guard scan <player> [windows]` | Run an on-demand deep scan of a player |
-| `/guard alerts` | Toggle violation alerts for yourself |
-| `/guard punish <player>` | Manually apply the top punishment |
-| `/guard history <player> [page]` | View a player's stored violation history |
-| `/guard log [page]` | View recent violations |
-| `/guard stats` | View server-side anti-cheat stats |
-| `/guard exempt <player>` | Exempt a player from checks |
-| `/guard menu` | Open the suspects menu |
-| `/guard reload` | Reload GuardAC configuration |
-| `/guarddc <start\|stop>` | Manage labeled data-collection sessions |
+<details open>
+<summary><b>Everyday staff commands</b></summary>
 
-For the full command list, use `/guard help` in game. Each subcommand has its own
-permission node `guardac.command.<sub>` (or `guardac.admin` for everything).
+| Command | What it does |
+|---------|--------------|
+| `/guard monitor <player>` | live AI readout for one player |
+| `/guard profile <player>` | a player's current profile |
+| `/guard suspicious` | list currently suspicious players |
+| `/guard scan <player> [windows]` | on-demand deep scan |
+| `/guard alerts` | toggle alerts for yourself |
+| `/guard menu` | open the suspects menu |
 
-## Building from source
+</details>
+
+<details>
+<summary><b>Moderation & data</b></summary>
+
+| Command | What it does |
+|---------|--------------|
+| `/guard punish <player>` | apply the top punishment manually |
+| `/guard history <player> [page]` | stored violation history |
+| `/guard log [page]` | recent violations |
+| `/guard stats` | server-side anti-cheat stats |
+| `/guard exempt <player>` | exempt a player from checks |
+| `/guard reload` | reload configuration |
+| `/guarddc <start\|stop>` | labeled data-collection sessions |
+
+</details>
+
+Full list in game: **`/guard help`**. Each subcommand has its own permission node
+`guardac.command.<sub>` — or grant `guardac.admin` for everything.
+
+---
+
+## 🛠️ Build from source
 
 ```bash
 git clone https://github.com/PalassCQ/GuardAC.git
 cd GuardAC
 ./gradlew build
+# → build/libs/GuardAC-<version>.jar
 ```
 
-The plugin jar will be written to:
+---
 
-```
-build/libs/GuardAC-<version>.jar
-```
+## 💬 Support & bug reports
 
-## Help, bugs, and discussion
+- 🐛 **Bugs:** open a [GitHub Issue](https://github.com/PalassCQ/GuardAC/issues)
+- 💡 **Help & community:** https://guardac.net
 
-- **Bug reports:** GitHub Issues
-- **Community / support:** https://guardac.net
+<details>
+<summary>What to include in a bug report</summary>
 
-A good issue report includes:
+- server version · Java version · plugin version
+- the relevant `config.yml` values
+- logs / stack traces and steps to reproduce
 
-- server version
-- Java version
-- plugin version
-- relevant config values
-- logs, stack traces, and steps to reproduce
+</details>
 
-That makes problems easier to reproduce and fix.
+---
 
-## Credits
+## 🙌 Credits & license
 
-GuardAC has its own, independently developed codebase. Its detection is built
-around a Temporal Convolutional Network (TCN) trained on real gameplay data.
-Thanks to the wider open-source Minecraft anti-cheat community, whose projects
-were valuable as references while designing GuardAC.
+GuardAC is an independently developed codebase — its detection is built around a
+Temporal Convolutional Network (TCN) trained on real gameplay. Thanks to the wider
+open-source Minecraft anti-cheat community for ideas and inspiration.
 
-## License
-
-GuardAC is distributed under the terms of the **GNU General Public License v3.0**.
-See [LICENSE](LICENSE).
+Released under the **GNU General Public License v3.0** — see [LICENSE](LICENSE).
