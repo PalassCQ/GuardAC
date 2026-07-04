@@ -1,5 +1,5 @@
 # =============================================================================
-#  GuardAC — PUBLIC repository = the Minecraft PLUGIN ONLY (like SlothAC).
+#  GuardAC — PUBLIC repository = the Minecraft PLUGIN ONLY.
 #
 #  Strategy: an ALLOWLIST. We ignore EVERYTHING by default, then re-include
 #  only the plugin sources. This is deliberate: a stray secret (keys DB, .env,
