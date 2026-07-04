@@ -1,0 +1,77 @@
+name: GuardAC
+version: '${version}'
+main: dev.guardac.GuardAC
+api-version: 1.16
+authors:
+  - Palass
+website: https://github.com/PalassCQ/GuardAC
+description: GuardAC — AI-powered anticheat with a TCN combat model. One smart check, zero clutter.
+depend:
+  - packetevents
+softdepend:
+  - WorldGuard
+  - floodgate
+  - Geyser-Spigot
+
+commands:
+  guard:
+    description: GuardAC main administration command
+    usage: /guard <help|alerts|monitor|profile|reload|suspicious|menu|debug|prob|exempt|reset|punish|scan|stats|log|history|crossserver>
+    aliases: [gac, guardac]
+  guarddc:
+    description: GuardAC dataset collection for AI training
+    usage: /guarddc <start|stop|cancel|status> [player] [LEGIT|CHEAT] [details...]
+    permission: guardac.datacollect
+    aliases: [gdc]
+
+permissions:
+  # Master permission - grants every sub-command permission below. Give this to
+  # a full admin; grant individual guardac.command.* nodes for limited staff
+  # (e.g. a helper who may ONLY use /guard monitor and /guard suspicious).
+  guardac.admin:
+    description: Full access to all GuardAC administration commands
+    default: op
+    children:
+      guardac.command.help: true
+      guardac.command.reload: true
+      guardac.command.alerts: true
+      guardac.command.monitor: true
+      guardac.command.profile: true
+      guardac.command.suspicious: true
+      guardac.command.menu: true
+      guardac.command.debug: true
+      guardac.command.prob: true
+      guardac.command.exempt: true
+      guardac.command.reset: true
+      guardac.command.punish: true
+      guardac.command.scan: true
+      guardac.command.stats: true
+      guardac.command.crossserver: true
+      guardac.command.log: true
+      guardac.command.history: true
+  guardac.command.help:        { description: Show GuardAC help,          default: op }
+  guardac.command.reload:      { description: Reload GuardAC config,       default: op }
+  guardac.command.alerts:      { description: Toggle receiving alerts,     default: op }
+  guardac.command.monitor:     { description: Live combat monitor,         default: op }
+  guardac.command.profile:     { description: View a player's AI profile,  default: op }
+  guardac.command.suspicious:  { description: List suspicious players,     default: op }
+  guardac.command.menu:        { description: Open the suspects menu,      default: op }
+  guardac.command.debug:       { description: Debug a player's rotation,   default: op }
+  guardac.command.prob:        { description: Live probability actionbar,  default: op }
+  guardac.command.exempt:      { description: Exempt players from checks,  default: op }
+  guardac.command.reset:       { description: Reset a player's VL,         default: op }
+  guardac.command.punish:      { description: Manually punish a player,    default: op }
+  guardac.command.scan:        { description: Deep-scan a player,          default: op }
+  guardac.command.stats:       { description: View server AC stats,        default: op }
+  guardac.command.crossserver: { description: Toggle cross-server alerts,  default: op }
+  guardac.command.log:         { description: View the violation log,      default: op }
+  guardac.command.history:     { description: View punishment history,     default: op }
+  guardac.alerts:
+    description: Receive cheat detection alerts
+    default: op
+  guardac.bypass:
+    description: Bypass all GuardAC checks
+    default: false
+  guardac.datacollect:
+    description: Access to dataset collection commands
+    default: op

@@ -1,0 +1,55 @@
+# =============================================================================
+#  GuardAC — PUBLIC repository = the Minecraft PLUGIN ONLY (like SlothAC).
+#
+#  Strategy: an ALLOWLIST. We ignore EVERYTHING by default, then re-include
+#  only the plugin sources. This is deliberate: a stray secret (keys DB, .env,
+#  admin token, trained model) can then never leak by accident — anything new
+#  dropped into the project is ignored until explicitly whitelisted here.
+#
+#  NEVER published (all covered by the blanket ignore below):
+#    backend/        - private SaaS: PyTorch model, keys DB (plaintext keys +
+#                      password hashes), business logic, .env, datasets  = the moat
+#    guardac-web/    - website + admin panel + dashboard (.env.local)
+#    CLAUDE.md       - internal brief (server IP, secrets, detection internals)
+#    .env / *.db / *.pt / *.pem / *.key ...  - secrets & artifacts
+# =============================================================================
+
+# 1) Ignore every top-level entry by default.
+/*
+
+# 2) Re-include ONLY the plugin (Kotlin) and what is needed to build it.
+!/.gitignore
+!/.gitattributes
+!/README.md
+!/LICENSE
+!/build.gradle.kts
+!/settings.gradle.kts
+!/gradle.properties
+!/gradlew
+!/gradlew.bat
+!/gradle/
+!/src/
+
+# 3) Build output that can live inside otherwise-tracked folders.
+build/
+.gradle/
+*.class
+
+# 4) Belt-and-suspenders: these patterns are ignored EVERYWHERE, even if a
+#    future edit above accidentally re-includes a folder that contains one.
+#    (Deliberately NOT ignoring *.jar so gradle/wrapper/gradle-wrapper.jar stays.)
+.env
+*.env
+.env.*
+*.db
+*.sqlite
+*.sqlite3
+*.pt
+*.onnx
+*.pem
+*.key
+*.p12
+*.keystore
+id_rsa*
+*.log
+secrets.*

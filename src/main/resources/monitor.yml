@@ -1,0 +1,10 @@
+monitor:
+  colors:
+    low: "&a"
+    medium: "&e"
+    high: "&6"
+    critical: "&c"
+  thresholds:
+    low: 35
+    medium: 55
+    high: 85

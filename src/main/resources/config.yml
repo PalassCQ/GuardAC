@@ -1,0 +1,174 @@
+# ══════════════════════════════════════════════════════════════════════
+#  Быстрый старт: 1) впиши свой ключ в ai.api-key ниже  2) /guard reload
+#  Ключ получи на https://guardac.net — всё остальное уже
+#  настроено разумными значениями по умолчанию, менять не обязательно.
+# ══════════════════════════════════════════════════════════════════════
+
+config-version: 17
+
+locale: "ru"
+
+ai:
+  enabled: true
+  # Адрес сервера GuardAC. Ключ получи на https://guardac.net
+  server: "https://guardac.net"
+  api-key: "PASTE-YOUR-GUARDAC-KEY"
+  sequence: 40
+  step: 10
+  timeout-seconds: 5
+  continuous: false
+  # true = только предупреждать стафф, без наказаний. false = предупреждать И наказывать
+  # по правилам из punishments.yml (автобан на максимальном уровне нарушений).
+  only-alert: false
+
+  buffer:
+    flag: 50.0
+    reset-on-flag: 25.0
+    multiplier: 100.0
+    decrease: 0.25
+
+  retry:
+    enabled: true
+    max-attempts: 3
+    initial-delay-ms: 500
+    max-delay-ms: 5000
+
+  # Ускоряет работу на серверах с большим онлайном. Можно не трогать — по умолчанию
+  # выключено и на обычных серверах не требуется.
+  batching:
+    enabled: false
+    max-size: 20
+    max-delay-ms: 15
+
+alerts:
+  # Минимальная уверенность (%), при которой стафф увидит оповещение. 0 = показывать всегда.
+  min-confidence-percent: 0
+  print-to-console: true
+  sound:
+    enabled: true
+    type: "ENTITY_EXPERIENCE_ORB_PICKUP"
+    volume: 1.0
+    pitch: 1.8
+  # Раннее предупреждение стаффу — до основного оповещения, когда игрок только
+  # начинает выглядеть подозрительно. Одним и тем же игроком не спамит.
+  suspicious:
+    enabled: true
+    buffer: 25.0
+
+vl-decay:
+  enabled: true
+  interval-seconds: 60
+  amount: 1
+  skip-in-combat: true
+
+punishment:
+  cooldown-ms: 5000
+  # Защита от ложных банов при лагах: если TPS сервера ниже этого значения,
+  # наказания откладываются (алерты стаффу продолжают приходить). 0 = отключить.
+  min-tps: 16.0
+
+# Визуальный эффект при наказании. Включается словом "[animation <тип>]" в punishments.yml.
+animations:
+  enabled: true
+  # На любом уровне наказания с реальной командой (бан/кик) автоматически
+  # проигрывать случайную анимацию перед ней (даже если [animation] не прописан).
+  auto-on-ban: true
+  # pig | explode | particles
+  default: particles
+  duration-ticks: 60
+  particle: FLAME
+  particle-count: 30
+  drop-inventory: true
+  sound: true
+  # На сколько блоков поднимается игрок в анимации "pig".
+  pig-height: 10
+
+# Команды меню /guard menu при клике по игроку (плейсхолдеры <admin>, <target>).
+# Пусто = по умолчанию: спектатор + телепорт к игроку.
+menu:
+  click-commands: []
+
+# Aim Fingerprint: замечает, если игрок резко начинает целиться заметно иначе, чем
+# обычно (например, включил читы посреди игры или зашёл с чужого аккаунта).
+# Только предупреждение стаффу, банов не делает.
+fingerprint:
+  enabled: true
+  warmup-hits: 30
+  drift-margin: 0.35
+  min-recent: 0.55
+
+# Пропускать игроков с телефона/консоли (Geyser/Floodgate).
+geyser:
+  exempt-bedrock: true
+
+# Не проверять игроков в этих регионах WorldGuard.
+worldguard:
+  enabled: false
+  disabled-regions:
+    - "world:spawn"
+
+# Запоминает подозрение об игроке, если он вышел с сервера — чтобы нельзя было
+# "сбросить" его простым перезаходом. Чем дольше игрок был оффлайн, тем меньше
+# веса у старого подозрения; совсем старое учитываться не будет.
+persist-buffer:
+  enabled: true
+  grace-minutes: 5
+  decay-per-hour: 5.0
+  cap-on-restore: 40.0
+  ttl-minutes: 1440
+
+# Начинать бой "с чистого листа", если игрок долго не дрался.
+combat-reset:
+  enabled: true
+  after-seconds: 60
+
+# Дополнительная мягкая защита в бою. Не бан и не постоянное наказание — реагирует
+# на то же подозрение, что и остальная защита, и сама снимается, когда оно проходит.
+combat-suppression:
+  enabled: false
+  # Постепенно ослабляет подозрительного игрока в бою.
+  penalty:
+    start-probability: 0.75
+    max-percent: 40
+    reset-after-seconds: 10
+  # Кратковременно не даёт наносить урон вообще — но только если подозрение
+  # повторилось быстро подряд, а не один раз.
+  isolate:
+    enabled: true
+    repeat-window-seconds: 45
+    duration-seconds: 12
+    # Показать игроку нейтральное сообщение (не выдаёт, что сработала защита).
+    notify-suspect: true
+
+# Deep Scan: /guard scan <ник> — углублённая проверка игрока по запросу.
+# Следующие окна его боя анализируются всеми моделями тарифа, в конце — отчёт с вердиктом.
+deep-scan:
+  # Сколько боевых окон собрать для вердикта.
+  windows: 8
+  # Сколько ждать, пока игрок навоюет нужные окна (сек). По истечении — отчёт по тому, что есть.
+  timeout-seconds: 120
+
+# Умная экономия квоты: игрок, стабильно чистый много окон подряд, проверяется реже
+# (каждое N-е окно) — ключ тратит меньше запросов на давно проверенных игроков.
+# Любая подозрительность мгновенно возвращает полную частоту проверок.
+trust:
+  enabled: true
+  # Сколько чистых окон подряд нужно, чтобы игрок стал «доверенным».
+  min-clean-windows: 300
+  # Доверенный игрок: отправляется каждое N-е окно (3 = экономия ~66% на нём).
+  sample-every: 3
+
+cross-server:
+  enabled: false
+  server-name: ""
+
+# Общая база: если игрока поймали на одном сервере сети, это видно и на других.
+reputation:
+  enabled: true
+  report: true
+  check-on-join: true
+  alert-threshold: 1
+
+debug:
+  enabled: false
+  log-probability: false

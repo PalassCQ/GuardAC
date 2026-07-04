@@ -1,0 +1,175 @@
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  GuardAC · English locale                                      ║
+# ║  Supports &-codes and HEX colors like &#22D3EE                 ║
+# ╚══════════════════════════════════════════════════════════════╝
+
+prefix: "&#22D3EE▍ &#22D3EEG&#34C2E8u&#46B1E2a&#58A0DCr&#6A8FD6d&#4D86EEA&#3B82F6C &8»&r"
+
+no-permission: "&#FF4D6D✖ &7You don't have permission for this command."
+player-not-found: "&#FF4D6D✖ &7Player &f{player} &7not found or offline."
+run-as-player: "&#FF4D6D✖ &7This command is for players only."
+reload-success: "&#4ADE80✔ &7Configuration reloaded."
+
+alerts-enabled: "&#4ADE80✔ &7Alerts &#4ADE80enabled&7."
+alerts-disabled: "&#FFC857● &7Alerts &8disabled&7."
+# Placeholders: {player} {check} {vl} {verbose} {avg} {peak}
+# (the [Def]/[Extreme] model tag is deliberately not shown here — only in /guard monitor)
+alerts-format: "{prefix} &#FF4D6D&l{player} &8— &7{verbose} &8• &#FF4D6DVL {vl}"
+alerts-console-format: "[GuardAC] {player} | x{vl} | {verbose}"
+# Aim Fingerprint: player's aim style shifted sharply. Placeholders: {player} {base} {now}
+fingerprint-alert: "{prefix} &8[&#A78BFAFINGERPRINT&8] &#FF4D6D&l{player} &7— aim style shifted sharply &8(&7{base}% &8→ &c{now}%&8)&7, possible cheat toggle."
+# Early warning to staff. Placeholders: {player} {buffer} {flag}
+suspicious-alert: "{prefix} &8[&#FFC857WATCH&8] &f{player} &7is becoming suspicious &8(&#FFC857{buffer} &8/ &7{flag}&8)"
+# Shown to the player when the extra in-combat protection kicks in (combat-suppression in config.yml).
+suppression-isolate-notice: "&7Connection unstable &8— &7attacks are temporarily not registering."
+
+monitor-enabled: "&#4ADE80✔ &7Monitor &#4ADE80enabled&7 &8— showing every model result."
+monitor-disabled: "&#FFC857● &7Monitor &8disabled&7."
+# Placeholders: {player} {model} {color} {prob} {avg} {avg_color} {vl} {ping} {peak} {high_count} {suppression}
+monitor-hit: "{prefix} &7{model} {color}{player} &8• {color}{prob}% &8• &7avg {avg_color}{avg}% &8• &#FF4D6DVL {vl} &8• &7{ping}ms{suppression}"
+
+profile-header: "&8&m        &r {prefix} &#67E8F9&l{player} &8&m        "
+profile-ping: " &8▏ &7Ping&8: &f{ping}ms"
+profile-session: " &8▏ &7Session&8: &f{session}"
+profile-ai-buffer: " &8▏ &7AI buffer&8: &#67E8F9{buffer} &8/ &#3B82F6{flag}"
+profile-ai-vl: " &8▏ &7Flags&8: &#FF4D6D{vl} &8(total&8: &7{total}&8)"
+profile-no-data: "&#FF4D6D✖ &7Player data is unavailable."
+profile-sensitivity: " &8▏ &7Sensitivity&8: &f{sens_x} &8/ &f{sens_y}"
+profile-riding: " &8▏ &7In vehicle&8: {riding}"
+profile-ping-bucket: " &8▏ &7Ping bucket&8: &f{bucket}"
+profile-avg-prob: " &8▏ &7Avg probability&8: &#67E8F9{avg}% &8(peak&8: &#FF4D6D{peak}%&8)"
+# Placeholders: {stage} {penalty}
+profile-suppression: " &8▏ &7Suppression&8: {stage} &8(&7attack &8-&f{penalty}%&8)"
+# Trusted player (smart quota saving). Placeholders: {saved} / {clean} {needed}
+profile-trust-on: " &8▏ &7Trust&8: &#4ADE80✔ trusted &8(&7saved &f{saved} &7requests&8)"
+profile-trust-off: " &8▏ &7Trust&8: &8— &7({clean}&8/&7{needed} clean windows)"
+
+suspicious-header: "{prefix} &#67E8F9&lSuspicious &8(&f{count}&8)"
+suspicious-entry: " &#22D3EE▸ &f{player} &8• &7buffer &#FF4D6D{buffer} &8• &7ping &f{ping}ms"
+suspicious-empty: "&#4ADE80✔ &7No suspicious players detected."
+
+debug-header: "&8&m        &r {prefix} &7Debug &#67E8F9{player} &8&m        "
+debug-rotation: " &8▏ &7Yaw / Pitch&8: &f{yaw} &8/ &f{pitch}"
+debug-delta: " &8▏ &7ΔYaw / ΔPitch&8: &f{dyaw} &8/ &f{dpitch}"
+debug-accel: " &8▏ &7Yaw accel&8: &f{accel}"
+debug-jerk: " &8▏ &7Yaw jerk&8: &f{jerk}"
+debug-gcd: " &8▏ &7GCD error&8: &f{gcd_yaw} &8/ &f{gcd_pitch}"
+debug-mode-xy: " &8▏ &7Mode X / Y&8: &f{mx} &8/ &f{my}"
+debug-ai-buffer: " &8▏ &7AI buffer&8: &#67E8F9{buffer}"
+debug-riding: " &8▏ &7In vehicle&8: {riding}"
+debug-mode-status: " &8▏ &7Debug mode&8: {status}"
+debug-mode-on: "&#4ADE80enabled"
+debug-mode-off: "&8disabled"
+debug-idle: " &8▏ &7Idle / total ticks&8: &f{idle} &8/ &f{total}"
+# Placeholders: {stage} {penalty} {isolated}
+debug-suppression: " &8▏ &7Suppression&8: {stage} &8(&7attack &8-&f{penalty}%&8, &7isolate&8: {isolated}&8)"
+
+# Placeholders: {player} {prob} {prob_color} {avg} {avg_color} {peak} {buffer} {vl} {ping} {ping_color}
+prob-started: "&#4ADE80✔ &7Watching &f{player}&7 — action bar active."
+prob-stopped: "&#FFC857● &7Monitoring stopped."
+prob-actionbar: "&#22D3EE{player} &8| {prob_color}{prob}% &8| &7avg {avg_color}{avg}% &8| &7buf &f{buffer} &8| &#FF4D6DVL {vl} &8| {ping_color}{ping}ms"
+prob-no-data: "&#FF4D6D✖ &7No data for &f{player}&7."
+
+exempt-added: "&#4ADE80✔ &f{player} &7added to exemptions."
+exempt-removed: "&#FFC857● &f{player} &7removed from exemptions."
+exempt-status-exempt: " &7{player}&8: &#4ADE80exempted &7from all checks."
+exempt-status-not-exempt: " &7{player}&8: &#67E8F9checks active&7."
+exempt-already: "&#FFC857● &f{player} &7is already exempted."
+exempt-not-found: "&#FFC857● &f{player} &7not found in exemptions."
+
+reset-success: "&#4ADE80✔ &7Counters reset for &f{player}&7."
+reset-all-success: "&#4ADE80✔ &7All counters reset for &f{player}&7."
+
+punish-success: "&#4ADE80✔ &7Punishment applied to &f{player}&7."
+punish-no-data: "&#FF4D6D✖ &7Player data not found."
+
+# Deep Scan — on-demand in-depth check (/guardac scan <player>).
+usage-scan: "&7Usage: &f/guardac scan <player> [windows]"
+scan-started: "&#22D3EE◈ &7Scanning &f{player}&8: &7waiting for &f{windows} &7combat windows. Report will arrive here."
+scan-already: "&#FFC857⚠ &7A scan is already running for &f{player}&7."
+scan-no-data: "&#FFC857⚠ &7Scan of &f{player}&7: the player never entered combat — no data."
+scan-report-header: "{prefix} &#67E8F9&lDeep Scan report &8— &f{player}"
+scan-report-stats: " &8▏ &7Windows&8: &f{windows} &8• &7avg&8: &#67E8F9{avg}% &8• &7peak&8: &#FF4D6D{peak}%"
+scan-report-models: " &8▏ &7Models voted&8: &f{models}"
+scan-verdict-clean: " &8▏ &7Verdict&8: &#4ADE80&lCLEAN"
+scan-verdict-suspicious: " &8▏ &7Verdict&8: &#FFC857&lSUSPICIOUS &8— &7keep watching"
+scan-verdict-cheating: " &8▏ &7Verdict&8: &#FF4D6D&lLIKELY CHEATING"
+scan-partial-note: " &8▏ &7Collected &f{collected}&8/&f{wanted} &7windows (timeout/player left)."
+
+stats-header: "&8&m        &r {prefix} &#67E8F9&lServer Stats &8({period}) &8&m        "
+stats-online: " &8▏ &7Players online&8: &f{online}"
+stats-suspicious: " &8▏ &7Suspicious&8: &#FFC857{suspicious} &8(&7{pct}%&8)"
+stats-total-flags: " &8▏ &7Session flags&8: &#FF4D6D{flags} &8(&7{per_hour}/h&8)"
+stats-ai-status: " &8▏ &7AI engine&8: {status}"
+stats-dc-sessions: " &8▏ &7Active DC sessions&8: &f{sessions}"
+stats-uptime: " &8▏ &7Uptime&8: &f{uptime}"
+
+datacollect-start-success: "&#4ADE80✔ &7Data collection for &f{player} &7started &8• &7{status}"
+datacollect-start-restarted: "&#FFC857● &7Data collection for &f{player} &7restarted &8• &7{status}"
+datacollect-stop-success: "&#4ADE80✔ &7Collection for &f{player} &7saved &8(&f{ticks} &7ticks&8)"
+datacollect-stop-fail: "&#FF4D6D✖ &7Collection for &f{player} &7was not running."
+datacollect-cancel-success: "&#FFC857● &7Collection for &f{player} &7cancelled without saving."
+datacollect-status-header: "&8&m        &r {prefix} &#67E8F9&lActive DC Sessions &8&m        "
+datacollect-status-entry: " &#22D3EE▸ &f{player} &8• &7{status} &8• &7time &f{time}s &8• &7ticks &f{ticks}"
+datacollect-status-empty: "&7No active sessions."
+datacollect-status-no-session: "&#FF4D6D✖ &7No active session for &f{player}&7."
+datacollect-invalid-type: "&#FF4D6D✖ &7Invalid type. Use &#4ADE80LEGIT &7or &#FF4D6DCHEAT&7."
+datacollect-details-required: "&#FF4D6D✖ &7Usage&8: &f/guarddc start <player> <LEGIT|CHEAT> <comment>"
+
+crossserver-alert: "{prefix} &8[&#22D3EE{server}&8] &#FF4D6D&l{player} &8— flagged by &#22D3EEAI &8• &7{verbose} &8• &#FF4D6DVL {vl}"
+crossserver-enabled: "&#4ADE80✔ &7Cross-server alerts &#4ADE80enabled&7."
+crossserver-disabled: "&#FFC857● &7Cross-server alerts &8disabled&7."
+
+suspects-menu-open: "&#4ADE80✔ &7Opening suspects menu…"
+suspects-menu-title: "&#22D3EEGuardAC &8• &7Suspects"
+suspects-menu-empty: "&7No suspicious players found."
+suspects-menu-prev: "&#67E8F9← Previous page"
+suspects-menu-next: "&#67E8F9Next page →"
+suspects-menu-refresh: "&#4ADE80⟳ Refresh"
+suspects-menu-close: "&#FF4D6D✖ Close"
+
+help-header: "&8&m        &r {prefix} &#67E8F9&lHelp &8&m        "
+help-reload: " &#22D3EE/guardac reload &8— &7reload configuration"
+help-alerts: " &#22D3EE/guardac alerts &8— &7toggle alert subscription"
+help-monitor: " &#22D3EE/guardac monitor &8— &7monitor all hits with AI probability"
+help-profile: " &#22D3EE/guardac profile &7<player> &8— &7player profile"
+help-suspicious: " &#22D3EE/guardac suspicious &8— &7suspicious players list"
+help-menu: " &#22D3EE/guardac menu &8— &7GUI suspects menu"
+help-debug: " &#22D3EE/guardac debug &7[player] &8— &7live rotation data"
+help-prob: " &#22D3EE/guardac prob &7<player> &8— &7AI probability action bar"
+help-exempt: " &#22D3EE/guardac exempt &7<player|remove|status> &8— &7manage exemptions"
+help-reset: " &#22D3EE/guardac reset &7<player> &8— &7reset counters"
+help-punish: " &#22D3EE/guardac punish &7<player> &8— &7manual punishment"
+help-scan: " &#22D3EE/guardac scan &7<player> [windows] &8— &7in-depth check with a verdict"
+help-stats: " &#22D3EE/guardac stats &7[1h|6h|24h|7d] &8— &7statistics"
+help-log: " &#22D3EE/guardac log &7[player] &8— &7last 20 punishments"
+help-crossserver: " &#22D3EE/guardac crossserver &8— &7cross-server alerts"
+help-datacollect: " &#22D3EE/guarddc &7start · stop · cancel · status &8— &7dataset collection"
+help-footer: "&8&m                                          "
+
+usage-profile: "&#FFC857● &7Usage&8: &f/guardac profile <player>"
+usage-prob: "&#FFC857● &7Usage&8: &f/guardac prob <player>"
+usage-exempt: "&#FFC857● &7Usage&8: &f/guardac exempt <player | remove <player> | status <player>>"
+usage-exempt-remove: "&#FFC857● &7Usage&8: &f/guardac exempt remove <player>"
+usage-exempt-status: "&#FFC857● &7Usage&8: &f/guardac exempt status <player>"
+usage-reset: "&#FFC857● &7Usage&8: &f/guardac reset <player>"
+usage-punish: "&#FFC857● &7Usage&8: &f/guardac punish <player>"
+usage-stats: "&#FFC857● &7Usage&8: &f/guardac stats [1h|6h|24h|7d]"
+usage-dc-stop: "&#FFC857● &7Usage&8: &f/guarddc stop <player>"
+usage-dc-cancel: "&#FFC857● &7Usage&8: &f/guarddc cancel <player>"
+
+dc-help-header: "&8&m        &r {prefix} &#67E8F9&lData Collection &8&m        "
+dc-help-start: " &#22D3EE/guarddc start &f<player> &#4ADE80<CHEAT|LEGIT> &7<comment> &8— &7start"
+dc-help-stop: " &#22D3EE/guarddc stop &f<player> &8— &7stop and save"
+dc-help-cancel: " &#22D3EE/guarddc cancel &f<player> &8— &7cancel without saving"
+dc-help-status: " &#22D3EE/guarddc status &7[player] &8— &7active session status"
+dc-help-footer: "&8&m                                          "
+
+log-header: "&8&m        &r {prefix} &#67E8F9&lRecent Punishments &8(&f{count}&8) &8&m        "
+log-empty: "&7No punishment log entries found."
+
+history-header: "&8&m        &r {prefix} &#67E8F9&lPunishment History &8(&f{count}&8) &8&m        "
+history-entry: " &#22D3EE▸ &7{time} &8• &f{player} &8• &7{check} &8• &#FF4D6DVL {vl} &8• &7{prob}% &8• &f{action}"
+history-empty: "&7Punishment history is empty."
+usage-history: "&#FFC857● &7Usage&8: &f/guardac history [player]"
+help-history: " &#22D3EE/guardac history &7[player] &8— &7when & why players were punished"
