@@ -40,15 +40,46 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 class BanAnimationManager(private val plugin: GuardAC) : Listener {
 
+    private data class MovementState(
+        val walk: Float, val fly: Float, val allowFlight: Boolean, val flying: Boolean,
+    )
+
     private val animating: MutableSet<UUID> = ConcurrentHashMap.newKeySet()
     private val anchors = ConcurrentHashMap<UUID, Location>()
     private val pendingCompletions = ConcurrentHashMap<UUID, MutableList<() -> Unit>>()
+    // Original movement abilities of currently-frozen players. Walk/fly speed are
+    // saved into the player's NBT on quit, so a player who leaves (or is banned)
+    // mid-animation would come back permanently frozen - onJoin() unfreezes them.
+    private val frozen = ConcurrentHashMap<UUID, MovementState>()
 
     fun isAnimating(uuid: UUID): Boolean = uuid in animating
 
     fun onQuit(uuid: UUID) {
         animating.remove(uuid)
         anchors.remove(uuid)
+        // `frozen` is kept on purpose: the entry is what lets onJoin() restore
+        // movement for a player who disconnected before the animation finished.
+    }
+
+    fun onJoin(player: Player) {
+        frozen.remove(player.uniqueId)?.let { applyState(player, it) }
+    }
+
+    /** Plugin shutdown mid-animation: give every frozen player their movement back. */
+    fun restoreAllFrozen() {
+        frozen.keys.toList().forEach { id ->
+            val state = frozen.remove(id) ?: return@forEach
+            Bukkit.getPlayer(id)?.let { applyState(it, state) }
+        }
+    }
+
+    private fun applyState(player: Player, s: MovementState) {
+        runCatching {
+            player.walkSpeed   = s.walk
+            player.flySpeed    = s.fly
+            player.allowFlight = s.allowFlight
+            player.isFlying    = s.flying && s.allowFlight
+        }
     }
 
     fun playRandom(player: Player, onComplete: () -> Unit) = play(player, TYPES.random(), onComplete)
@@ -95,6 +126,8 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
             "particles" -> playParticles(player, finishWith)
             "lightning" -> playLightning(player, finishWith)
             "vortex"    -> playVortex(player, finishWith)
+            "meteor"    -> playMeteor(player, finishWith)
+            "cage"      -> playCage(player, finishWith)
             else        -> finishWith(player.location.clone())
         }
     }
@@ -107,10 +140,9 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
      */
     private fun freeze(player: Player): () -> Unit {
         anchors[player.uniqueId] = player.location.clone()
-        val walk = player.walkSpeed
-        val fly = player.flySpeed
-        val allowFlight = player.allowFlight
-        val flying = player.isFlying
+        frozen[player.uniqueId] = MovementState(
+            player.walkSpeed, player.flySpeed, player.allowFlight, player.isFlying,
+        )
         runCatching {
             player.isFlying = false
             player.allowFlight = false
@@ -118,14 +150,10 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
             player.flySpeed = 0f
         }
         return {
-            runCatching {
-                if (player.isOnline) {
-                    player.walkSpeed = walk
-                    player.flySpeed = fly
-                    player.allowFlight = allowFlight
-                    player.isFlying = flying
-                }
+            if (player.isOnline) {
+                frozen.remove(player.uniqueId)?.let { applyState(player, it) }
             }
+            // Offline: keep the entry - onJoin() restores movement on their next login.
         }
     }
 
@@ -165,27 +193,36 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         object : BukkitRunnable() {
             var t = 0
             override fun run() {
-                if (!player.isOnline || !pig.isValid) {
+                // A throw inside a repeating task kills the task silently - the
+                // animation lock would never release and every later punishment
+                // for this player would queue forever. Fail into finishWith.
+                try {
+                    if (!player.isOnline || !pig.isValid) {
+                        cancel()
+                        val loc = if (pig.isValid) pig.location.clone() else player.location.clone()
+                        cleanupPig(pig, player)
+                        finishWith(loc)
+                        return
+                    }
+                    // Re-seat if the player shift-dismounted, so they ride up and can't
+                    // step off to walk/run away before the explosion.
+                    anchors[player.uniqueId] = pig.location.clone()
+                    if (!pig.passengers.contains(player)) {
+                        runCatching { player.teleport(pig.location) }
+                        runCatching { pig.addPassenger(player) }
+                    }
+                    pig.velocity = if (pig.location.y < targetY) Vector(0.0, RISE_SPEED, 0.0) else Vector(0.0, 0.0, 0.0)
+                    if (t % 3 == 0) world.spawnParticle(particle("CLOUD"), pig.location, 6, 0.3, 0.1, 0.3, 0.0)
+                    if (++t >= duration) {
+                        cancel()
+                        val loc = pig.location.clone()
+                        cleanupPig(pig, player)
+                        finishWith(loc)   // explosion + resources scatter happen HERE, at the top
+                    }
+                } catch (e: Exception) {
                     cancel()
-                    val loc = if (pig.isValid) pig.location.clone() else player.location.clone()
                     cleanupPig(pig, player)
-                    finishWith(loc)
-                    return
-                }
-                // Re-seat if the player shift-dismounted, so they ride up and can't
-                // step off to walk/run away before the explosion.
-                anchors[player.uniqueId] = pig.location.clone()
-                if (!pig.passengers.contains(player)) {
-                    runCatching { player.teleport(pig.location) }
-                    runCatching { pig.addPassenger(player) }
-                }
-                pig.velocity = if (pig.location.y < targetY) Vector(0.0, RISE_SPEED, 0.0) else Vector(0.0, 0.0, 0.0)
-                if (t % 3 == 0) world.spawnParticle(particle("CLOUD"), pig.location, 6, 0.3, 0.1, 0.3, 0.0)
-                if (++t >= duration) {
-                    cancel()
-                    val loc = pig.location.clone()
-                    cleanupPig(pig, player)
-                    finishWith(loc)   // explosion + resources scatter happen HERE, at the top
+                    finishWith(player.location.clone())
                 }
             }
         }.runTaskTimer(plugin, 0L, 1L)
@@ -212,17 +249,23 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         object : BukkitRunnable() {
             var t = 0
             override fun run() {
-                if (!player.isOnline) { cancel(); finishWith(player.location.clone()); return }
-                val center = player.location.clone().add(0.0, 1.0, 0.0)
-                val points = 14
-                val each = (perTick / points).coerceAtLeast(1)
-                for (i in 0 until points) {
-                    val ang = t * 0.25 + Math.PI * 2 * i / points
-                    val x = Math.cos(ang) * 1.2
-                    val z = Math.sin(ang) * 1.2
-                    world.spawnParticle(particle, center.clone().add(x, 0.0, z), each, 0.0, 0.0, 0.0, 0.0)
-                }
-                if (++t >= duration) {
+                try {
+                    if (!player.isOnline) { cancel(); finishWith(player.location.clone()); return }
+                    val center = player.location.clone().add(0.0, 1.0, 0.0)
+                    val points = 14
+                    val each = (perTick / points).coerceAtLeast(1)
+                    for (i in 0 until points) {
+                        val ang = t * 0.25 + Math.PI * 2 * i / points
+                        val x = Math.cos(ang) * 1.2
+                        val z = Math.sin(ang) * 1.2
+                        world.spawnParticle(particle, center.clone().add(x, 0.0, z), each, 0.0, 0.0, 0.0, 0.0)
+                    }
+                    if (++t >= duration) {
+                        cancel()
+                        runCatching { player.removePotionEffect(PotionEffectType.LEVITATION) }
+                        finishWith(player.location.clone())
+                    }
+                } catch (e: Exception) {
                     cancel()
                     runCatching { player.removePotionEffect(PotionEffectType.LEVITATION) }
                     finishWith(player.location.clone())
@@ -258,24 +301,111 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         object : BukkitRunnable() {
             var t = 0
             override fun run() {
-                if (!player.isOnline) { cancel(); finishWith(player.location.clone()); return }
-                val base = player.location
-                for (arm in 0..1) {
-                    val ang = t * 0.5 + arm * Math.PI
-                    val r = 1.6 - (t.toDouble() / duration) * 0.7
-                    val y = (t.toDouble() / duration) * 2.8
-                    world.spawnParticle(
-                        particle("CLOUD"),
-                        base.clone().add(Math.cos(ang) * r, y, Math.sin(ang) * r),
-                        3, 0.05, 0.05, 0.05, 0.0,
+                try {
+                    if (!player.isOnline) { cancel(); finishWith(player.location.clone()); return }
+                    val base = player.location
+                    for (arm in 0..1) {
+                        val ang = t * 0.5 + arm * Math.PI
+                        val r = 1.6 - (t.toDouble() / duration) * 0.7
+                        val y = (t.toDouble() / duration) * 2.8
+                        world.spawnParticle(
+                            particle("CLOUD"),
+                            base.clone().add(Math.cos(ang) * r, y, Math.sin(ang) * r),
+                            3, 0.05, 0.05, 0.05, 0.0,
+                        )
+                        world.spawnParticle(
+                            particle("END_ROD", "CRIT"),
+                            base.clone().add(Math.cos(ang + 0.7) * r, y * 0.6, Math.sin(ang + 0.7) * r),
+                            1, 0.0, 0.0, 0.0, 0.0,
+                        )
+                    }
+                    if (++t >= duration) { cancel(); finishWith(player.location.clone()) }
+                } catch (e: Exception) {
+                    cancel()
+                    finishWith(player.location.clone())
+                }
+            }
+        }.runTaskTimer(plugin, 0L, 1L)
+    }
+
+    /**
+     * A burning comet streaks down from the sky at an angle and detonates on
+     * the frozen player. The impact IS finishWith - one boom, loot scattered.
+     */
+    private fun playMeteor(player: Player, finishWith: (Location) -> Unit) {
+        val world = player.world
+        val duration = plugin.configManager.animationDurationTicks
+        val fall = (duration * 2 / 3).coerceAtLeast(15)
+        playSound(player.location, "ENTITY_GHAST_SHOOT", 1f, 0.5f)
+
+        object : BukkitRunnable() {
+            var t = 0
+            override fun run() {
+                try {
+                    if (!player.isOnline) { cancel(); finishWith(player.location.clone()); return }
+                    val remaining = 1.0 - t.toDouble() / fall
+                    val pos = player.location.clone().add(
+                        remaining * 7.0,
+                        remaining * 15.0 + 1.0,
+                        remaining * 5.0,
                     )
+                    world.spawnParticle(particle("FLAME"), pos, 12, 0.25, 0.25, 0.25, 0.01)
+                    world.spawnParticle(particle("LAVA"), pos, 2, 0.1, 0.1, 0.1, 0.0)
+                    world.spawnParticle(particle("LARGE_SMOKE", "SMOKE_LARGE", "SMOKE"), pos, 5, 0.2, 0.2, 0.2, 0.01)
+                    if (t % 5 == 0) playSound(pos, "BLOCK_FIRE_AMBIENT", 1f, 0.6f)
+                    if (++t >= fall) {
+                        cancel()
+                        val impact = player.location.clone()
+                        world.spawnParticle(particle("FLAME"), impact, 70, 1.4, 0.5, 1.4, 0.08)
+                        world.spawnParticle(particle("LAVA"), impact, 12, 1.0, 0.4, 1.0, 0.0)
+                        finishWith(impact)
+                    }
+                } catch (e: Exception) {
+                    cancel()
+                    finishWith(player.location.clone())
+                }
+            }
+        }.runTaskTimer(plugin, 0L, 1L)
+    }
+
+    /**
+     * A glowing cage of particle bars closes in around the player, chiming as
+     * it shrinks, then slams shut into the explosion.
+     */
+    private fun playCage(player: Player, finishWith: (Location) -> Unit) {
+        val world = player.world
+        val duration = plugin.configManager.animationDurationTicks
+        playSound(player.location, "BLOCK_ANVIL_LAND", 0.6f, 0.5f)
+
+        object : BukkitRunnable() {
+            var t = 0
+            override fun run() {
+                try {
+                    if (!player.isOnline) { cancel(); finishWith(player.location.clone()); return }
+                    val base = player.location
+                    val radius = 2.4 - (t.toDouble() / duration) * 1.7
+                    val bars = 8
+                    for (i in 0 until bars) {
+                        val ang = Math.PI * 2 * i / bars + t * 0.05
+                        val x = Math.cos(ang) * radius
+                        val z = Math.sin(ang) * radius
+                        var y = 0.0
+                        while (y <= 2.4) {
+                            world.spawnParticle(particle("END_ROD", "CRIT"), base.clone().add(x, y, z), 1, 0.0, 0.0, 0.0, 0.0)
+                            y += 0.5
+                        }
+                    }
+                    // Closing ring overhead.
                     world.spawnParticle(
                         particle("END_ROD", "CRIT"),
-                        base.clone().add(Math.cos(ang + 0.7) * r, y * 0.6, Math.sin(ang + 0.7) * r),
-                        1, 0.0, 0.0, 0.0, 0.0,
+                        base.clone().add(0.0, 2.6, 0.0), 4, radius * 0.4, 0.05, radius * 0.4, 0.0,
                     )
+                    if (t % 12 == 0) playSound(base, "BLOCK_AMETHYST_BLOCK_CHIME", 1f, 0.6f)
+                    if (++t >= duration) { cancel(); finishWith(base.clone()) }
+                } catch (e: Exception) {
+                    cancel()
+                    finishWith(player.location.clone())
                 }
-                if (++t >= duration) { cancel(); finishWith(player.location.clone()) }
             }
         }.runTaskTimer(plugin, 0L, 1L)
     }
@@ -311,7 +441,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
     }
 
     private companion object {
-        val TYPES = listOf("pig", "explode", "particles", "lightning", "vortex")
+        val TYPES = listOf("pig", "explode", "particles", "lightning", "vortex", "meteor", "cage")
         const val RISE_SPEED = 0.35
     }
 }

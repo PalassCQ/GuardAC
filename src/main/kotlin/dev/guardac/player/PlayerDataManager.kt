@@ -37,6 +37,7 @@ class PlayerDataManager(private val plugin: GuardAC) : Listener {
     @EventHandler(priority = EventPriority.LOWEST)
     fun onJoin(event: PlayerJoinEvent) {
         val gp = add(event.player)
+        plugin.banAnimationManager.onJoin(event.player)
         restorePersistedBuffer(gp)
         checkReputation(gp)
     }

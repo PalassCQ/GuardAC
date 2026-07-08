@@ -82,7 +82,7 @@ animations:
   # На любом уровне наказания с реальной командой (бан/кик) автоматически
   # проигрывать случайную анимацию перед ней (даже если [animation] не прописан).
   auto-on-ban: true
-  # pig | explode | particles | lightning | vortex
+  # pig | explode | particles | lightning | vortex | meteor | cage
   default: particles
   duration-ticks: 60
   particle: FLAME

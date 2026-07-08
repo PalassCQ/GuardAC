@@ -18,7 +18,7 @@
 #   [wait] <время>    - пауза (2s, 40t, 500ms)
 #   [broadcast] <msg> - сообщение всем игрокам
 #   [animation] <тип> - визуальная анимация ПЕРЕД следующим действием:
-#                       pig | explode | particles | lightning | vortex
+#                       pig | explode | particles | lightning | vortex | meteor | cage
 #                       (настройки в config.yml -> animations)
 #   <команда>         - выполнить от имени консоли
 #

@@ -93,7 +93,7 @@ class PunishmentManager(private val plugin: GuardAC) {
         return PunishGroup(listOf(AI_CHECK), actions)
     }
 
-    fun handle(gp: GuardPlayer, checkGroup: String, vl: Int, verbose: String) {
+    fun handle(gp: GuardPlayer, checkGroup: String, vl: Int, verbose: String, bypassCooldown: Boolean = false) {
         val group = groups[checkGroup]
             ?: groups.values.firstOrNull { g ->
                 g.checks.any { it.equals(checkGroup, ignoreCase = true) }
@@ -103,15 +103,20 @@ class PunishmentManager(private val plugin: GuardAC) {
         val entry = group.actions.floorEntry(vl) ?: return
         val actions = entry.value
 
+        // The cooldown exists to stop auto-flag storms from stacking bans; a manual
+        // staff punish is a deliberate decision and must never be silently eaten by
+        // a flag that happened a few seconds earlier.
         val cooldownMs = plugin.configManager.punishCooldownMs
         if (cooldownMs > 0) {
             val now = System.currentTimeMillis()
-            val last = lastPunishTime[gp.uuid]
-            if (last != null && (now - last) < cooldownMs) {
-                if (plugin.configManager.debugEnabled) {
-                    plugin.logger.info("[Punish] Cooldown active for ${gp.player.name} - skipping (${now - last}ms < ${cooldownMs}ms)")
+            if (!bypassCooldown) {
+                val last = lastPunishTime[gp.uuid]
+                if (last != null && (now - last) < cooldownMs) {
+                    if (plugin.configManager.debugEnabled) {
+                        plugin.logger.info("[Punish] Cooldown active for ${gp.player.name} - skipping (${now - last}ms < ${cooldownMs}ms)")
+                    }
+                    return
                 }
-                return
             }
             lastPunishTime[gp.uuid] = now
         }

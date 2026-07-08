@@ -86,7 +86,6 @@ enum class Message(val key: String) {
 
     PUNISH_SUCCESS("punish-success"),
     PUNISH_NO_DATA("punish-no-data"),
-    PUNISH_NO_EVIDENCE("punish-no-evidence"),
     UNSAFE_NAME_KICK("unsafe-name-kick"),
 
     SCAN_STARTED("scan-started"),

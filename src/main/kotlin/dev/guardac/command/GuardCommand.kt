@@ -93,7 +93,6 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
                     "remove", "status" -> online.filter { it.startsWith(args[2], ignoreCase = true) }
                     else -> emptyList()
                 }
-                "punish" -> listOf("confirm").filter { it.startsWith(args[2].lowercase()) }
                 else -> emptyList()
             }
             else -> emptyList()
@@ -337,32 +336,17 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
             ?: return sender.sendMessage(plugin.locale.get(Message.PLAYER_NOT_FOUND, "player", name))
         val gp = plugin.playerDataManager.get(target)
             ?: return sender.sendMessage(plugin.locale.get(Message.PUNISH_NO_DATA))
-
-        // Evidence gate: a manual top-tier punishment against a player with zero
-        // VL, zero buffer and zero detections is almost always a mistake (wrong
-        // nick, wrong window). "confirm" forces it through; every call is logged
-        // with the staff name either way.
-        val forced = args.getOrNull(2)?.equals("confirm", ignoreCase = true) == true
-        val hasEvidence = gp.aiViolationLevel > 0 || gp.aiBuffer > 0.0 || gp.totalAiFlags.get() > 0
-        if (!hasEvidence && !forced) {
-            plugin.logger.warning(
-                "[Punish] BLOCKED: manual punish by ${sender.name} on ${target.name} - no VL/buffer/detections. " +
-                "Force with /guard punish ${target.name} confirm"
-            )
-            sender.sendMessage(plugin.locale.get(Message.PUNISH_NO_EVIDENCE, "player", target.name))
-            return
-        }
         plugin.logger.info(
             "[Punish] Manual punish by ${sender.name} on ${target.name} " +
             "(vl=${gp.aiViolationLevel}, buffer=${"%.1f".format(gp.aiBuffer)}, " +
-            "detections=${gp.totalAiFlags.get()}, forced=$forced)"
+            "detections=${gp.totalAiFlags.get()})"
         )
         val verbose = "manual-punish by ${sender.name}"
 
         val maxVl = plugin.punishmentManager.maxVl("AI")
         plugin.alertManager.sendAlert(gp, "Manual", maxVl, verbose, "[Manual]")
 
-        plugin.punishmentManager.handle(gp, "AI", maxVl, verbose)
+        plugin.punishmentManager.handle(gp, "AI", maxVl, verbose, bypassCooldown = true)
         sender.sendMessage(plugin.locale.get(Message.PUNISH_SUCCESS, "player", target.name))
     }
 
