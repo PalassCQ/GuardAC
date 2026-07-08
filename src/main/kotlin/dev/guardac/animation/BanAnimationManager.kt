@@ -30,8 +30,19 @@ import org.bukkit.potion.PotionEffect
 import org.bukkit.potion.PotionEffectType
 import org.bukkit.scheduler.BukkitRunnable
 import org.bukkit.util.Vector
+import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 
 class BanAnimationManager(private val plugin: GuardAC) {
+
+    private val animating: MutableSet<UUID> = ConcurrentHashMap.newKeySet()
+
+    fun isAnimating(uuid: UUID): Boolean = uuid in animating
+
+    fun onQuit(uuid: UUID) {
+        animating.remove(uuid)
+    }
 
     fun playRandom(player: Player, onComplete: () -> Unit) = play(player, TYPES.random(), onComplete)
 
@@ -39,12 +50,24 @@ class BanAnimationManager(private val plugin: GuardAC) {
         val cfg = plugin.configManager
         if (!cfg.animationsEnabled || !player.isOnline) { onComplete(); return }
 
+        if (!animating.add(player.uniqueId)) { onComplete(); return }
+
+        val done = AtomicBoolean(false)
+        val complete: () -> Unit = {
+            if (done.compareAndSet(false, true)) {
+                animating.remove(player.uniqueId)
+                onComplete()
+            }
+        }
+
         val resolved = (type?.trim()?.lowercase()?.ifBlank { null }) ?: cfg.animationDefault
         when (resolved) {
-            "pig"       -> playPig(player, onComplete)
-            "explode"   -> playExplode(player, onComplete)
-            "particles" -> playParticles(player, onComplete)
-            else        -> onComplete()
+            "pig"       -> playPig(player, complete)
+            "explode"   -> playExplode(player, complete)
+            "particles" -> playParticles(player, complete)
+            "lightning" -> playLightning(player, complete)
+            "vortex"    -> playVortex(player, complete)
+            else        -> complete()
         }
     }
 
@@ -59,6 +82,7 @@ class BanAnimationManager(private val plugin: GuardAC) {
             setGravity(false)
             setAI(false)
             isSilent = false
+            isInvulnerable = true
             addPassenger(player)
         }
 
@@ -126,11 +150,65 @@ class BanAnimationManager(private val plugin: GuardAC) {
         }.runTaskTimer(plugin, 0L, 1L)
     }
 
+    private fun playLightning(player: Player, onComplete: () -> Unit) {
+        dropResources(player)
+        val duration = plugin.configManager.animationDurationTicks
+        val gap = (duration / 4).coerceAtLeast(1).toLong()
+
+        for (i in 0..2) {
+            Bukkit.getScheduler().runTaskLater(plugin, Runnable {
+                if (!player.isOnline) return@Runnable
+                runCatching { player.world.strikeLightningEffect(player.location) }
+                player.world.spawnParticle(
+                    particle("ELECTRIC_SPARK", "CRIT"),
+                    player.location.clone().add(0.0, 1.0, 0.0), 25, 0.5, 0.8, 0.5, 0.05,
+                )
+            }, gap * i)
+        }
+        Bukkit.getScheduler().runTaskLater(plugin, Runnable {
+            explode(player.location.clone())
+            onComplete()
+        }, gap * 3)
+    }
+
+    private fun playVortex(player: Player, onComplete: () -> Unit) {
+        val world = player.world
+        dropResources(player)
+        val duration = plugin.configManager.animationDurationTicks
+        playSound(player.location, "ENTITY_PHANTOM_FLAP", 1f, 0.6f)
+
+        object : BukkitRunnable() {
+            var t = 0
+            override fun run() {
+                if (!player.isOnline) { cancel(); onComplete(); return }
+                val base = player.location
+                for (arm in 0..1) {
+                    val ang = t * 0.5 + arm * Math.PI
+                    val r = 1.6 - (t.toDouble() / duration) * 0.7
+                    val y = (t.toDouble() / duration) * 2.8
+                    world.spawnParticle(
+                        particle("CLOUD"),
+                        base.clone().add(Math.cos(ang) * r, y, Math.sin(ang) * r),
+                        3, 0.05, 0.05, 0.05, 0.0,
+                    )
+                    world.spawnParticle(
+                        particle("END_ROD", "CRIT"),
+                        base.clone().add(Math.cos(ang + 0.7) * r, y * 0.6, Math.sin(ang + 0.7) * r),
+                        1, 0.0, 0.0, 0.0, 0.0,
+                    )
+                }
+                if (t == duration / 2) player.velocity = Vector(0.0, 0.9, 0.0)
+                if (++t >= duration) { cancel(); explode(player.location.clone()); onComplete() }
+            }
+        }.runTaskTimer(plugin, 0L, 1L)
+    }
+
     private fun dropResources(player: Player) {
         if (!plugin.configManager.animationDropInventory) return
         val inv = player.inventory
         val loc = player.location
-        (inv.contents.asList() + inv.armorContents.asList()).forEach { item ->
+
+        inv.contents.forEach { item ->
             if (item != null && item.type != Material.AIR) {
                 runCatching { player.world.dropItemNaturally(loc, item.clone()) }
             }
@@ -157,7 +235,7 @@ class BanAnimationManager(private val plugin: GuardAC) {
     }
 
     private companion object {
-        val TYPES = listOf("pig", "explode", "particles")
+        val TYPES = listOf("pig", "explode", "particles", "lightning", "vortex")
         const val RISE_SPEED = 0.35
     }
 }

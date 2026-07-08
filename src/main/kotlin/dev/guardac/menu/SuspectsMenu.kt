@@ -103,7 +103,7 @@ class SuspectsMenu(
             color("&8» &7Уровень       &f${gp.aiViolationLevel}"),
             color("&8» &7Пинг          &f${gp.player.ping} мс"),
             color(""),
-            color("&e▶ &7Клик — наблюдать (спектатор)"),
+            color("&e▶ &7Клик - наблюдать (спектатор)"),
         )
         skull.itemMeta = meta
         return skull

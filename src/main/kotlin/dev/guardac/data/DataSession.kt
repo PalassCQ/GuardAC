@@ -59,7 +59,7 @@ class DataSession(
     @Throws(IOException::class)
     fun saveAndClose(plugin: GuardAC) {
         if (recordedTicks.isEmpty()) {
-            plugin.logger.warning("[DataCollect] Session for $player has 0 ticks — skipping save.")
+            plugin.logger.warning("[DataCollect] Session for $player has 0 ticks - skipping save.")
             return
         }
         val dir = plugin.configManager.datacollectionFolder.also { it.mkdirs() }

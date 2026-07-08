@@ -45,6 +45,7 @@ enum class Message(val key: String) {
     PROFILE_SENSITIVITY("profile-sensitivity"),
     PROFILE_RIDING("profile-riding"),
     PROFILE_PING_BUCKET("profile-ping-bucket"),
+    PROFILE_BRAND("profile-brand"),
     PROFILE_AVG_PROB("profile-avg-prob"),
 
     SUSPICIOUS_HEADER("suspicious-header"),
@@ -99,9 +100,6 @@ enum class Message(val key: String) {
     SCAN_PARTIAL_NOTE("scan-partial-note"),
     USAGE_SCAN("usage-scan"),
     HELP_SCAN("help-scan"),
-
-    PROFILE_TRUST_ON("profile-trust-on"),
-    PROFILE_TRUST_OFF("profile-trust-off"),
 
     STATS_HEADER("stats-header"),
     STATS_ONLINE("stats-online"),

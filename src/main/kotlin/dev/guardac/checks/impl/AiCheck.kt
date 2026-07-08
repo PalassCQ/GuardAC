@@ -30,28 +30,37 @@ import kotlin.math.abs
 class AiCheck(private val plugin: GuardAC) : SequenceCheck {
 
     override fun onSequence(gp: GuardPlayer, ticks: Array<TickData>) {
-        if (!plugin.configManager.aiEnabled) return
+        val cfg = plugin.configManager
+        if (!cfg.aiEnabled) return
         if (gp.isRiding) return
 
-        if (plugin.configManager.geyserExemptBedrock && gp.isBedrock) return
+        if (cfg.geyserExemptBedrock && gp.isBedrock) return
 
         if (plugin.worldGuardCompat.shouldBypass(gp.player)) return
 
-        if (isBelowMovementThreshold(ticks)) return
-
         val scanning = plugin.scanManager.isScanning(gp.uuid)
 
-        if (!scanning && gp.shouldSkipForTrust()) return
+        // The window must contain enough real aim movement before we judge it: a
+        // near-static camera carries no signal and only adds noise. Raising this
+        // means the model reacts to a hit only after clear camera work.
+        if (isBelowMovementThreshold(ticks, cfg.aiMinMovement)) return
+
+        // Lag guard: when the server TPS drops, tick timing is stretched and the
+        // movement features look unnatural - that is exactly when a laggy but
+        // legit player can read as a cheat. Skip analysis during a drop so lag
+        // never becomes a detection. A Deep Scan (explicit staff request) overrides.
+        val minTps = cfg.aiMinTpsAnalyze
+        if (!scanning && minTps > 0.0 && plugin.tpsMonitor.tps < minTps) return
 
         plugin.aiTransport.infer(ticks, scanning)
             .thenAccept { result -> handleResult(gp, result) }
     }
 
-    private fun isBelowMovementThreshold(ticks: Array<TickData>): Boolean {
+    private fun isBelowMovementThreshold(ticks: Array<TickData>, minMovement: Double): Boolean {
         var sum = 0.0
         for (t in ticks) {
             sum += abs(t.deltaYaw) + abs(t.deltaPitch)
-            if (sum >= MIN_WINDOW_MOVEMENT) return false
+            if (sum >= minMovement) return false
         }
         return true
     }
@@ -89,7 +98,6 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
                 plugin.scanManager.onResult(gp.uuid, prob, result.sources)
 
                 if (gp.checkFingerprintDrift()) {
-                    gp.revokeTrust()
                     plugin.alertManager.sendFingerprintAlert(gp)
                 }
 
@@ -153,7 +161,5 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
 
     companion object {
         private const val CHECK_NAME = "AI"
-
-        const val MIN_WINDOW_MOVEMENT = 5.0
     }
 }

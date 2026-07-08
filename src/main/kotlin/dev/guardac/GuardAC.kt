@@ -26,6 +26,7 @@ import dev.guardac.ai.RetryingAiTransport
 import dev.guardac.alert.AlertManager
 import dev.guardac.alert.CrossServerListener
 import dev.guardac.animation.BanAnimationManager
+import dev.guardac.brand.ClientBrandListener
 import dev.guardac.checks.CheckRegistry
 import dev.guardac.combat.DamageListener
 import dev.guardac.combat.SuppressionManager
@@ -151,6 +152,12 @@ class GuardAC : JavaPlugin() {
             server.messenger.registerIncomingPluginChannel(this, AlertManager.CROSS_CHANNEL, CrossServerListener(this))
         }
 
+        if (configManager.clientBrandEnabled) {
+            runCatching {
+                server.messenger.registerIncomingPluginChannel(this, ClientBrandListener.BRAND_CHANNEL, ClientBrandListener(this))
+            }.onFailure { logger.warning("[GuardAC] Не удалось включить детект клиент-бренда: ${it.message}") }
+        }
+
         val guardCommand = GuardCommand(this)
         getCommand("guard")?.setExecutor(guardCommand)
         getCommand("guard")?.tabCompleter = guardCommand
@@ -211,8 +218,8 @@ class GuardAC : JavaPlugin() {
         runCatching {
             if (configManager.crossServerEnabled) {
                 server.messenger.unregisterOutgoingPluginChannel(this)
-                server.messenger.unregisterIncomingPluginChannel(this)
             }
+            server.messenger.unregisterIncomingPluginChannel(this)
         }
         logger.info("GuardAC disabled.")
     }
@@ -239,7 +246,7 @@ class GuardAC : JavaPlugin() {
             val key = configManager.aiApiKey
             if (key.isBlank() || key == "PASTE-YOUR-GUARDAC-KEY" || key == "changeme") {
                 logger.warning("[GuardAC] API-ключ не задан (ai.api-key). Получи ключ на " +
-                    "${configManager.aiServer} и впиши в config.yml — " +
+                    "${configManager.aiServer} и впиши в config.yml - " +
                     "иначе инференс будет отклонён сервером (401).")
             }
         }

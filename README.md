@@ -30,7 +30,7 @@ of edge cases such as lag, teleports and reconnects.
 
 - Java 17 or newer to run the plugin
 - JDK 21 or newer to build from source
-- Spigot, Paper or Folia — Minecraft 1.21.x
+- Spigot, Paper or Folia - Minecraft 1.21.x
 - A GuardAC API key if the aim check is enabled
 
 ## Installation

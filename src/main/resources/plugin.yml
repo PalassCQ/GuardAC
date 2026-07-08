@@ -5,7 +5,7 @@ api-version: 1.16
 authors:
   - Palass
 website: https://github.com/PalassCQ/GuardAC
-description: GuardAC — AI-powered anticheat with a TCN combat model. One smart check, zero clutter.
+description: GuardAC - AI-powered anticheat with a TCN combat model. One smart check, zero clutter.
 depend:
   - packetevents
 softdepend:

@@ -58,7 +58,11 @@ class PacketListener(private val plugin: GuardAC) :
                 val w = WrapperPlayClientPlayerRotation(event)
                 handleRotation(gp, w.yaw, w.pitch)
             }
+            PacketType.Play.Client.PLAYER_POSITION -> {
+                gp.noteMovement()
+            }
             PacketType.Play.Client.PLAYER_POSITION_AND_ROTATION -> {
+                gp.noteMovement()
                 val w = WrapperPlayClientPlayerPositionAndRotation(event)
                 handleRotation(gp, w.yaw, w.pitch)
             }
@@ -82,6 +86,9 @@ class PacketListener(private val plugin: GuardAC) :
 
         val dyaw   = gp.rotation.deltaYaw
         val dpitch = gp.rotation.deltaPitch
+        // Zeros are recorded too - a frozen crosshair must AGE OUT the recent-aim
+        // window, otherwise one old flick would keep gating attacks open forever.
+        gp.noteAimActivity(dyaw, dpitch)
         if (dyaw == 0f && dpitch == 0f) return
 
         plugin.checkRegistry.rotationChecks.forEach { it.onRotation(gp) }
@@ -106,7 +113,23 @@ class PacketListener(private val plugin: GuardAC) :
         val targetUuid = plugin.playerDataManager.uuidByEntityId(entityId) ?: return
         if (targetUuid == player.uniqueId) return
 
+        // A hit only counts for analysis when the camera actually moved recently:
+        // near-static aim carries no signal, so such hits are ignored entirely
+        // instead of feeding noise windows to the model. A moving player is held
+        // to a higher bar - real strafing PvP always comes with camera work,
+        // while a player standing still legitimately turns less.
+        val minRotation = if (gp.isMovingRecently) MIN_HIT_ROTATION_MOVING else MIN_HIT_ROTATION_STILL
+        if (gp.recentAimSum() < minRotation) return
+
         gp.combat.recordAttack()
+    }
+
+    private companion object {
+        // Degrees of camera movement (|yaw|+|pitch| over the last ~10 ticks)
+        // required for a hit to count. Not configurable on purpose - a public
+        // knob here would just tell cheat developers what to stay under.
+        const val MIN_HIT_ROTATION_STILL  = 4.0
+        const val MIN_HIT_ROTATION_MOVING = 8.0
     }
 
     private fun buildTick(gp: GuardPlayer) = TickData(

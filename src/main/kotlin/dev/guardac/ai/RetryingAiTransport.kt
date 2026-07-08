@@ -58,7 +58,7 @@ class RetryingAiTransport(
             if (!halfOpenProbeInFlight.compareAndSet(false, true)) {
                 return CompletableFuture.completedFuture(InferenceResult.Disabled)
             }
-            plugin.logger.info("[GuardAC] AI circuit breaker HALF-OPEN — отправляем probe-запрос.")
+            plugin.logger.info("[GuardAC] AI circuit breaker HALF-OPEN - отправляем probe-запрос.")
         }
 
         return attempt(ticks, priority, attempt = 1)
@@ -102,7 +102,7 @@ class RetryingAiTransport(
         halfOpenProbeInFlight.set(false)
         circuitOpenUntil = 0L
         if (wasOpen) {
-            plugin.logger.info("[GuardAC] AI circuit breaker CLOSED — соединение восстановлено.")
+            plugin.logger.info("[GuardAC] AI circuit breaker CLOSED - соединение восстановлено.")
         }
     }
 
@@ -113,7 +113,7 @@ class RetryingAiTransport(
             val until = System.currentTimeMillis() + CIRCUIT_HALF_OPEN_DELAY_MS
             circuitOpenUntil = until
             plugin.logger.warning(
-                "[GuardAC] AI circuit breaker OPEN — ${failures} ошибок подряд. " +
+                "[GuardAC] AI circuit breaker OPEN - ${failures} ошибок подряд. " +
                 "Возобновление через ${CIRCUIT_HALF_OPEN_DELAY_MS / 1000}с. Причина: ${cause.message}"
             )
         } else if (plugin.configManager.debugEnabled) {

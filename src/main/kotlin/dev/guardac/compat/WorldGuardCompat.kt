@@ -54,7 +54,7 @@ class WorldGuardCompat(
             false
         }
         if (enabled && available) logger.info("[WorldGuard] Интеграция включена.")
-        else if (enabled) logger.warning("[WorldGuard] Плагин не найден — проверка регионов отключена.")
+        else if (enabled) logger.warning("[WorldGuard] Плагин не найден - проверка регионов отключена.")
     }
 
     fun shouldBypass(player: Player): Boolean {

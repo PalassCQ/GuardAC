@@ -64,13 +64,13 @@ class PunishmentManager(private val plugin: GuardAC) {
         } catch (e: Exception) {
             plugin.logger.warning(
                 "[Punish] Не удалось прочитать punishments.yml (${e.message}). " +
-                "Использую встроенный дефолт — детект и алерты продолжают работать."
+                "Использую встроенный дефолт - детект и алерты продолжают работать."
             )
         }
 
         if (!hasGroupFor(AI_CHECK)) {
             groups[AI_CHECK] = defaultAiGroup()
-            plugin.logger.info("[Punish] Для AI нет настроек наказаний — включён встроенный дефолт (alert+log).")
+            plugin.logger.info("[Punish] Для AI нет настроек наказаний - включён встроенный дефолт (alert+log).")
         }
     }
 
@@ -107,7 +107,7 @@ class PunishmentManager(private val plugin: GuardAC) {
             val last = lastPunishTime[gp.uuid]
             if (last != null && (now - last) < cooldownMs) {
                 if (plugin.configManager.debugEnabled) {
-                    plugin.logger.info("[Punish] Cooldown active for ${gp.player.name} — skipping (${now - last}ms < ${cooldownMs}ms)")
+                    plugin.logger.info("[Punish] Cooldown active for ${gp.player.name} - skipping (${now - last}ms < ${cooldownMs}ms)")
                 }
                 return
             }

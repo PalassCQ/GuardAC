@@ -80,7 +80,7 @@ class LocaleManager(private val plugin: GuardAC) {
             }
             if (added > 0) {
                 onDisk.save(file)
-                plugin.logger.info("[GuardAC] messages_$locale.yml: добавлено новых строк — $added.")
+                plugin.logger.info("[GuardAC] messages_$locale.yml: добавлено новых строк - $added.")
             }
         } catch (e: Exception) {
             plugin.logger.warning("[GuardAC] Не удалось обновить messages_$locale.yml: ${e.message}")

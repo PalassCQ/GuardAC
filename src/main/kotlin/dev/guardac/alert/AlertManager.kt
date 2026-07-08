@@ -139,10 +139,10 @@ class AlertManager(private val plugin: GuardAC) {
 
     fun sendReputationNotice(playerName: String, detections: Int, servers: Int) {
         if (plugin.configManager.alertsToConsole) {
-            plugin.logger.info("[Reputation] $playerName — $detections detections on $servers other server(s)")
+            plugin.logger.info("[Reputation] $playerName - $detections detections on $servers other server(s)")
         }
         val msg = Colors.translate(
-            "&8[&cGuardAC&8] &eИгрок &f$playerName &eзамечен на &c$servers&e др. сервер(ах) — &c$detections&e детектов."
+            "&8[&cGuardAC&8] &eИгрок &f$playerName &eзамечен на &c$servers&e др. сервер(ах) - &c$detections&e детектов."
         )
         Bukkit.getScheduler().runTask(plugin, Runnable {
             Bukkit.getOnlinePlayers()

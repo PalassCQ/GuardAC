@@ -58,7 +58,7 @@ class ConfigManager(private val plugin: GuardAC) {
             if (added > 0) {
                 plugin.saveConfig()
                 plugin.logger.info(
-                    "[GuardAC] config.yml: добавлено новых ключей из свежей версии плагина — $added " +
+                    "[GuardAC] config.yml: добавлено новых ключей из свежей версии плагина - $added " +
                     "(текущие значения не тронуты). Загляни в config.yml, если хочешь их настроить."
                 )
             }
@@ -132,6 +132,15 @@ class ConfigManager(private val plugin: GuardAC) {
     val aiTimeoutSeconds: Long get() = cfg.getLong("ai.timeout-seconds", 5)
     val aiContinuous: Boolean  get() = cfg.getBoolean("ai.continuous", false)
 
+    // How much total aim movement (sum of |yaw|+|pitch| over the window) must be
+    // present before the model judges a window. Higher = react only after real
+    // camera work, fewer false reads on near-static aim.
+    val aiMinMovement: Double  get() = cfg.getDouble("ai.min-movement", 15.0)
+
+    // Skip analysis when server TPS is below this (0 = off): a lag drop distorts
+    // tick timing and can make a legit player look like a cheat.
+    val aiMinTpsAnalyze: Double get() = cfg.getDouble("ai.min-tps-analyze", 15.0)
+
     val aiOnlyAlert: Boolean   get() = cfg.getBoolean("ai.only-alert", false)
 
     val aiBufferFlag: Double        get() = cfg.getDouble("ai.buffer.flag", 50.0)
@@ -195,6 +204,8 @@ class ConfigManager(private val plugin: GuardAC) {
 
     val geyserExemptBedrock: Boolean get() = cfg.getBoolean("geyser.exempt-bedrock", true)
 
+    val clientBrandEnabled: Boolean get() = cfg.getBoolean("client-brand.enabled", true)
+
     val worldGuardEnabled: Boolean         get() = cfg.getBoolean("worldguard.enabled", false)
     val worldGuardDisabledRegions: List<String> get() = cfg.getStringList("worldguard.disabled-regions")
 
@@ -220,10 +231,6 @@ class ConfigManager(private val plugin: GuardAC) {
 
     val scanWindowsDefault: Int  get() = cfg.getInt("deep-scan.windows", 8)
     val scanTimeoutSeconds: Int  get() = cfg.getInt("deep-scan.timeout-seconds", 120)
-
-    val trustEnabled: Boolean       get() = cfg.getBoolean("trust.enabled", true)
-    val trustMinCleanWindows: Int   get() = cfg.getInt("trust.min-clean-windows", 300)
-    val trustSampleEvery: Int       get() = cfg.getInt("trust.sample-every", 3)
 
     val reputationEnabled: Boolean     get() = cfg.getBoolean("reputation.enabled", true)
     val reputationReport: Boolean      get() = cfg.getBoolean("reputation.report", true)

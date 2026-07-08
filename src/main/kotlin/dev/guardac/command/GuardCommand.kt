@@ -171,25 +171,15 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
         ))
         sender.sendMessage(plugin.locale.get(Message.PROFILE_RIDING, "riding", if (gp.isRiding) "&cДа" else "&aНет"))
         sender.sendMessage(plugin.locale.get(Message.PROFILE_PING_BUCKET, "bucket", gp.pingBucket.toString()))
+        gp.clientBrand?.let { brand ->
+            sender.sendMessage(plugin.locale.get(Message.PROFILE_BRAND, "brand", brand))
+        }
         if (plugin.configManager.suppressionEnabled) {
             sender.sendMessage(plugin.locale.get(
                 Message.PROFILE_SUPPRESSION,
                 "stage",   suppressionStageTag(gp.suppressionStage),
                 "penalty", "%.0f".format(gp.currentAttackSpeedPenalty() * 100.0),
             ))
-        }
-        if (plugin.configManager.trustEnabled) {
-            sender.sendMessage(
-                if (gp.isTrusted) plugin.locale.get(
-                    Message.PROFILE_TRUST_ON,
-                    "saved", gp.trustSavedRequests.get().toString(),
-                )
-                else plugin.locale.get(
-                    Message.PROFILE_TRUST_OFF,
-                    "clean", gp.trustCleanCount.toString(),
-                    "needed", plugin.configManager.trustMinCleanWindows.toString(),
-                )
-            )
         }
     }
 
@@ -211,7 +201,7 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
     }
 
     private fun suppressionStageTag(stage: SuppressionStage): String = when (stage) {
-        SuppressionStage.NONE    -> "&8—"
+        SuppressionStage.NONE    -> "&8-"
         SuppressionStage.DAMPEN  -> "&#FFC857Dampen"
         SuppressionStage.ISOLATE -> "&#FF4D6DIsolate"
     }

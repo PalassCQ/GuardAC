@@ -42,6 +42,9 @@ class GuardPlayer(
 
     val joinTime: Long = System.currentTimeMillis()
 
+    // What the client reports itself as (minecraft:brand); null until it arrives.
+    @Volatile var clientBrand: String? = null
+
     private val sequenceSize get() = plugin.configManager.aiSequence
     private val tickBuffer   = ArrayDeque<TickData>(plugin.configManager.aiSequence * 2)
     private var ticksSinceLastSend = 0
@@ -78,6 +81,36 @@ class GuardPlayer(
         TeleportPhase.WAITING -> true
         TeleportPhase.JUST_CONFIRMED -> { teleportPhase = TeleportPhase.NONE; true }
     }
+
+    // Rolling record of aim movement over the last AIM_ACTIVITY_WINDOW rotation
+    // ticks. Written on every processed movement packet (zeros included), so an
+    // attack can be gated on "was the camera actually moving just now" - a hit
+    // thrown with a near-static crosshair carries no useful signal.
+    private val recentAim = FloatArray(AIM_ACTIVITY_WINDOW)
+    private var recentAimIdx = 0
+
+    fun noteAimActivity(deltaYaw: Float, deltaPitch: Float) {
+        recentAim[recentAimIdx] = abs(deltaYaw) + abs(deltaPitch)
+        recentAimIdx = (recentAimIdx + 1) % recentAim.size
+    }
+
+    fun recentAimSum(): Double {
+        var sum = 0.0
+        for (v in recentAim) sum += v
+        return sum
+    }
+
+    // Last time the client sent a position-changing packet. Lets the attack gate
+    // distinguish a standing player (barely turns while clicking) from a moving
+    // one (real strafing PvP always comes with camera work).
+    @Volatile private var lastMoveMs: Long = 0L
+
+    fun noteMovement() {
+        lastMoveMs = System.currentTimeMillis()
+    }
+
+    val isMovingRecently: Boolean
+        get() = System.currentTimeMillis() - lastMoveMs < MOVE_RECENT_MS
 
     val lastMonitorHitMs: AtomicLong = AtomicLong(0L)
     val lastAlertMs: AtomicLong      = AtomicLong(0L)
@@ -160,44 +193,6 @@ class GuardPlayer(
 
     val isBedrock: Boolean by lazy { GeyserUtil.isBedrock(uuid) }
 
-    private var trustCleanWindows = 0
-    private var trustSampleCounter = 0
-    val trustSavedRequests: AtomicInteger = AtomicInteger(0)
-
-    val isTrusted: Boolean
-        get() {
-            val cfg = plugin.configManager
-            return cfg.trustEnabled &&
-                totalAiFlags.get() == 0 &&
-                trustCleanWindows >= cfg.trustMinCleanWindows
-        }
-
-    val trustCleanCount: Int get() = trustCleanWindows
-
-    @Synchronized
-    fun shouldSkipForTrust(): Boolean {
-        if (!isTrusted) return false
-        val every = plugin.configManager.trustSampleEvery.coerceAtLeast(1)
-        trustSampleCounter++
-        if (trustSampleCounter % every == 0) return false
-        trustSavedRequests.incrementAndGet()
-        return true
-    }
-
-    private fun updateTrust(probability: Double) {
-        if (probability < LEGIT_THRESHOLD) {
-            trustCleanWindows++
-        } else if (probability >= CHEAT_THRESHOLD) {
-            revokeTrust()
-        }
-    }
-
-    @Synchronized
-    fun revokeTrust() {
-        trustCleanWindows = 0
-        trustSampleCounter = 0
-    }
-
     private fun updateProbStats(probability: Double) {
         probHistory.addLast(probability)
         probHistorySum += probability
@@ -216,7 +211,6 @@ class GuardPlayer(
         lastAiProbability = probability
         updateProbStats(probability)
         updateFingerprint(probability)
-        updateTrust(probability)
 
         hitProbHistory.addLast(probability)
         while (hitProbHistory.size > HIT_HISTORY_SIZE) hitProbHistory.removeFirst()
@@ -329,8 +323,6 @@ class GuardPlayer(
         attackSpeedPenalty = 0.0
         isolateUntilMs     = 0L
         lastFlagMs         = 0L
-        trustCleanWindows  = 0
-        trustSampleCounter = 0
     }
 
     private val checkVL = ConcurrentHashMap<String, Int>(4)
@@ -364,6 +356,8 @@ class GuardPlayer(
             || plugin.exemptManager.isExempt(uuid)
 
     private companion object {
+        const val AIM_ACTIVITY_WINDOW      = 10
+        const val MOVE_RECENT_MS           = 500L
         const val CHEAT_THRESHOLD          = 0.90
         const val LEGIT_THRESHOLD          = 0.10
         const val IDLE_DELTA_THRESHOLD     = 0.05f

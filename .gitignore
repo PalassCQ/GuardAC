@@ -1,9 +1,9 @@
 # =============================================================================
-#  GuardAC — PUBLIC repository = the Minecraft PLUGIN ONLY.
+#  GuardAC - PUBLIC repository = the Minecraft PLUGIN ONLY.
 #
 #  Strategy: an ALLOWLIST. We ignore EVERYTHING by default, then re-include
 #  only the plugin sources. This is deliberate: a stray secret (keys DB, .env,
-#  admin token, trained model) can then never leak by accident — anything new
+#  admin token, trained model) can then never leak by accident - anything new
 #  dropped into the project is ignored until explicitly whitelisted here.
 #
 #  NEVER published (all covered by the blanket ignore below):
