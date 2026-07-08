@@ -70,8 +70,8 @@ class SuspectsMenu(
         if (pageItems.isEmpty()) {
             inventory.setItem(22, buildItem(
                 Material.SUNFLOWER,
-                color("&e&lПусто"),
-                listOf(color("&7Подозрительных игроков нет."))
+                plugin.locale.get(Message.MENU_EMPTY_TITLE),
+                listOf(plugin.locale.get(Message.SUSPECTS_MENU_EMPTY))
             ))
         } else {
             pageItems.forEachIndexed { i, gp -> inventory.setItem(i, buildSkullItem(gp)) }
@@ -97,13 +97,13 @@ class SuspectsMenu(
 
         meta.setDisplayName(color("$color&l${gp.player.name}"))
         meta.lore = listOf(
-            color(""),
-            color("&8» &7Уверенность   $color%.0f%%".format(confPct)),
-            color("&8» &7Средняя       $color%.0f%%".format(avgPct)),
-            color("&8» &7Уровень       &f${gp.aiViolationLevel}"),
-            color("&8» &7Пинг          &f${gp.player.ping} мс"),
-            color(""),
-            color("&e▶ &7Клик - наблюдать (спектатор)"),
+            "",
+            plugin.locale.get(Message.MENU_SKULL_CONF, "color", color, "value", "%.0f".format(confPct)),
+            plugin.locale.get(Message.MENU_SKULL_AVG, "color", color, "value", "%.0f".format(avgPct)),
+            plugin.locale.get(Message.MENU_SKULL_VL, "value", gp.aiViolationLevel.toString()),
+            plugin.locale.get(Message.MENU_SKULL_PING, "value", gp.player.ping.toString()),
+            "",
+            plugin.locale.get(Message.MENU_SKULL_CLICK),
         )
         skull.itemMeta = meta
         return skull
@@ -116,28 +116,28 @@ class SuspectsMenu(
         if (hasPrev) {
             inventory.setItem(INV_SIZE - 9, buildItem(
                 Material.ARROW,
-                color("&7◀ Назад"),
-                listOf(color("&8Страница &7${page + 1}"))
+                plugin.locale.get(Message.SUSPECTS_MENU_PREV),
+                listOf(plugin.locale.get(Message.MENU_PAGE, "page", page.toString()))
             ))
         }
 
         inventory.setItem(INV_SIZE - 5, buildItem(
             Material.NETHER_STAR,
-            color("&e⟳ Обновить"),
-            listOf(color("&7Обновить список"))
+            plugin.locale.get(Message.SUSPECTS_MENU_REFRESH),
+            listOf(plugin.locale.get(Message.MENU_REFRESH_LORE))
         ))
 
         inventory.setItem(INV_SIZE - 4, buildItem(
             Material.BARRIER,
-            color("&c✕ Закрыть"),
+            plugin.locale.get(Message.SUSPECTS_MENU_CLOSE),
             emptyList()
         ))
 
         if (hasNext) {
             inventory.setItem(INV_SIZE - 1, buildItem(
                 Material.ARROW,
-                color("&7Вперёд ▶"),
-                listOf(color("&8Страница &7${page + 2}"))
+                plugin.locale.get(Message.SUSPECTS_MENU_NEXT),
+                listOf(plugin.locale.get(Message.MENU_PAGE, "page", (page + 2).toString()))
             ))
         }
     }
@@ -175,7 +175,7 @@ class SuspectsMenu(
                 viewer.gameMode = GameMode.SPECTATOR
                 viewer.teleport(target)
             } else {
-                viewer.sendMessage(color("&cИгрок &f$name &cуже не в сети."))
+                viewer.sendMessage(plugin.locale.get(Message.MENU_PLAYER_OFFLINE, "player", name))
             }
             return
         }

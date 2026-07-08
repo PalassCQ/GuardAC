@@ -6,7 +6,8 @@
 
 config-version: 20
 
-locale: "ru"
+# Язык сообщений плагина / plugin message language: en | ru
+locale: "en"
 
 ai:
   enabled: true

@@ -89,19 +89,16 @@ class ConfigManager(private val plugin: GuardAC) {
         punishments.getConfigurationSection("Punishments")?.getKeys(false) ?: emptySet()
 
     private fun ensureFolders() {
-        listOf("datasets", "datacollection").forEach { name ->
-            val dir = File(plugin.dataFolder, name)
-            if (!dir.exists()) {
-                dir.mkdirs()
-                plugin.logger.info("Created folder: $name/")
-            }
+        val dir = File(plugin.dataFolder, "datacollection")
+        if (!dir.exists()) {
+            dir.mkdirs()
+            plugin.logger.info("Created folder: datacollection/")
         }
     }
 
-    val datasetsFolder: File       get() = File(plugin.dataFolder, "datasets")
     val datacollectionFolder: File get() = File(plugin.dataFolder, "datacollection")
 
-    val locale: String get() = cfg.getString("locale", "ru")!!
+    val locale: String get() = cfg.getString("locale", "en")!!
 
     val aiEnabled: Boolean     get() = cfg.getBoolean("ai.enabled", true)
 

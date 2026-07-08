@@ -42,8 +42,11 @@ class DataSession(
 
     fun generateFileName(): String {
         val timestamp  = TIMESTAMP_FORMAT.format(startTime)
-        val safeStatus = status.replace(' ', '#').replace(Regex("[/\\\\?%*:|\"<>'\\s]"), "-")
-        return "${safeStatus}_${player}_${timestamp}.csv"
+        val safeStatus = status.replace(' ', '#').replace(UNSAFE, "-")
+        // Sanitize the player too: Bedrock/Geyser nicks can carry spaces and other
+        // characters that are illegal in a filename (normal Java nicks are unchanged).
+        val safePlayer = player.replace(UNSAFE, "-").ifBlank { "player" }
+        return "${safeStatus}_${safePlayer}_${timestamp}.csv"
     }
 
     fun writeCsv(writer: Appendable) {
@@ -71,5 +74,6 @@ class DataSession(
     private companion object {
         val TIMESTAMP_FORMAT: DateTimeFormatter =
             DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").withZone(ZoneId.systemDefault())
+        val UNSAFE = Regex("[/\\\\?%*:|\"<>'\\s]")
     }
 }

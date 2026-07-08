@@ -169,7 +169,7 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
             "sens_x", "%.2f".format(gp.rotation.sensitivityX),
             "sens_y", "%.2f".format(gp.rotation.sensitivityY),
         ))
-        sender.sendMessage(plugin.locale.get(Message.PROFILE_RIDING, "riding", if (gp.isRiding) "&cДа" else "&aНет"))
+        sender.sendMessage(plugin.locale.get(Message.PROFILE_RIDING, "riding", if (gp.isRiding) plugin.locale.get(Message.COMMON_YES) else plugin.locale.get(Message.COMMON_NO)))
         sender.sendMessage(plugin.locale.get(Message.PROFILE_PING_BUCKET, "bucket", gp.pingBucket.toString()))
         gp.clientBrand?.let { brand ->
             sender.sendMessage(plugin.locale.get(Message.PROFILE_BRAND, "brand", brand))
@@ -247,7 +247,7 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
         sender.sendMessage(plugin.locale.get(Message.DEBUG_GCD,   "gcd_yaw", "%.4f".format(rot.gcdErrorYaw), "gcd_pitch", "%.4f".format(rot.gcdErrorPitch)))
         sender.sendMessage(plugin.locale.get(Message.DEBUG_MODE_XY, "mx", "%.4f".format(rot.modeX), "my", "%.4f".format(rot.modeY)))
         sender.sendMessage(plugin.locale.get(Message.DEBUG_AI_BUFFER, "buffer", "%.4f".format(gp.aiBuffer)))
-        sender.sendMessage(plugin.locale.get(Message.DEBUG_RIDING, "riding", if (gp.isRiding) "&cДа" else "&aНет"))
+        sender.sendMessage(plugin.locale.get(Message.DEBUG_RIDING, "riding", if (gp.isRiding) plugin.locale.get(Message.COMMON_YES) else plugin.locale.get(Message.COMMON_NO)))
         sender.sendMessage(plugin.locale.get(
             Message.DEBUG_IDLE,
             "idle",  gp.idleTickCount.toString(),
@@ -374,10 +374,10 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
         sender.sendMessage(plugin.locale.get(Message.STATS_ONLINE,      "online",     online.toString()))
         sender.sendMessage(plugin.locale.get(Message.STATS_SUSPICIOUS,  "suspicious", suspicious.toString(), "pct", suspPct))
         sender.sendMessage(plugin.locale.get(Message.STATS_TOTAL_FLAGS, "flags",      totalFlags.toString(), "per_hour", flagsPerHour))
-        sender.sendMessage(plugin.locale.get(Message.STATS_AI_STATUS,   "status",     if (aiEnabled) "&aВКЛ" else "&cВЫКЛ"))
+        sender.sendMessage(plugin.locale.get(Message.STATS_AI_STATUS,   "status",     if (aiEnabled) plugin.locale.get(Message.COMMON_ON) else plugin.locale.get(Message.COMMON_OFF)))
         sender.sendMessage(plugin.locale.get(Message.STATS_DC_SESSIONS, "sessions",   dcSessions.toString()))
         sender.sendMessage(plugin.locale.get(Message.STATS_UPTIME,      "uptime",     formatDuration(uptime)))
-        sender.sendMessage(Colors.translate(" &7Детекций сегодня&8: &e$todayDetections &8(&7запросов&8: &f$todayRequests&8)"))
+        sender.sendMessage(plugin.locale.get(Message.STATS_DETECTIONS, "detections", todayDetections.toString(), "requests", todayRequests.toString()))
     }
 
     private fun handleLog(sender: CommandSender, args: Array<out String>) {

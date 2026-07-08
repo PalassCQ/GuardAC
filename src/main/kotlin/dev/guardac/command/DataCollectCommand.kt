@@ -67,7 +67,7 @@ class DataCollectCommand(private val plugin: GuardAC) : CommandExecutor, TabComp
             3 -> if (args[0].equals("start", ignoreCase = true))
                 listOf("LEGIT", "CHEAT").filter { it.startsWith(args[2].uppercase()) }
             else emptyList()
-            4 -> if (args[0].equals("start", ignoreCase = true)) listOf("<комментарий>") else emptyList()
+            4 -> if (args[0].equals("start", ignoreCase = true)) listOf("<comment>") else emptyList()
             else -> emptyList()
         }
     }
