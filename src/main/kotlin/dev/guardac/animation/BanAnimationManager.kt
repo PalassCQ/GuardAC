@@ -52,29 +52,65 @@ class BanAnimationManager(private val plugin: GuardAC) {
 
         if (!animating.add(player.uniqueId)) { onComplete(); return }
 
+        val restore = freeze(player)
         val done = AtomicBoolean(false)
-        val complete: () -> Unit = {
+        // The ONE terminal step, shared by every animation: exactly one explosion
+        // and one inventory drop, no matter how many code paths race to finish
+        // (timer end, player quit, error). Whatever the punishment does next runs
+        // right after via onComplete().
+        val finishWith: (Location) -> Unit = { loc ->
             if (done.compareAndSet(false, true)) {
                 animating.remove(player.uniqueId)
+                restore()
+                dropResources(player, loc)
+                explode(loc)
                 onComplete()
             }
         }
 
         val resolved = (type?.trim()?.lowercase()?.ifBlank { null }) ?: cfg.animationDefault
         when (resolved) {
-            "pig"       -> playPig(player, complete)
-            "explode"   -> playExplode(player, complete)
-            "particles" -> playParticles(player, complete)
-            "lightning" -> playLightning(player, complete)
-            "vortex"    -> playVortex(player, complete)
-            else        -> complete()
+            "pig"       -> playPig(player, finishWith)
+            "explode"   -> playExplode(player, finishWith)
+            "particles" -> playParticles(player, finishWith)
+            "lightning" -> playLightning(player, finishWith)
+            "vortex"    -> playVortex(player, finishWith)
+            else        -> finishWith(player.location.clone())
         }
     }
 
-    private fun playPig(player: Player, onComplete: () -> Unit) {
+    /**
+     * Locks the player in place for the animation: no walking, no flight, no
+     * flying away to escape the show. Returns a restorer that MUST run when the
+     * animation ends - a player who survives it (alert-only tiers, /guard punish
+     * on a non-ban level) has to get their movement back.
+     */
+    private fun freeze(player: Player): () -> Unit {
+        val walk = player.walkSpeed
+        val fly = player.flySpeed
+        val allowFlight = player.allowFlight
+        val flying = player.isFlying
+        runCatching {
+            player.isFlying = false
+            player.allowFlight = false
+            player.walkSpeed = 0f
+            player.flySpeed = 0f
+        }
+        return {
+            runCatching {
+                if (player.isOnline) {
+                    player.walkSpeed = walk
+                    player.flySpeed = fly
+                    player.allowFlight = allowFlight
+                    player.isFlying = flying
+                }
+            }
+        }
+    }
+
+    private fun playPig(player: Player, finishWith: (Location) -> Unit) {
         val world = player.world
         if (player.isInsideVehicle) runCatching { player.leaveVehicle() }
-        dropResources(player)
         playSound(player.location, "ENTITY_PIG_AMBIENT", 1f, 1f)
 
         val targetY = player.location.y + plugin.configManager.animationPigHeight
@@ -90,37 +126,40 @@ class BanAnimationManager(private val plugin: GuardAC) {
         object : BukkitRunnable() {
             var t = 0
             override fun run() {
-                try {
-                    if (!player.isOnline || !pig.isValid) { cancel(); finish(pig, player, onComplete); return }
-
-                    pig.velocity = if (pig.location.y < targetY) Vector(0.0, RISE_SPEED, 0.0) else Vector(0.0, 0.0, 0.0)
-                    if (t % 3 == 0) world.spawnParticle(particle("CLOUD"), pig.location, 6, 0.3, 0.1, 0.3, 0.0)
-                    if (++t >= duration) { cancel(); finish(pig, player, onComplete) }
-                } catch (e: Exception) {
-                    cancel(); finish(pig, player, onComplete)
+                if (!player.isOnline || !pig.isValid) {
+                    cancel()
+                    val loc = if (pig.isValid) pig.location.clone() else player.location.clone()
+                    cleanupPig(pig, player)
+                    finishWith(loc)
+                    return
+                }
+                // Re-seat if the player shift-dismounted, so they ride up and can't
+                // step off to walk/run away before the explosion.
+                if (!pig.passengers.contains(player)) runCatching { pig.addPassenger(player) }
+                pig.velocity = if (pig.location.y < targetY) Vector(0.0, RISE_SPEED, 0.0) else Vector(0.0, 0.0, 0.0)
+                if (t % 3 == 0) world.spawnParticle(particle("CLOUD"), pig.location, 6, 0.3, 0.1, 0.3, 0.0)
+                if (++t >= duration) {
+                    cancel()
+                    val loc = pig.location.clone()
+                    cleanupPig(pig, player)
+                    finishWith(loc)   // explosion + resources scatter happen HERE, at the top
                 }
             }
         }.runTaskTimer(plugin, 0L, 1L)
     }
 
-    private fun finish(pig: Pig, player: Player, onComplete: () -> Unit) {
-        val loc = if (pig.isValid) pig.location.clone() else player.location.clone()
+    private fun cleanupPig(pig: Pig, player: Player) {
         runCatching { pig.removePassenger(player) }
         runCatching { pig.remove() }
-        explode(loc)
-        onComplete()
     }
 
-    private fun playExplode(player: Player, onComplete: () -> Unit) {
-        dropResources(player)
-        explode(player.location.clone())
-
-        Bukkit.getScheduler().runTaskLater(plugin, Runnable { onComplete() }, 8L)
+    private fun playExplode(player: Player, finishWith: (Location) -> Unit) {
+        // A short beat so the boom lands a moment before the ban message.
+        Bukkit.getScheduler().runTaskLater(plugin, Runnable { finishWith(player.location.clone()) }, 6L)
     }
 
-    private fun playParticles(player: Player, onComplete: () -> Unit) {
+    private fun playParticles(player: Player, finishWith: (Location) -> Unit) {
         val world = player.world
-        dropResources(player)
         val cfg = plugin.configManager
         val duration = cfg.animationDurationTicks
         val perTick  = cfg.animationParticleCount.coerceAtLeast(1)
@@ -130,7 +169,7 @@ class BanAnimationManager(private val plugin: GuardAC) {
         object : BukkitRunnable() {
             var t = 0
             override fun run() {
-                if (!player.isOnline) { cancel(); onComplete(); return }
+                if (!player.isOnline) { cancel(); finishWith(player.location.clone()); return }
                 val center = player.location.clone().add(0.0, 1.0, 0.0)
                 val points = 14
                 val each = (perTick / points).coerceAtLeast(1)
@@ -142,16 +181,14 @@ class BanAnimationManager(private val plugin: GuardAC) {
                 }
                 if (++t >= duration) {
                     cancel()
-                    player.removePotionEffect(PotionEffectType.LEVITATION)
-                    explode(player.location.clone())
-                    onComplete()
+                    runCatching { player.removePotionEffect(PotionEffectType.LEVITATION) }
+                    finishWith(player.location.clone())
                 }
             }
         }.runTaskTimer(plugin, 0L, 1L)
     }
 
-    private fun playLightning(player: Player, onComplete: () -> Unit) {
-        dropResources(player)
+    private fun playLightning(player: Player, finishWith: (Location) -> Unit) {
         val duration = plugin.configManager.animationDurationTicks
         val gap = (duration / 4).coerceAtLeast(1).toLong()
 
@@ -166,21 +203,19 @@ class BanAnimationManager(private val plugin: GuardAC) {
             }, gap * i)
         }
         Bukkit.getScheduler().runTaskLater(plugin, Runnable {
-            explode(player.location.clone())
-            onComplete()
+            finishWith(player.location.clone())
         }, gap * 3)
     }
 
-    private fun playVortex(player: Player, onComplete: () -> Unit) {
+    private fun playVortex(player: Player, finishWith: (Location) -> Unit) {
         val world = player.world
-        dropResources(player)
         val duration = plugin.configManager.animationDurationTicks
         playSound(player.location, "ENTITY_PHANTOM_FLAP", 1f, 0.6f)
 
         object : BukkitRunnable() {
             var t = 0
             override fun run() {
-                if (!player.isOnline) { cancel(); onComplete(); return }
+                if (!player.isOnline) { cancel(); finishWith(player.location.clone()); return }
                 val base = player.location
                 for (arm in 0..1) {
                     val ang = t * 0.5 + arm * Math.PI
@@ -197,20 +232,18 @@ class BanAnimationManager(private val plugin: GuardAC) {
                         1, 0.0, 0.0, 0.0, 0.0,
                     )
                 }
-                if (t == duration / 2) player.velocity = Vector(0.0, 0.9, 0.0)
-                if (++t >= duration) { cancel(); explode(player.location.clone()); onComplete() }
+                if (++t >= duration) { cancel(); finishWith(player.location.clone()) }
             }
         }.runTaskTimer(plugin, 0L, 1L)
     }
 
-    private fun dropResources(player: Player) {
+    private fun dropResources(player: Player, loc: Location) {
         if (!plugin.configManager.animationDropInventory) return
+        if (!player.isOnline) return
         val inv = player.inventory
-        val loc = player.location
-
         inv.contents.forEach { item ->
             if (item != null && item.type != Material.AIR) {
-                runCatching { player.world.dropItemNaturally(loc, item.clone()) }
+                runCatching { loc.world?.dropItemNaturally(loc, item.clone()) }
             }
         }
         inv.clear()
