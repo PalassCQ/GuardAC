@@ -141,6 +141,5 @@ class PacketListener(private val plugin: GuardAC) :
         jerkPitch     = gp.rotation.jerkPitch,
         gcdErrorYaw   = gp.rotation.gcdErrorYaw,
         gcdErrorPitch = gp.rotation.gcdErrorPitch,
-        pingBucket    = gp.pingBucket,
     )
 }

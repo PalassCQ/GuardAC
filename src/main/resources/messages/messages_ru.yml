@@ -36,7 +36,6 @@ profile-ai-vl: " &8▏ &7Флаги&8: &#FF4D6D{vl} &8(всего&8: &7{total}&8
 profile-no-data: "&#FF4D6D✖ &7Данные игрока недоступны."
 profile-sensitivity: " &8▏ &7Чувствительность&8: &f{sens_x} &8/ &f{sens_y}"
 profile-riding: " &8▏ &7В транспорте&8: {riding}"
-profile-ping-bucket: " &8▏ &7Пинг-бакет&8: &f{bucket}"
 profile-brand: " &8▏ &7Клиент&8: &f{brand}"
 profile-avg-prob: " &8▏ &7Средняя вероятность&8: &#67E8F9{avg}% &8(пик&8: &#FF4D6D{peak}%&8)"
 # Плейсхолдеры: {stage} {penalty}

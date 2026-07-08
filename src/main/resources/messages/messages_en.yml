@@ -36,7 +36,6 @@ profile-ai-vl: " &8▏ &7Flags&8: &#FF4D6D{vl} &8(total&8: &7{total}&8)"
 profile-no-data: "&#FF4D6D✖ &7Player data is unavailable."
 profile-sensitivity: " &8▏ &7Sensitivity&8: &f{sens_x} &8/ &f{sens_y}"
 profile-riding: " &8▏ &7In vehicle&8: {riding}"
-profile-ping-bucket: " &8▏ &7Ping bucket&8: &f{bucket}"
 profile-brand: " &8▏ &7Client&8: &f{brand}"
 profile-avg-prob: " &8▏ &7Avg probability&8: &#67E8F9{avg}% &8(peak&8: &#FF4D6D{peak}%&8)"
 # Placeholders: {stage} {penalty}

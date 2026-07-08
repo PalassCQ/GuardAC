@@ -143,6 +143,7 @@ class GuardAC : JavaPlugin() {
         PacketEvents.getAPI().eventManager.registerListener(PacketListener(this))
 
         server.pluginManager.registerEvents(playerDataManager, this)
+        server.pluginManager.registerEvents(banAnimationManager, this)
         server.pluginManager.registerEvents(DamageListener(this), this)
         startVlDecayTask()
         hologramManager.start()

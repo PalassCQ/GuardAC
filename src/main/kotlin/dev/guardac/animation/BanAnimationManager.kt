@@ -28,20 +28,27 @@ import org.bukkit.entity.Pig
 import org.bukkit.entity.Player
 import org.bukkit.potion.PotionEffect
 import org.bukkit.potion.PotionEffectType
+import org.bukkit.event.EventHandler
+import org.bukkit.event.EventPriority
+import org.bukkit.event.Listener
+import org.bukkit.event.player.PlayerMoveEvent
 import org.bukkit.scheduler.BukkitRunnable
 import org.bukkit.util.Vector
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 
-class BanAnimationManager(private val plugin: GuardAC) {
+class BanAnimationManager(private val plugin: GuardAC) : Listener {
 
     private val animating: MutableSet<UUID> = ConcurrentHashMap.newKeySet()
+    private val anchors = ConcurrentHashMap<UUID, Location>()
+    private val pendingCompletions = ConcurrentHashMap<UUID, MutableList<() -> Unit>>()
 
     fun isAnimating(uuid: UUID): Boolean = uuid in animating
 
     fun onQuit(uuid: UUID) {
         animating.remove(uuid)
+        anchors.remove(uuid)
     }
 
     fun playRandom(player: Player, onComplete: () -> Unit) = play(player, TYPES.random(), onComplete)
@@ -50,7 +57,16 @@ class BanAnimationManager(private val plugin: GuardAC) {
         val cfg = plugin.configManager
         if (!cfg.animationsEnabled || !player.isOnline) { onComplete(); return }
 
-        if (!animating.add(player.uniqueId)) { onComplete(); return }
+        // A show is already mid-flight for this player: don't start a second one,
+        // but NEVER swallow the punishment chain behind it - queue it to run the
+        // moment the current animation finishes (an escalated ban that lands
+        // during a 3s animation must still execute).
+        if (!animating.add(player.uniqueId)) {
+            pendingCompletions.computeIfAbsent(player.uniqueId) {
+                java.util.Collections.synchronizedList(mutableListOf())
+            }.add(onComplete)
+            return
+        }
 
         val restore = freeze(player)
         val done = AtomicBoolean(false)
@@ -61,10 +77,14 @@ class BanAnimationManager(private val plugin: GuardAC) {
         val finishWith: (Location) -> Unit = { loc ->
             if (done.compareAndSet(false, true)) {
                 animating.remove(player.uniqueId)
+                anchors.remove(player.uniqueId)
                 restore()
                 dropResources(player, loc)
                 explode(loc)
                 onComplete()
+                pendingCompletions.remove(player.uniqueId)?.forEach { queued ->
+                    runCatching { queued() }
+                }
             }
         }
 
@@ -86,6 +106,7 @@ class BanAnimationManager(private val plugin: GuardAC) {
      * on a non-ban level) has to get their movement back.
      */
     private fun freeze(player: Player): () -> Unit {
+        anchors[player.uniqueId] = player.location.clone()
         val walk = player.walkSpeed
         val fly = player.flySpeed
         val allowFlight = player.allowFlight
@@ -107,6 +128,24 @@ class BanAnimationManager(private val plugin: GuardAC) {
             }
         }
     }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    fun onPlayerMove(event: PlayerMoveEvent) {
+        val anchor = anchors[event.player.uniqueId] ?: return
+        // While riding the animation pig the position is vehicle-driven; a setTo
+        // teleport here would eject the passenger. The pig task re-seats instead.
+        if (event.player.isInsideVehicle) return
+        val to = event.to
+        if (sameBlockPosition(anchor, to)) return
+        event.setTo(anchor.clone().apply {
+            yaw = to.yaw
+            pitch = to.pitch
+        })
+        event.player.velocity = Vector(0.0, 0.0, 0.0)
+    }
+
+    private fun sameBlockPosition(a: Location, b: Location): Boolean =
+        a.world == b.world && a.x == b.x && a.y == b.y && a.z == b.z
 
     private fun playPig(player: Player, finishWith: (Location) -> Unit) {
         val world = player.world
@@ -135,7 +174,11 @@ class BanAnimationManager(private val plugin: GuardAC) {
                 }
                 // Re-seat if the player shift-dismounted, so they ride up and can't
                 // step off to walk/run away before the explosion.
-                if (!pig.passengers.contains(player)) runCatching { pig.addPassenger(player) }
+                anchors[player.uniqueId] = pig.location.clone()
+                if (!pig.passengers.contains(player)) {
+                    runCatching { player.teleport(pig.location) }
+                    runCatching { pig.addPassenger(player) }
+                }
                 pig.velocity = if (pig.location.y < targetY) Vector(0.0, RISE_SPEED, 0.0) else Vector(0.0, 0.0, 0.0)
                 if (t % 3 == 0) world.spawnParticle(particle("CLOUD"), pig.location, 6, 0.3, 0.1, 0.3, 0.0)
                 if (++t >= duration) {

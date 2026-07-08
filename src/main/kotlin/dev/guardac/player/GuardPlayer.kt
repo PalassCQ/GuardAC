@@ -57,8 +57,6 @@ class GuardPlayer(
     val isRiding: Boolean
         get() = player.isInsideVehicle
 
-    val pingBucket: Int
-        get() = TickData.pingToBucket(player.ping)
 
     private enum class TeleportPhase { NONE, WAITING, JUST_CONFIRMED }
     @Volatile private var teleportPhase: TeleportPhase = TeleportPhase.NONE

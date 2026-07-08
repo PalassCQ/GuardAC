@@ -29,7 +29,6 @@ data class TickData(
     val jerkPitch: Float,
     val gcdErrorYaw: Float,
     val gcdErrorPitch: Float,
-    val pingBucket: Int = 0,
 ) {
     fun appendCsv(out: Appendable, status: String) {
         val label = if (status.equals("CHEAT", ignoreCase = true)) '1' else '0'
@@ -42,20 +41,11 @@ data class TickData(
         out.append(','); appendFixed6(out, jerkPitch)
         out.append(','); appendFixed6(out, gcdErrorYaw)
         out.append(','); appendFixed6(out, gcdErrorPitch)
-        out.append(','); out.append(pingBucket.toString())
     }
 
     companion object {
         fun csvHeader() =
-            "is_cheating,delta_yaw,delta_pitch,accel_yaw,accel_pitch,jerk_yaw,jerk_pitch,gcd_error_yaw,gcd_error_pitch,ping_bucket"
-
-        fun pingToBucket(pingMs: Int): Int = when {
-            pingMs < 30  -> 0
-            pingMs < 80  -> 1
-            pingMs < 150 -> 2
-            pingMs < 300 -> 3
-            else         -> 4
-        }
+            "is_cheating,delta_yaw,delta_pitch,accel_yaw,accel_pitch,jerk_yaw,jerk_pitch,gcd_error_yaw,gcd_error_pitch"
 
         private const val SCALE = 1_000_000L
 
@@ -86,7 +76,6 @@ data class TickDataDto(
     val jerk_pitch: Float,
     val gcd_error_yaw: Float,
     val gcd_error_pitch: Float,
-    val ping_bucket: Int,
 ) {
     companion object {
         fun from(t: TickData) = TickDataDto(
@@ -98,7 +87,6 @@ data class TickDataDto(
             jerk_pitch      = t.jerkPitch,
             gcd_error_yaw   = t.gcdErrorYaw,
             gcd_error_pitch = t.gcdErrorPitch,
-            ping_bucket     = t.pingBucket,
         )
     }
 }

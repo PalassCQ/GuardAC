@@ -44,7 +44,6 @@ enum class Message(val key: String) {
     PROFILE_SESSION("profile-session"),
     PROFILE_SENSITIVITY("profile-sensitivity"),
     PROFILE_RIDING("profile-riding"),
-    PROFILE_PING_BUCKET("profile-ping-bucket"),
     PROFILE_BRAND("profile-brand"),
     PROFILE_AVG_PROB("profile-avg-prob"),
 

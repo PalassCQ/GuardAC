@@ -170,7 +170,6 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
             "sens_y", "%.2f".format(gp.rotation.sensitivityY),
         ))
         sender.sendMessage(plugin.locale.get(Message.PROFILE_RIDING, "riding", if (gp.isRiding) plugin.locale.get(Message.COMMON_YES) else plugin.locale.get(Message.COMMON_NO)))
-        sender.sendMessage(plugin.locale.get(Message.PROFILE_PING_BUCKET, "bucket", gp.pingBucket.toString()))
         gp.clientBrand?.let { brand ->
             sender.sendMessage(plugin.locale.get(Message.PROFILE_BRAND, "brand", brand))
         }
@@ -342,9 +341,7 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
         val maxVl = plugin.punishmentManager.maxVl("AI")
         plugin.alertManager.sendAlert(gp, "Manual", maxVl, verbose, "[Manual]")
 
-        plugin.banAnimationManager.play(target, null) {
-            plugin.punishmentManager.handle(gp, "AI", maxVl, verbose)
-        }
+        plugin.punishmentManager.handle(gp, "AI", maxVl, verbose)
         sender.sendMessage(plugin.locale.get(Message.PUNISH_SUCCESS, "player", target.name))
     }
 
