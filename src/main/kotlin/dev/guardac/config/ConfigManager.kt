@@ -36,6 +36,12 @@ class ConfigManager(private val plugin: GuardAC) {
         mergeMissingKeys()
         loadPunishments()
         ensureFolders()
+        if (aiServer.trim().startsWith("http://", ignoreCase = true)) {
+            plugin.logger.warning(
+                "[GuardAC] ai.server использует http:// - трафик к бэкенду не шифруется " +
+                "(API-ключ и данные видны по пути). Используйте https://."
+            )
+        }
     }
 
     private fun mergeMissingKeys() {

@@ -26,6 +26,10 @@ class CrossServerListener(private val plugin: GuardAC) : PluginMessageListener {
 
     override fun onPluginMessageReceived(channel: String, player: Player, message: ByteArray) {
         if (channel != AlertManager.CROSS_CHANNEL) return
+        // Plugin messages arrive over player connections, so a modified client can
+        // forge them. Everything below is strict field validation - anything that a
+        // real GuardAC instance would never send is dropped silently.
+        if (message.size > MAX_PAYLOAD_BYTES) return
 
         val payload = try {
             String(message, Charsets.UTF_8)
@@ -38,11 +42,29 @@ class CrossServerListener(private val plugin: GuardAC) : PluginMessageListener {
 
         val (sourceServer, playerName, checkName, vlStr, verbose) = parts
         val vl = vlStr.toIntOrNull() ?: return
+        if (vl < 0 || vl > MAX_VL) return
+        if (!SERVER_PATTERN.matches(sourceServer)) return
+        if (!NAME_PATTERN.matches(playerName)) return
+        if (!CHECK_PATTERN.matches(checkName)) return
 
         val currentServer = plugin.configManager.serverName.ifBlank { "main" }
         if (sourceServer == currentServer) return
 
-        plugin.alertManager.deliverCrossServerAlert(sourceServer, playerName, checkName, vl, verbose)
+        // The verbose part goes verbatim into a staff chat message; strip color/
+        // control characters so a forged payload can't restyle or garble the alert.
+        val cleanVerbose = verbose.take(MAX_VERBOSE_LENGTH)
+            .filter { it.code >= 0x20 && it != '§' && it != '&' }
+
+        plugin.alertManager.deliverCrossServerAlert(sourceServer, playerName, checkName, vl, cleanVerbose)
+    }
+
+    private companion object {
+        const val MAX_PAYLOAD_BYTES  = 512
+        const val MAX_VL             = 1_000_000
+        const val MAX_VERBOSE_LENGTH = 64
+        val SERVER_PATTERN = Regex("^[\\w .-]{1,32}$")
+        val NAME_PATTERN   = Regex("^[\\w .-]{1,20}$")
+        val CHECK_PATTERN  = Regex("^[\\w-]{1,24}$")
     }
 }
 

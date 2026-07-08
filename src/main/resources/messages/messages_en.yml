@@ -79,6 +79,8 @@ reset-all-success: "&#4ADE80✔ &7All counters reset for &f{player}&7."
 
 punish-success: "&#4ADE80✔ &7Punishment applied to &f{player}&7."
 punish-no-data: "&#FF4D6D✖ &7Player data not found."
+punish-no-evidence: "&#FF4D6D✖ &7{player} has no violations (no VL, buffer or detections). To punish anyway: &f/guard punish {player} confirm"
+unsafe-name-kick: "&cYou have been removed from the server."
 
 # Deep Scan - on-demand in-depth check (/guardac scan <player>).
 usage-scan: "&7Usage: &f/guardac scan <player> [windows]"
@@ -133,6 +135,7 @@ menu-skull-click: "&e▶ &7Click to watch (spectator)"
 menu-page: "&8Page &7{page}"
 menu-refresh-lore: "&7Refresh the list"
 menu-player-offline: "&cPlayer &f{player} &cis no longer online."
+menu-unsafe-name: "&#FF4D6D✖ &7The name &f{player} &7is not safe for console commands - action skipped."
 common-yes: "&aYes"
 common-no: "&cNo"
 common-on: "&aON"

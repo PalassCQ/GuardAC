@@ -84,7 +84,7 @@ class DataCollectCommand(private val plugin: GuardAC) : CommandExecutor, TabComp
             return
         }
         val details = args.drop(3).joinToString(" ")
-        val target  = Bukkit.getPlayer(playerName)
+        val target  = Bukkit.getPlayerExact(playerName)
             ?: return sender.sendMessage(plugin.locale.get(Message.PLAYER_NOT_FOUND, "player", playerName))
 
         val status   = "$type $details"
@@ -154,7 +154,7 @@ class DataCollectCommand(private val plugin: GuardAC) : CommandExecutor, TabComp
     }
 
     private fun resolveSessionUuid(playerName: String): java.util.UUID? {
-        val online = Bukkit.getPlayer(playerName)
+        val online = Bukkit.getPlayerExact(playerName)
         if (online != null) {
             return if (plugin.dataCollectorManager.getSession(online.uniqueId) != null) online.uniqueId else null
         }

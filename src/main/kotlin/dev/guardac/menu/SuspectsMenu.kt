@@ -22,6 +22,7 @@ import dev.guardac.GuardAC
 import dev.guardac.player.GuardPlayer
 import dev.guardac.util.Colors
 import dev.guardac.util.Message
+import dev.guardac.util.SafeName
 import org.bukkit.Bukkit
 import org.bukkit.GameMode
 import org.bukkit.Material
@@ -170,13 +171,21 @@ class SuspectsMenu(
         val cmds = plugin.configManager.menuClickCommands
         if (cmds.isEmpty()) {
 
-            val target = Bukkit.getPlayer(name)
+            val target = Bukkit.getPlayerExact(name)
             if (target != null && target.isOnline) {
                 viewer.gameMode = GameMode.SPECTATOR
                 viewer.teleport(target)
             } else {
                 viewer.sendMessage(plugin.locale.get(Message.MENU_PLAYER_OFFLINE, "player", name))
             }
+            return
+        }
+
+        // Same guard as punishments: a name with spaces/special characters would
+        // shift console-command arguments and hit the wrong player.
+        if (!SafeName.isSafe(name) || !SafeName.isSafe(viewer.name)) {
+            viewer.sendMessage(plugin.locale.get(Message.MENU_UNSAFE_NAME, "player", name))
+            plugin.logger.warning("[Menu] Ник '$name' небезопасен для консольных команд меню - клик пропущен.")
             return
         }
 

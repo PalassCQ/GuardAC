@@ -22,6 +22,8 @@ import dev.guardac.GuardAC
 import dev.guardac.event.GuardPunishmentEvent
 import dev.guardac.player.GuardPlayer
 import dev.guardac.util.Colors
+import dev.guardac.util.Message
+import dev.guardac.util.SafeName
 import dev.guardac.violation.ViolationLog
 import org.bukkit.Bukkit
 import java.util.Locale
@@ -218,6 +220,7 @@ class PunishmentManager(private val plugin: GuardAC) {
         action: String,
     ) {
         val name = gp.player.name
+        val touchesPlayer = action.contains("<player>") || action.contains("{player}")
         val expanded = action
             .replace("<player>", name).replace("{player}", name)
             .replace("<vl>", vl.toString()).replace("{vl}", vl.toString())
@@ -241,6 +244,19 @@ class PunishmentManager(private val plugin: GuardAC) {
                 val msg = Colors.translate(expanded.trim().substring("[broadcast]".length).trim())
                 Bukkit.getServer().onlinePlayers.forEach { p ->
                     p.sendMessage(msg)
+                }
+            }
+
+            // A Bedrock/Geyser name with spaces or special characters substituted
+            // into a console command shifts the arguments - the punishment could
+            // land on a different player entirely. Such players are removed
+            // directly through the API instead of through the command.
+            touchesPlayer && !SafeName.isSafe(name) -> {
+                plugin.logger.warning(
+                    "[Punish] Ник '$name' небезопасен для консольной команды - команда пропущена, игрок кикнут напрямую."
+                )
+                if (gp.player.isOnline) {
+                    runCatching { gp.player.kickPlayer(plugin.locale.get(Message.UNSAFE_NAME_KICK)) }
                 }
             }
 

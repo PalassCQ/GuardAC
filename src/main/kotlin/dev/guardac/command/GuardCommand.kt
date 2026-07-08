@@ -93,6 +93,7 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
                     "remove", "status" -> online.filter { it.startsWith(args[2], ignoreCase = true) }
                     else -> emptyList()
                 }
+                "punish" -> listOf("confirm").filter { it.startsWith(args[2].lowercase()) }
                 else -> emptyList()
             }
             else -> emptyList()
@@ -140,7 +141,7 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
     private fun handleProfile(sender: CommandSender, args: Array<out String>) {
         val name = args.getOrNull(1)
             ?: return sender.sendMessage(plugin.locale.get(Message.USAGE_PROFILE))
-        val target = Bukkit.getPlayer(name)
+        val target = Bukkit.getPlayerExact(name)
             ?: return sender.sendMessage(plugin.locale.get(Message.PLAYER_NOT_FOUND, "player", name))
         val gp = plugin.playerDataManager.get(target)
             ?: return sender.sendMessage(plugin.locale.get(Message.PROFILE_NO_DATA))
@@ -185,7 +186,7 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
     private fun handleScan(sender: CommandSender, args: Array<out String>) {
         val name = args.getOrNull(1)
             ?: return sender.sendMessage(plugin.locale.get(Message.USAGE_SCAN))
-        val target = Bukkit.getPlayer(name)
+        val target = Bukkit.getPlayerExact(name)
             ?: return sender.sendMessage(plugin.locale.get(Message.PLAYER_NOT_FOUND, "player", name))
         val windows = args.getOrNull(2)?.toIntOrNull() ?: plugin.configManager.scanWindowsDefault
         if (!plugin.scanManager.start(target, sender, windows)) {
@@ -232,7 +233,7 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
             sender.sendMessage(plugin.locale.get(Message.DEBUG_MODE_STATUS, "status", statusMsg))
             return
         }
-        val target = Bukkit.getPlayer(name)
+        val target = Bukkit.getPlayerExact(name)
             ?: return sender.sendMessage(plugin.locale.get(Message.PLAYER_NOT_FOUND, "player", name))
         val gp  = plugin.playerDataManager.get(target)
             ?: return sender.sendMessage(plugin.locale.get(Message.PROFILE_NO_DATA))
@@ -274,7 +275,7 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
             }
             return
         }
-        val target = Bukkit.getPlayer(targetName)
+        val target = Bukkit.getPlayerExact(targetName)
             ?: return sender.sendMessage(plugin.locale.get(Message.PLAYER_NOT_FOUND, "player", targetName))
         val started = plugin.alertManager.startProbSession(sender, target)
         if (started) sender.sendMessage(plugin.locale.get(Message.PROB_STARTED, "player", target.name))
@@ -287,7 +288,7 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
             "remove" -> {
                 val name = args.getOrNull(2)
                     ?: return sender.sendMessage(plugin.locale.get(Message.USAGE_EXEMPT_REMOVE))
-                val target = Bukkit.getPlayer(name)
+                val target = Bukkit.getPlayerExact(name)
                     ?: return sender.sendMessage(plugin.locale.get(Message.PLAYER_NOT_FOUND, "player", name))
                 if (plugin.exemptManager.removeExempt(target.uniqueId))
                     sender.sendMessage(plugin.locale.get(Message.EXEMPT_REMOVED, "player", target.name))
@@ -297,7 +298,7 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
             "status" -> {
                 val name = args.getOrNull(2)
                     ?: return sender.sendMessage(plugin.locale.get(Message.USAGE_EXEMPT_STATUS))
-                val target = Bukkit.getPlayer(name)
+                val target = Bukkit.getPlayerExact(name)
                     ?: return sender.sendMessage(plugin.locale.get(Message.PLAYER_NOT_FOUND, "player", name))
                 if (plugin.exemptManager.isExempt(target.uniqueId) || target.hasPermission("guardac.bypass"))
                     sender.sendMessage(plugin.locale.get(Message.EXEMPT_STATUS_EXEMPT, "player", target.name))
@@ -306,7 +307,7 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
             }
             null -> sender.sendMessage(plugin.locale.get(Message.USAGE_EXEMPT))
             else -> {
-                val target = Bukkit.getPlayer(sub)
+                val target = Bukkit.getPlayerExact(sub)
                     ?: return sender.sendMessage(plugin.locale.get(Message.PLAYER_NOT_FOUND, "player", sub))
                 if (plugin.exemptManager.isExempt(target.uniqueId)) {
                     sender.sendMessage(plugin.locale.get(Message.EXEMPT_ALREADY, "player", target.name))
@@ -321,7 +322,7 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
     private fun handleReset(sender: CommandSender, args: Array<out String>) {
         val name = args.getOrNull(1)
             ?: return sender.sendMessage(plugin.locale.get(Message.USAGE_RESET))
-        val target = Bukkit.getPlayer(name)
+        val target = Bukkit.getPlayerExact(name)
             ?: return sender.sendMessage(plugin.locale.get(Message.PLAYER_NOT_FOUND, "player", name))
         val gp = plugin.playerDataManager.get(target)
             ?: return sender.sendMessage(plugin.locale.get(Message.PROFILE_NO_DATA))
@@ -332,10 +333,30 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
     private fun handlePunish(sender: CommandSender, args: Array<out String>) {
         val name = args.getOrNull(1)
             ?: return sender.sendMessage(plugin.locale.get(Message.USAGE_PUNISH))
-        val target = Bukkit.getPlayer(name)
+        val target = Bukkit.getPlayerExact(name)
             ?: return sender.sendMessage(plugin.locale.get(Message.PLAYER_NOT_FOUND, "player", name))
         val gp = plugin.playerDataManager.get(target)
             ?: return sender.sendMessage(plugin.locale.get(Message.PUNISH_NO_DATA))
+
+        // Evidence gate: a manual top-tier punishment against a player with zero
+        // VL, zero buffer and zero detections is almost always a mistake (wrong
+        // nick, wrong window). "confirm" forces it through; every call is logged
+        // with the staff name either way.
+        val forced = args.getOrNull(2)?.equals("confirm", ignoreCase = true) == true
+        val hasEvidence = gp.aiViolationLevel > 0 || gp.aiBuffer > 0.0 || gp.totalAiFlags.get() > 0
+        if (!hasEvidence && !forced) {
+            plugin.logger.warning(
+                "[Punish] BLOCKED: manual punish by ${sender.name} on ${target.name} - no VL/buffer/detections. " +
+                "Force with /guard punish ${target.name} confirm"
+            )
+            sender.sendMessage(plugin.locale.get(Message.PUNISH_NO_EVIDENCE, "player", target.name))
+            return
+        }
+        plugin.logger.info(
+            "[Punish] Manual punish by ${sender.name} on ${target.name} " +
+            "(vl=${gp.aiViolationLevel}, buffer=${"%.1f".format(gp.aiBuffer)}, " +
+            "detections=${gp.totalAiFlags.get()}, forced=$forced)"
+        )
         val verbose = "manual-punish by ${sender.name}"
 
         val maxVl = plugin.punishmentManager.maxVl("AI")
@@ -380,7 +401,7 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
     private fun handleLog(sender: CommandSender, args: Array<out String>) {
         val log = plugin.punishmentManager.violationLog
         val entries = if (args.size >= 2) {
-            val target = Bukkit.getPlayer(args[1])
+            val target = Bukkit.getPlayerExact(args[1])
                 ?: return sender.sendMessage(plugin.locale.get(Message.PLAYER_NOT_FOUND, "player", args[1]))
             log.forPlayer(target.uniqueId, 20)
         } else {

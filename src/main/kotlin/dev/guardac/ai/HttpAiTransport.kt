@@ -153,9 +153,7 @@ class HttpAiTransport(private val plugin: GuardAC) : AiTransport {
         }
         return try {
             val dto = mapper.readValue(response.body(), BatchInferenceResponseDto::class.java)
-            val results = dto.results.map {
-                InferenceResult.Success(it.probability, it.label, it.sources ?: emptyList(), it.model ?: "Def")
-            }
+            val results = dto.results.map { toResult(it) }
             if (results.size == expected) results
             else {
 
@@ -174,7 +172,7 @@ class HttpAiTransport(private val plugin: GuardAC) : AiTransport {
         return if (response.statusCode() in 200..299) {
             try {
                 val dto = mapper.readValue(response.body(), InferenceResponseDto::class.java)
-                InferenceResult.Success(dto.probability, dto.label, dto.sources ?: emptyList(), dto.model ?: "Def")
+                toResult(dto)
             } catch (e: Exception) {
                 plugin.logger.warning("[AI] Failed to parse response: ${e.message}")
                 InferenceResult.Failure(e)
@@ -185,6 +183,24 @@ class HttpAiTransport(private val plugin: GuardAC) : AiTransport {
             }
             InferenceResult.Failure(RuntimeException("HTTP ${response.statusCode()}"))
         }
+    }
+
+    /**
+     * The response drives the violation buffer, so it must never be trusted
+     * blindly: a probability outside 0..1 (NaN, Infinity, huge numbers) would
+     * inflate the buffer to an instant flag in one window. Anything malformed
+     * becomes a Failure, which the check silently skips. The display strings
+     * are length-capped - they end up verbatim in staff alerts.
+     */
+    private fun toResult(dto: InferenceResponseDto): InferenceResult {
+        val p = dto.probability
+        if (p !in 0.0..1.0) {
+            plugin.logger.warning("[AI] Rejected malformed response: probability=$p (expected 0..1)")
+            return InferenceResult.Failure(IllegalArgumentException("probability out of range: $p"))
+        }
+        val sources = (dto.sources ?: emptyList()).take(8).map { it.take(24) }
+        val model   = (dto.model ?: "Def").take(24)
+        return InferenceResult.Success(p, dto.label?.take(32), sources, model)
     }
 }
 

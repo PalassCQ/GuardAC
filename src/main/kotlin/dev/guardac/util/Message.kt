@@ -86,6 +86,8 @@ enum class Message(val key: String) {
 
     PUNISH_SUCCESS("punish-success"),
     PUNISH_NO_DATA("punish-no-data"),
+    PUNISH_NO_EVIDENCE("punish-no-evidence"),
+    UNSAFE_NAME_KICK("unsafe-name-kick"),
 
     SCAN_STARTED("scan-started"),
     SCAN_ALREADY("scan-already"),
@@ -149,6 +151,7 @@ enum class Message(val key: String) {
     MENU_PAGE("menu-page"),
     MENU_REFRESH_LORE("menu-refresh-lore"),
     MENU_PLAYER_OFFLINE("menu-player-offline"),
+    MENU_UNSAFE_NAME("menu-unsafe-name"),
     COMMON_YES("common-yes"),
     COMMON_NO("common-no"),
     COMMON_ON("common-on"),
