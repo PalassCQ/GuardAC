@@ -197,6 +197,12 @@ class ConfigManager(private val plugin: GuardAC) {
     val animationPigHeight: Double   get() = cfg.getDouble("animations.pig-height", 10.0).coerceIn(1.0, 60.0)
 
     val animationAutoOnBan: Boolean  get() = cfg.getBoolean("animations.auto-on-ban", true)
+    // An animation is always the show BEFORE a ban. When the matched punishment
+    // tier has no real command of its own, this ban is issued after the show.
+    val animationFallbackBanTime: String get() =
+        cfg.getString("animations.fallback-ban-time", "30d")!!.trim()
+    val animationFallbackBanReason: String get() =
+        cfg.getString("animations.fallback-ban-reason", "Использование стороннего ПО (GuardAC)")!!.trim()
 
     val fingerprintEnabled: Boolean      get() = cfg.getBoolean("fingerprint.enabled", true)
     val fingerprintWarmup: Int           get() = cfg.getInt("fingerprint.warmup-hits", 30)

@@ -1,7 +1,7 @@
 # Быстрый старт: впиши ключ в ai.api-key, затем /guard reload.
 # Ключ: https://guardac.net
 
-config-version: 21
+config-version: 22
 
 # en | ru
 locale: "en"
@@ -59,6 +59,11 @@ animations:
   drop-inventory: true
   sound: true
   pig-height: 10
+  # Анимация - это всегда шоу перед баном. Если у сработавшего уровня наказания
+  # нет своей команды (например, только [alert] и [log]), после анимации бан
+  # выдаётся автоматически: на это время (форматы 30d / 12h / 45m; пусто "" = навсегда).
+  fallback-ban-time: "30d"
+  fallback-ban-reason: "Использование стороннего ПО (GuardAC)"
 
 # команды меню /guard menu при клике по игроку (<admin>, <target>)
 # пусто = спектатор + телепорт

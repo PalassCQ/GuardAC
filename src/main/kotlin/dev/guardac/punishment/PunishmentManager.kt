@@ -158,20 +158,29 @@ class PunishmentManager(private val plugin: GuardAC) {
             // Auto-animation plays before a real ban/kick; a MANUAL punish plays it
             // unconditionally - staff asked for the show, even on alert-only tiers.
             val autoAnim = plugin.configManager.animationAutoOnBan && hasRealCommand
-            if (plugin.configManager.animationsEnabled &&
-                (autoAnim || forceAnimation) && !hasExplicitAnim
-            ) {
+            val willAnimate = plugin.configManager.animationsEnabled &&
+                (autoAnim || forceAnimation || hasExplicitAnim)
+            // A ban animation must END with a ban. If the tier that fired carries
+            // no real command of its own, append the configurable fallback ban.
+            val chain = if (willAnimate && !hasRealCommand) actions + fallbackBanAction() else actions
+            if (willAnimate && !hasExplicitAnim) {
                 plugin.banAnimationManager.playRandom(gp.player) {
-                    executeChain(gp, checkGroup, vl, verbose, actions, 0)
+                    executeChain(gp, checkGroup, vl, verbose, chain, 0)
                 }
             } else {
-                executeChain(gp, checkGroup, vl, verbose, actions, 0)
+                executeChain(gp, checkGroup, vl, verbose, chain, 0)
             }
         })
     }
 
     fun onPlayerQuit(uuid: UUID) {
         lastPunishTime.remove(uuid)
+    }
+
+    private fun fallbackBanAction(): String {
+        val time   = plugin.configManager.animationFallbackBanTime
+        val reason = plugin.configManager.animationFallbackBanReason
+        return if (time.isEmpty()) "ban <player> $reason" else "tempban <player> $time $reason"
     }
 
     private fun isPunishmentCommand(action: String): Boolean {
