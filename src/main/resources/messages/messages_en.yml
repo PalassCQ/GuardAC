@@ -12,33 +12,26 @@ reload-success: "&#4ADE80✔ &7Configuration reloaded."
 
 alerts-enabled: "&#4ADE80✔ &7Alerts &#4ADE80enabled&7."
 alerts-disabled: "&#FFC857● &7Alerts &8disabled&7."
-# Placeholders: {player} {check} {vl} {verbose} {avg} {peak} {ping} {ping_color} {lag}
+# Placeholders: {player} {check} {vl} {verbose} {avg} {peak}
 # (the [Def]/[Extreme] model tag is deliberately not shown here - only in /guard monitor)
-alerts-format: "{prefix} &#FF4D6D&l{player} &8- &7{verbose} &8• &#FF4D6DVL {vl} &8• {ping_color}{ping}ms{lag}"
-alerts-console-format: "[GuardAC] {player} | x{vl} | {verbose} | {ping}ms{lag}"
-# Red marker shown next to the ping while the player is lagging / on high ping -
-# data from that moment is less trustworthy, punish with extra care.
-lag-tag: " &8[&c⚠ LAG&8]"
-# Too many recent windows dropped as "lag" - that's how both a terrible connection
-# and a cheater faking lag to dodge analysis look. Analysis has been resumed.
-# Placeholders: {player} {percent} {ping}
-lag-abuse-alert: "{prefix} &8[&#FFC857LAG&8] &f{player} &7- {percent}% of recent windows dropped due to unstable connection &8(&7ping {ping}ms&8)&7. Analysis resumed, possible lag-switch."
+alerts-format: "{prefix} &#FF4D6D&l{player} &8- &7{verbose} &8• &#FF4D6DVL {vl}"
+alerts-console-format: "[GuardAC] {player} | x{vl} | {verbose}"
 # Auto-update: a new version was downloaded and applies after a restart. Placeholder: {tag}
 update-downloaded: "{prefix} &#4ADE80GuardAC update &f{tag} &#4ADE80downloaded &8- &7it will apply after a server restart."
 # Aim Fingerprint: player's aim style shifted sharply. Placeholders: {player} {base} {now}
 fingerprint-alert: "{prefix} &8[&#A78BFAFINGERPRINT&8] &#FF4D6D&l{player} &7- aim style shifted sharply &8(&7{base}% &8→ &c{now}%&8)&7, possible cheat toggle."
-# Early warning to staff. Placeholders: {player} {buffer} {flag} {ping} {ping_color} {lag}
-suspicious-alert: "{prefix} &8[&#FFC857WATCH&8] &f{player} &7is becoming suspicious &8(&#FFC857{buffer} &8/ &7{flag}&8) &8• {ping_color}{ping}ms{lag}"
+# Early warning to staff. Placeholders: {player} {buffer} {flag}
+suspicious-alert: "{prefix} &8[&#FFC857WATCH&8] &f{player} &7is becoming suspicious &8(&#FFC857{buffer} &8/ &7{flag}&8)"
 # Shown to the player when the extra in-combat protection kicks in (combat-suppression in config.yml).
 suppression-isolate-notice: "&7Connection unstable &8- &7attacks are temporarily not registering."
 
 monitor-enabled: "&#4ADE80✔ &7Monitor &#4ADE80enabled&7 &8- showing every model result."
 monitor-disabled: "&#FFC857● &7Monitor &8disabled&7."
-# Placeholders: {player} {model} {color} {prob} {avg} {avg_color} {vl} {ping} {ping_color} {lag} {peak} {high_count} {suppression}
-monitor-hit: "{prefix} &7{model} {color}{player} &8• {color}{prob}% &8• &7avg {avg_color}{avg}% &8• &#FF4D6DVL {vl} &8• {ping_color}{ping}ms{lag}{suppression}"
+# Placeholders: {player} {model} {color} {prob} {avg} {avg_color} {vl} {ping} {peak} {high_count} {suppression}
+monitor-hit: "{prefix} &7{model} {color}{player} &8• {color}{prob}% &8• &7avg {avg_color}{avg}% &8• &#FF4D6DVL {vl} &8• &7{ping}ms{suppression}"
 
 profile-header: "&8&m        &r {prefix} &#67E8F9&l{player} &8&m        "
-profile-ping: " &8▏ &7Ping&8: {ping_color}{ping}ms{lag}"
+profile-ping: " &8▏ &7Ping&8: &f{ping}ms"
 profile-session: " &8▏ &7Session&8: &f{session}"
 profile-ai-buffer: " &8▏ &7AI buffer&8: &#67E8F9{buffer} &8/ &#3B82F6{flag}"
 profile-ai-vl: " &8▏ &7Flags&8: &#FF4D6D{vl} &8(total&8: &7{total}&8)"
@@ -51,7 +44,7 @@ profile-avg-prob: " &8▏ &7Avg probability&8: &#67E8F9{avg}% &8(peak&8: &#FF4D6
 profile-suppression: " &8▏ &7Suppression&8: {stage} &8(&7attack &8-&f{penalty}%&8)"
 
 suspicious-header: "{prefix} &#67E8F9&lSuspicious &8(&f{count}&8)"
-suspicious-entry: " &#22D3EE▸ &f{player} &8• &7buffer &#FF4D6D{buffer} &8• &7ping {ping_color}{ping}ms{lag}"
+suspicious-entry: " &#22D3EE▸ &f{player} &8• &7buffer &#FF4D6D{buffer} &8• &7ping &f{ping}ms"
 suspicious-empty: "&#4ADE80✔ &7No suspicious players detected."
 
 debug-header: "&8&m        &r {prefix} &7Debug &#67E8F9{player} &8&m        "
@@ -73,7 +66,7 @@ debug-suppression: " &8▏ &7Suppression&8: {stage} &8(&7attack &8-&f{penalty}%&
 # Placeholders: {player} {prob} {prob_color} {avg} {avg_color} {peak} {buffer} {vl} {ping} {ping_color}
 prob-started: "&#4ADE80✔ &7Watching &f{player}&7 - action bar active."
 prob-stopped: "&#FFC857● &7Monitoring stopped."
-prob-actionbar: "&#22D3EE{player} &8| {prob_color}{prob}% &8| &7avg {avg_color}{avg}% &8| &7buf &f{buffer} &8| &#FF4D6DVL {vl} &8| {ping_color}{ping}ms{lag}"
+prob-actionbar: "&#22D3EE{player} &8| {prob_color}{prob}% &8| &7avg {avg_color}{avg}% &8| &7buf &f{buffer} &8| &#FF4D6DVL {vl} &8| {ping_color}{ping}ms"
 prob-no-data: "&#FF4D6D✖ &7No data for &f{player}&7."
 
 exempt-added: "&#4ADE80✔ &f{player} &7added to exemptions."

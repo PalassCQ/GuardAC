@@ -56,19 +56,15 @@ class AlertManager(private val plugin: GuardAC) {
         if (now - last < ALERT_THROTTLE_MS) return
         if (!gp.lastAlertMs.compareAndSet(last, now)) return
         val playerName = gp.player.name
-        val ping = gp.player.ping
         val msg = plugin.locale.get(
             Message.ALERTS_FORMAT,
-            "player",     playerName,
-            "check",      checkName,
-            "model",      model,
-            "vl",         vl.toString(),
-            "verbose",    verbose,
-            "avg",        formatPercent(gp.avgProbability),
-            "peak",       formatPercent(gp.peakProbability),
-            "ping",       ping.toString(),
-            "ping_color", pingColor(ping),
-            "lag",        lagTag(gp),
+            "player",  playerName,
+            "check",   checkName,
+            "model",   model,
+            "vl",      vl.toString(),
+            "verbose", verbose,
+            "avg",     formatPercent(gp.avgProbability),
+            "peak",    formatPercent(gp.peakProbability),
         )
         val consoleLine = plugin.locale.get(
             Message.ALERTS_CONSOLE_FORMAT,
@@ -77,8 +73,6 @@ class AlertManager(private val plugin: GuardAC) {
             "model",   model,
             "vl",      vl.toString(),
             "verbose", verbose,
-            "ping",    ping.toString(),
-            "lag",     if (gp.isLagging) " [LAG]" else "",
         )
         Bukkit.getScheduler().runTask(plugin, Runnable {
             if (!gp.player.isOnline) return@Runnable
@@ -131,28 +125,6 @@ class AlertManager(private val plugin: GuardAC) {
             "player", gp.player.name,
             "buffer", "%.1f".format(buffer),
             "flag",   "%.0f".format(plugin.configManager.aiBufferFlag),
-            "ping",       gp.player.ping.toString(),
-            "ping_color", pingColor(gp.player.ping),
-            "lag",        lagTag(gp),
-        )
-        Bukkit.getScheduler().runTask(plugin, Runnable {
-            val component = clickableAlert(msg, gp.player.name)
-            Bukkit.getOnlinePlayers()
-                .filter { it.hasPermission("guardac.alerts") && !alertsMuted.contains(it.uniqueId) }
-                .forEach { it.spigot().sendMessage(component) }
-        })
-    }
-
-    fun sendLagAbuseAlert(gp: GuardPlayer) {
-        val percent = gp.lagSkipPercent
-        if (plugin.configManager.alertsToConsole) {
-            plugin.logger.info("[LagGuard] ${gp.player.name}: $percent% of recent windows were lag-dropped - skip budget exhausted, analysis resumed (possible lag-switch).")
-        }
-        val msg = plugin.locale.get(
-            Message.LAG_ABUSE_ALERT,
-            "player",  gp.player.name,
-            "percent", percent.toString(),
-            "ping",    gp.player.ping.toString(),
         )
         Bukkit.getScheduler().runTask(plugin, Runnable {
             val component = clickableAlert(msg, gp.player.name)
@@ -199,8 +171,6 @@ class AlertManager(private val plugin: GuardAC) {
             "avg_color",   avgColor,
             "vl",          gp.aiViolationLevel.toString(),
             "ping",        gp.player.ping.toString(),
-            "ping_color",  pingColor(gp.player.ping),
-            "lag",         lagTag(gp),
             "peak",        "%.1f".format(gp.peakProbability * 100.0),
             "high_count",  gp.highProbCount.toString(),
             "suppression", suppressionTag(gp),
@@ -265,6 +235,11 @@ class AlertManager(private val plugin: GuardAC) {
                 avg >= 60.0 -> "&e"
                 else        -> "&a"
             }
+            val pingColor = when {
+                onlineTarget.ping > 200 -> "&c"
+                onlineTarget.ping > 100 -> "&e"
+                else                    -> "&f"
+            }
             val msg = plugin.locale.get(
                 Message.PROB_ACTIONBAR,
                 "player",     onlineTarget.name,
@@ -276,8 +251,7 @@ class AlertManager(private val plugin: GuardAC) {
                 "buffer",     "%.1f".format(gp.aiBuffer),
                 "vl",         gp.aiViolationLevel.toString(),
                 "ping",       onlineTarget.ping.toString(),
-                "ping_color", pingColor(onlineTarget.ping),
-                "lag",        lagTag(gp),
+                "ping_color", pingColor,
             )
             sendActionBar(onlineViewer, msg)
         }, 0L, PROB_UPDATE_TICKS)
@@ -336,24 +310,11 @@ class AlertManager(private val plugin: GuardAC) {
     }
 
     private fun formatPercent(v: Double): String = "%.1f".format(v * 100.0)
-
-    fun pingColor(ping: Int): String = when {
-        ping >= PING_RED    -> "&c"
-        ping >= PING_YELLOW -> "&e"
-        else                -> "&a"
-    }
-
-    fun lagTag(gp: GuardPlayer): String =
-        if (gp.isLagging) plugin.locale.get(Message.LAG_TAG) else ""
-
     companion object {
         const val MONITOR_THROTTLE_MS = 1_000L
         const val ALERT_THROTTLE_MS   = 1_000L
         const val SUSPICIOUS_THROTTLE_MS = 15_000L
 
         const val PROB_UPDATE_TICKS   = 10L
-
-        const val PING_YELLOW = 100
-        const val PING_RED    = 200
     }
 }
