@@ -44,22 +44,22 @@ Punishments:
         - "[alert]"
         - "[log]"
         - "[broadcast] &#22D3EE▍ &#FF4D6D<player> &7was temporarily banned by GuardAC."
-        - "tempban <player> 20h Suspicious combat behavior (GuardAC)."
+        - "tempban <player> 30d Suspicious combat behavior (GuardAC)."
       5:
         - "[alert]"
         - "[log]"
         - "[broadcast] &#22D3EE▍ &#FF4D6D<player> &7was temporarily banned by GuardAC."
-        - "tempban <player> 3d Suspicious combat behavior (GuardAC)."
+        - "tempban <player> 60d Suspicious combat behavior (GuardAC)."
       7:
         - "[alert]"
         - "[log]"
         - "[broadcast] &#22D3EE▍ &#FF4D6D<player> &7was temporarily banned by GuardAC."
-        - "tempban <player> 7d Suspicious combat behavior (GuardAC)."
+        - "tempban <player> 90d Suspicious combat behavior (GuardAC)."
       10:
         - "[alert]"
         - "[log]"
         - "[broadcast] &#22D3EE▍ &#FF4D6D<player> &7was temporarily banned by GuardAC."
-        - "tempban <player> 14d Suspicious combat behavior (GuardAC)."
+        - "tempban <player> 180d Suspicious combat behavior (GuardAC)."
       15:
         - "[alert]"
         - "[log]"

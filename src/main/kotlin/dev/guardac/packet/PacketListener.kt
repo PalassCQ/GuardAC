@@ -129,8 +129,10 @@ class PacketListener(private val plugin: GuardAC) :
         // Degrees of camera movement (|yaw|+|pitch| over the last ~10 ticks)
         // required for a hit to count. Not configurable on purpose - a public
         // knob here would just tell cheat developers what to stay under.
-        const val MIN_HIT_ROTATION_STILL  = 4.0
-        const val MIN_HIT_ROTATION_MOVING = 8.0
+        // Real PvP camera work runs tens of degrees per half-second, so these
+        // bars only drop no-signal windows, never genuine fights.
+        const val MIN_HIT_ROTATION_STILL  = 8.0
+        const val MIN_HIT_ROTATION_MOVING = 16.0
     }
 
     private fun buildTick(gp: GuardPlayer) = TickData(
