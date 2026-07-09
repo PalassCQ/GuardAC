@@ -202,7 +202,7 @@ class ConfigManager(private val plugin: GuardAC) {
     val animationFallbackBanTime: String get() =
         cfg.getString("animations.fallback-ban-time", "30d")!!.trim()
     val animationFallbackBanReason: String get() =
-        cfg.getString("animations.fallback-ban-reason", "Использование стороннего ПО (GuardAC)")!!.trim()
+        cfg.getString("animations.fallback-ban-reason", "Cheating software detected (GuardAC)")!!.trim()
 
     val fingerprintEnabled: Boolean      get() = cfg.getBoolean("fingerprint.enabled", true)
     val fingerprintWarmup: Int           get() = cfg.getInt("fingerprint.warmup-hits", 30)
