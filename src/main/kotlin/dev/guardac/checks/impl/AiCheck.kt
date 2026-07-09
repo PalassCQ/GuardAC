@@ -40,14 +40,26 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
 
         val scanning = plugin.scanManager.isScanning(gp.uuid)
 
-        // Client-side lag guard: a window built from bursty packet timings has
-        // distorted deltas - a lagging but honest player reads as inhuman aim.
-        // Requires BOTH bad timings AND real measured latency, so a cheat can't
-        // fake jitter for a free skip while keeping a clean low ping.
+        // Client-side lag guard. Goal: lag must not TILT the verdict either way.
+        // A distorted window is DROPPED (neutral - the buffer neither grows nor
+        // shrinks), never scored. Two triggers:
+        //   * moderate bursts + real measured latency (classic network lag);
+        //   * severe bursts alone (client freeze / packet clump distorts the
+        //     deltas even when the measured ping is low).
+        // And one cap: the skip budget. Real lag is intermittent - if most
+        // recent windows were dropped, someone may be FAKING jitter to never be
+        // analysed, so the guard stops skipping (windows are scored again, staff
+        // see the red LAG tag) and staff get a one-time lag-abuse notice.
         val unstable = gp.consumeUnstableTicks()
-        if (unstable >= UNSTABLE_TICKS_MIN && gp.player.ping >= UNSTABLE_PING_MIN) {
-            gp.markLagWindow()
-            if (!scanning) return
+        val distorted = unstable >= UNSTABLE_TICKS_SEVERE ||
+            (unstable >= UNSTABLE_TICKS_MIN && gp.player.ping >= UNSTABLE_PING_MIN)
+        if (distorted) gp.markLagWindow()
+        if (!scanning) {
+            val budgetExhausted = gp.registerLagGate(distorted)
+            if (budgetExhausted && gp.shouldNotifyLagAbuse()) {
+                plugin.alertManager.sendLagAbuseAlert(gp)
+            }
+            if (distorted && !budgetExhausted) return
         }
 
         // The window must contain enough real aim movement before we judge it: a
@@ -173,5 +185,8 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
         private const val CHECK_NAME = "AI"
         private const val UNSTABLE_TICKS_MIN = 3
         private const val UNSTABLE_PING_MIN  = 100
+        // Enough bursty gaps to distort a window on their own, ping regardless
+        // (a client freeze compresses several frames of aim into one tick).
+        private const val UNSTABLE_TICKS_SEVERE = 10
     }
 }

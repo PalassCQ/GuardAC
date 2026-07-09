@@ -143,6 +143,25 @@ class AlertManager(private val plugin: GuardAC) {
         })
     }
 
+    fun sendLagAbuseAlert(gp: GuardPlayer) {
+        val percent = gp.lagSkipPercent
+        if (plugin.configManager.alertsToConsole) {
+            plugin.logger.info("[LagGuard] ${gp.player.name}: $percent% of recent windows were lag-dropped - skip budget exhausted, analysis resumed (possible lag-switch).")
+        }
+        val msg = plugin.locale.get(
+            Message.LAG_ABUSE_ALERT,
+            "player",  gp.player.name,
+            "percent", percent.toString(),
+            "ping",    gp.player.ping.toString(),
+        )
+        Bukkit.getScheduler().runTask(plugin, Runnable {
+            val component = clickableAlert(msg, gp.player.name)
+            Bukkit.getOnlinePlayers()
+                .filter { it.hasPermission("guardac.alerts") && !alertsMuted.contains(it.uniqueId) }
+                .forEach { it.spigot().sendMessage(component) }
+        })
+    }
+
     fun sendReputationNotice(playerName: String, detections: Int, servers: Int) {
         if (plugin.configManager.alertsToConsole) {
             plugin.logger.info("[Reputation] $playerName - $detections detections on $servers other server(s)")

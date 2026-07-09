@@ -32,6 +32,7 @@ enum class Message(val key: String) {
     FINGERPRINT_ALERT("fingerprint-alert"),
     SUSPICIOUS_ALERT("suspicious-alert"),
     LAG_TAG("lag-tag"),
+    LAG_ABUSE_ALERT("lag-abuse-alert"),
     UPDATE_DOWNLOADED("update-downloaded"),
 
     SUPPRESSION_ISOLATE_NOTICE("suppression-isolate-notice"),

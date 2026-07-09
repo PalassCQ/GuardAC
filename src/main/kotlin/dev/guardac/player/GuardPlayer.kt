@@ -150,6 +150,44 @@ class GuardPlayer(
         get() = System.currentTimeMillis() - lastLagMs < LAG_RECENT_MS ||
                 player.ping >= LAG_PING_RED
 
+    // Skip budget for the lag guard. Dropping a lag-distorted window keeps the
+    // result NEUTRAL (nothing is inflated or deflated) - but an unlimited skip
+    // would let a cheat fake jitter and never be analysed at all. Real lag is
+    // intermittent; when most recent windows were dropped, the guard stops
+    // skipping (windows are analysed again, staff see the red LAG tag) and a
+    // one-time staff notice flags a possible lag-switch.
+    private val lagGateHistory = ArrayDeque<Boolean>()
+    private var lagGateSkips = 0
+    @Volatile private var lagAbuseNotified = false
+
+    /** Record a lag-gate decision; true = the skip BUDGET is exhausted and this
+     *  window must be analysed despite the distortion. */
+    @Synchronized
+    fun registerLagGate(wantSkip: Boolean): Boolean {
+        lagGateHistory.addLast(wantSkip)
+        if (wantSkip) lagGateSkips++
+        while (lagGateHistory.size > LAG_BUDGET_WINDOW) {
+            if (lagGateHistory.removeFirst()) lagGateSkips--
+        }
+        val overBudget = wantSkip && lagGateSkips > LAG_BUDGET_MAX_SKIPS
+        if (!overBudget && lagGateSkips <= LAG_BUDGET_MAX_SKIPS / 2) {
+            lagAbuseNotified = false  // recovered - re-arm the one-time notice
+        }
+        return overBudget
+    }
+
+    /** One-shot per abuse episode: true only on the first over-budget window. */
+    fun shouldNotifyLagAbuse(): Boolean {
+        if (lagAbuseNotified) return false
+        lagAbuseNotified = true
+        return true
+    }
+
+    @get:Synchronized
+    val lagSkipPercent: Int
+        get() = if (lagGateHistory.isEmpty()) 0
+                else lagGateSkips * 100 / lagGateHistory.size
+
     val lastMonitorHitMs: AtomicLong = AtomicLong(0L)
     val lastAlertMs: AtomicLong      = AtomicLong(0L)
     val lastSuspiciousMs: AtomicLong = AtomicLong(0L)
@@ -403,6 +441,11 @@ class GuardPlayer(
         // ping at which a player counts as lagging even without dropped windows.
         const val LAG_RECENT_MS            = 30_000L
         const val LAG_PING_RED             = 200
+        // Skip budget: out of the last LAG_BUDGET_WINDOW gate decisions, at most
+        // LAG_BUDGET_MAX_SKIPS may be skips; beyond that windows are analysed
+        // anyway (fake-lag can't buy permanent invisibility).
+        const val LAG_BUDGET_WINDOW        = 12
+        const val LAG_BUDGET_MAX_SKIPS     = 8
         const val CHEAT_THRESHOLD          = 0.90
         const val LEGIT_THRESHOLD          = 0.10
         const val IDLE_DELTA_THRESHOLD     = 0.05f

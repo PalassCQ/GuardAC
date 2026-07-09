@@ -19,6 +19,10 @@ alerts-console-format: "[GuardAC] {player} | x{vl} | {verbose} | {ping}ms{lag}"
 # Red marker shown next to the ping while the player is lagging / on high ping -
 # data from that moment is less trustworthy, punish with extra care.
 lag-tag: " &8[&c⚠ LAG&8]"
+# Too many recent windows dropped as "lag" - that's how both a terrible connection
+# and a cheater faking lag to dodge analysis look. Analysis has been resumed.
+# Placeholders: {player} {percent} {ping}
+lag-abuse-alert: "{prefix} &8[&#FFC857LAG&8] &f{player} &7- {percent}% of recent windows dropped due to unstable connection &8(&7ping {ping}ms&8)&7. Analysis resumed, possible lag-switch."
 # Auto-update: a new version was downloaded and applies after a restart. Placeholder: {tag}
 update-downloaded: "{prefix} &#4ADE80GuardAC update &f{tag} &#4ADE80downloaded &8- &7it will apply after a server restart."
 # Aim Fingerprint: player's aim style shifted sharply. Placeholders: {player} {base} {now}
