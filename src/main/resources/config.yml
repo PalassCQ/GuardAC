@@ -6,7 +6,7 @@
 # below switches everything the plugin SAYS (staff alerts, command output,
 # player messages) between languages.
 
-config-version: 23
+config-version: 24
 
 # Language of all plugin messages: en | ru
 locale: "en"
@@ -136,6 +136,16 @@ geyser:
 client-brand:
   # Show which client mod (fabric/forge/lunar...) a player uses in /guard profile.
   enabled: true
+
+# Automatic plugin updates from the official GuardAC releases.
+auto-update:
+  # When a new version is published, download it in the background and stage it
+  # so the server applies it on the next restart. No files to copy by hand.
+  enabled: true
+  # How often to look for a new version, in hours.
+  check-interval-hours: 6
+  # Tell online staff (guardac.alerts permission) when an update was downloaded.
+  notify-staff: true
 
 # WorldGuard regions where detection is disabled (arenas with special rules etc).
 worldguard:

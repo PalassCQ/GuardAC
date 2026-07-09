@@ -147,7 +147,12 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
 
         val sessionMs = System.currentTimeMillis() - gp.joinTime
         sender.sendMessage(plugin.locale.get(Message.PROFILE_HEADER, "player", target.name))
-        sender.sendMessage(plugin.locale.get(Message.PROFILE_PING, "ping", target.ping.toString()))
+        sender.sendMessage(plugin.locale.get(
+            Message.PROFILE_PING,
+            "ping",       target.ping.toString(),
+            "ping_color", plugin.alertManager.pingColor(target.ping),
+            "lag",        plugin.alertManager.lagTag(gp),
+        ))
         sender.sendMessage(plugin.locale.get(Message.PROFILE_SESSION, "session", formatDuration(sessionMs)))
         sender.sendMessage(plugin.locale.get(
             Message.PROFILE_AI_BUFFER,
@@ -220,6 +225,8 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
                 "player", gp.player.name,
                 "buffer", "%.1f".format(gp.aiBuffer),
                 "ping",   gp.player.ping.toString(),
+                "ping_color", plugin.alertManager.pingColor(gp.player.ping),
+                "lag",        plugin.alertManager.lagTag(gp),
             ))
         }
     }

@@ -136,6 +136,20 @@ class GuardPlayer(
         return v
     }
 
+    // Set when a window is dropped by the lag guard (packet bursts + real ping).
+    // Staff-facing output (alerts, monitor, profile) shows a red LAG marker while
+    // this is fresh, so a high probability on a lagging player reads with the
+    // right amount of doubt.
+    @Volatile private var lastLagMs: Long = 0L
+
+    fun markLagWindow() {
+        lastLagMs = System.currentTimeMillis()
+    }
+
+    val isLagging: Boolean
+        get() = System.currentTimeMillis() - lastLagMs < LAG_RECENT_MS ||
+                player.ping >= LAG_PING_RED
+
     val lastMonitorHitMs: AtomicLong = AtomicLong(0L)
     val lastAlertMs: AtomicLong      = AtomicLong(0L)
     val lastSuspiciousMs: AtomicLong = AtomicLong(0L)
@@ -385,6 +399,10 @@ class GuardPlayer(
         // Vanilla rotation cadence is ~50ms; way under = a catch-up burst.
         // Internal constant on purpose - not a public knob.
         const val UNSTABLE_GAP_MIN_MS      = 15L
+        // How long the red LAG marker stays after a lag-dropped window, and the
+        // ping at which a player counts as lagging even without dropped windows.
+        const val LAG_RECENT_MS            = 30_000L
+        const val LAG_PING_RED             = 200
         const val CHEAT_THRESHOLD          = 0.90
         const val LEGIT_THRESHOLD          = 0.10
         const val IDLE_DELTA_THRESHOLD     = 0.05f

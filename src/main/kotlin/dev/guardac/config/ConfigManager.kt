@@ -216,6 +216,10 @@ class ConfigManager(private val plugin: GuardAC) {
 
     val clientBrandEnabled: Boolean get() = cfg.getBoolean("client-brand.enabled", true)
 
+    val autoUpdateEnabled: Boolean     get() = cfg.getBoolean("auto-update.enabled", true)
+    val autoUpdateIntervalHours: Int   get() = cfg.getInt("auto-update.check-interval-hours", 6)
+    val autoUpdateNotifyStaff: Boolean get() = cfg.getBoolean("auto-update.notify-staff", true)
+
     val worldGuardEnabled: Boolean         get() = cfg.getBoolean("worldguard.enabled", false)
     val worldGuardDisabledRegions: List<String> get() = cfg.getStringList("worldguard.disabled-regions")
 

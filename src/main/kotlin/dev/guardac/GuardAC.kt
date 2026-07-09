@@ -46,6 +46,7 @@ import dev.guardac.punishment.PunishmentManager
 import dev.guardac.reputation.ReputationClient
 import dev.guardac.scan.ScanManager
 import dev.guardac.stats.DailyStats
+import dev.guardac.update.UpdateManager
 import dev.guardac.util.TpsMonitor
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitTask
@@ -73,6 +74,7 @@ class GuardAC : JavaPlugin() {
     lateinit var suppressionManager: SuppressionManager     private set
     lateinit var scanManager: ScanManager                   private set
     lateinit var tpsMonitor: TpsMonitor                     private set
+    lateinit var updateManager: UpdateManager               private set
 
     var startTime: Long = 0L
         private set
@@ -130,6 +132,7 @@ class GuardAC : JavaPlugin() {
         suppressionManager    = SuppressionManager(this).also { it.start() }
         scanManager           = ScanManager(this)
         tpsMonitor            = TpsMonitor(this).also { it.start() }
+        updateManager         = UpdateManager(this, file).also { it.start() }
         val httpTransport     = HttpAiTransport(this)
         val batchedTransport: AiTransport =
             if (configManager.aiBatchingEnabled) BatchingAiTransport(this, httpTransport) else httpTransport
@@ -201,6 +204,7 @@ class GuardAC : JavaPlugin() {
         runCatching { hologramManager.stop() }
         runCatching { suppressionManager.stop() }
         runCatching { tpsMonitor.stop() }
+        runCatching { updateManager.stop() }
         runCatching { dataCollectorManager.flushAll() }
         runCatching { dailyStats.shutdown() }
 

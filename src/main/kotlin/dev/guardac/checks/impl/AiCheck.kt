@@ -45,7 +45,10 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
         // Requires BOTH bad timings AND real measured latency, so a cheat can't
         // fake jitter for a free skip while keeping a clean low ping.
         val unstable = gp.consumeUnstableTicks()
-        if (!scanning && unstable >= UNSTABLE_TICKS_MIN && gp.player.ping >= UNSTABLE_PING_MIN) return
+        if (unstable >= UNSTABLE_TICKS_MIN && gp.player.ping >= UNSTABLE_PING_MIN) {
+            gp.markLagWindow()
+            if (!scanning) return
+        }
 
         // The window must contain enough real aim movement before we judge it: a
         // near-static camera carries no signal and only adds noise. Raising this
