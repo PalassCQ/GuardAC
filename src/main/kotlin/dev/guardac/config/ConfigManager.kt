@@ -144,11 +144,6 @@ class ConfigManager(private val plugin: GuardAC) {
     // tick timing and can make a legit player look like a cheat.
     val aiMinTpsAnalyze: Double get() = cfg.getDouble("ai.min-tps-analyze", 15.0)
 
-    // Client-side lag guard: skip a window when rotation-packet timing was
-    // unstable (burst/stall) AND the player's ping is high. Both conditions
-    // are required so a cheat can't spoof jitter alone to get a free skip.
-    val aiLagProtection: Boolean get() = cfg.getBoolean("ai.lag-protection", true)
-
     val aiOnlyAlert: Boolean   get() = cfg.getBoolean("ai.only-alert", false)
 
     val aiBufferFlag: Double        get() = cfg.getDouble("ai.buffer.flag", 50.0)
