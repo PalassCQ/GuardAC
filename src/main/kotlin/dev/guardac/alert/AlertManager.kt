@@ -89,9 +89,6 @@ class AlertManager(private val plugin: GuardAC) {
                 playAlertSound(recipients)
             }
         })
-        if (plugin.configManager.crossServerEnabled) {
-            publishCrossServerAlert(checkName, playerName, vl, verbose)
-        }
     }
 
     fun sendFingerprintAlert(gp: GuardPlayer) {
@@ -303,17 +300,6 @@ class AlertManager(private val plugin: GuardAC) {
             if (p.isOnline) p.playSound(p.location, sound, volume, pitch)
         }
     }
-    private fun publishCrossServerAlert(checkName: String, playerName: String, vl: Int, verbose: String) {
-        try {
-            val serverName = plugin.configManager.serverName.ifBlank { "main" }
-            val payload    = "$serverName|$playerName|$checkName|$vl|$verbose"
-            // Any player connection works as the carrier - the proxy consumes the
-            // envelope and fans the payload out to every other server.
-            val any        = plugin.server.onlinePlayers.firstOrNull() ?: return
-            any.sendPluginMessage(plugin, CrossServerCodec.PROXY_CHANNEL, CrossServerCodec.encode(payload))
-        } catch (_: Exception) {}
-    }
-
     private fun suppressionTag(gp: GuardPlayer): String {
         if (!plugin.configManager.suppressionEnabled) return ""
         return when (gp.suppressionStage) {

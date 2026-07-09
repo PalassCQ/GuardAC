@@ -30,6 +30,8 @@ import java.net.http.HttpResponse
 import java.time.Duration
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
+import org.bukkit.Bukkit
+import org.bukkit.scheduler.BukkitTask
 import java.util.concurrent.Executors
 
 data class ReputationResult(
@@ -39,6 +41,13 @@ data class ReputationResult(
 )
 
 class ReputationClient(private val plugin: GuardAC) {
+
+    // Identifies THIS server inside the key's network for the whole session,
+    // even when two servers share a blank server-name. Random per boot.
+    val instanceId: String = UUID.randomUUID().toString()
+
+    private val displayName: String
+        get() = plugin.configManager.serverName.ifBlank { "srv-${plugin.server.port}" }
 
     private val mapper = ObjectMapper().apply {
         configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
@@ -61,10 +70,11 @@ class ReputationClient(private val plugin: GuardAC) {
 
     fun shutdown() {
         shuttingDown = true
+        stopNetworkAlertPolling()
         executor.shutdownNow()
     }
 
-    fun report(uuid: UUID, name: String, probability: Double) {
+    fun report(uuid: UUID, name: String, probability: Double, vl: Int = 0, verbose: String = "") {
         val cfg = plugin.configManager
         if (shuttingDown) return
 
@@ -76,6 +86,12 @@ class ReputationClient(private val plugin: GuardAC) {
                     "name" to name,
                     "probability" to probability,
                     "share_reputation" to shareReputation,
+                    // Cross-server relay context: which server of this key's
+                    // network flagged, so the others can show it to their staff.
+                    "server" to displayName,
+                    "instance" to instanceId,
+                    "vl" to vl,
+                    "verbose" to verbose,
                 )
             )
         } catch (e: Exception) {
@@ -117,9 +133,63 @@ class ReputationClient(private val plugin: GuardAC) {
             .exceptionally { null }
     }
 
+    // ------------------------------------------------------------------
+    // Cross-server alert relay: poll the backend for alerts reported by the
+    // key's OTHER servers. No proxy needed - the backend is the bridge.
+    // ------------------------------------------------------------------
+    @Volatile private var pollTask: BukkitTask? = null
+    @Volatile private var pollSince: Double = 0.0
+
+    fun startNetworkAlertPolling() {
+        pollTask?.cancel()
+        val period = plugin.configManager.crossServerPollSeconds * 20L
+        pollTask = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, Runnable {
+            if (shuttingDown || !plugin.configManager.crossServerEnabled) return@Runnable
+            pollNetworkAlerts()
+        }, period, period)
+    }
+
+    fun stopNetworkAlertPolling() {
+        pollTask?.cancel()
+        pollTask = null
+    }
+
+    private fun pollNetworkAlerts() {
+        val cfg = plugin.configManager
+        val url = cfg.aiBaseUrl + NETWORK_ALERTS_PATH +
+            "?since=" + pollSince + "&instance=" + instanceId
+        val req = HttpRequest.newBuilder(URI.create(url))
+            .header("Accept", "application/json")
+            .header("X-API-Key", cfg.aiApiKey)
+            .GET()
+            .timeout(Duration.ofSeconds(cfg.aiTimeoutSeconds))
+            .build()
+        try {
+            val resp = http.send(req, HttpResponse.BodyHandlers.ofString())
+            if (resp.statusCode() !in 200..299) return
+            val dto = mapper.readValue(resp.body(), NetworkAlertsDto::class.java)
+            pollSince = dto.now
+            dto.alerts.orEmpty().forEach { a ->
+                val server  = sanitize(a.server.ifBlank { "network" }, 24)
+                val player  = sanitize(a.player, 20)
+                val verbose = sanitize(a.verbose, 64)
+                if (player.isBlank()) return@forEach
+                plugin.alertManager.deliverCrossServerAlert(
+                    server, player, "AI", a.vl.coerceIn(0, 1_000_000), verbose,
+                )
+            }
+        } catch (_: Exception) {
+            // Network hiccup: keep the old `since`, the next poll catches up.
+        }
+    }
+
+    private fun sanitize(v: String, max: Int): String =
+        v.filter { it.code >= 0x20 && it != '\u00A7' && it != '&' }.take(max)
+
     private companion object {
         const val REPORT_PATH = "/v1/report"
         const val REPUTATION_PATH = "/v1/reputation/"
+        const val NETWORK_ALERTS_PATH = "/v1/network/alerts"
     }
 }
 
@@ -128,4 +198,18 @@ private data class RepDto @JsonCreator constructor(
     @JsonProperty("detections") val detections: Int = 0,
     @JsonProperty("servers")    val servers: Int = 0,
     @JsonProperty("max_prob")   val max_prob: Double = 0.0,
+)
+
+private data class NetworkAlertsDto @JsonCreator constructor(
+    @JsonProperty("now")    val now: Double = 0.0,
+    @JsonProperty("alerts") val alerts: List<NetworkAlertDto>? = null,
+)
+
+private data class NetworkAlertDto @JsonCreator constructor(
+    @JsonProperty("server")      val server: String = "",
+    @JsonProperty("player")      val player: String = "",
+    @JsonProperty("vl")          val vl: Int = 0,
+    @JsonProperty("verbose")     val verbose: String = "",
+    @JsonProperty("probability") val probability: Double = 0.0,
+    @JsonProperty("ts")          val ts: Double = 0.0,
 )

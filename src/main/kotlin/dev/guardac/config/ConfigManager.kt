@@ -164,6 +164,7 @@ class ConfigManager(private val plugin: GuardAC) {
     val alertSoundPitch: Float     get() = cfg.getDouble("alerts.sound.pitch", 1.8).toFloat()
 
     val crossServerEnabled: Boolean get() = cfg.getBoolean("cross-server.enabled", false)
+    val crossServerPollSeconds: Long get() = cfg.getLong("cross-server.poll-seconds", 10L).coerceIn(3L, 300L)
     val serverName: String          get() = cfg.getString("cross-server.server-name", "")!!
 
     val debugEnabled: Boolean        get() = cfg.getBoolean("debug.enabled", false)

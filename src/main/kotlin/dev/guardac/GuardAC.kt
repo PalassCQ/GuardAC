@@ -24,7 +24,6 @@ import dev.guardac.ai.BatchingAiTransport
 import dev.guardac.ai.HttpAiTransport
 import dev.guardac.ai.RetryingAiTransport
 import dev.guardac.alert.AlertManager
-import dev.guardac.alert.CrossServerListener
 import dev.guardac.animation.BanAnimationManager
 import dev.guardac.brand.ClientBrandListener
 import dev.guardac.checks.CheckRegistry
@@ -148,10 +147,10 @@ class GuardAC : JavaPlugin() {
         startVlDecayTask()
         hologramManager.start()
 
-        if (configManager.crossServerEnabled) {
-            server.messenger.registerOutgoingPluginChannel(this, dev.guardac.alert.CrossServerCodec.PROXY_CHANNEL)
-            server.messenger.registerIncomingPluginChannel(this, dev.guardac.alert.CrossServerCodec.PROXY_CHANNEL, CrossServerListener(this))
-        }
+        // Cross-server alerts are relayed through the GuardAC backend: servers
+        // using the same API key form one network, no proxy required. The task
+        // is a cheap no-op while cross-server.enabled is false.
+        reputationClient.startNetworkAlertPolling()
 
         if (configManager.clientBrandEnabled) {
             runCatching {

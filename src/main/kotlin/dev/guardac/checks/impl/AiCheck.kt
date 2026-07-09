@@ -139,8 +139,8 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
                     if (flagged && !event.isCancelled) {
                         plugin.dailyStats.recordDetection()
 
-                        plugin.reputationClient.report(gp.uuid, gp.player.name, prob)
                         val verbose = buildVerbose(prob)
+                        plugin.reputationClient.report(gp.uuid, gp.player.name, prob, gp.aiViolationLevel, verbose)
 
                         if (prob * 100.0 >= plugin.configManager.alertMinConfidence) {
                             plugin.alertManager.sendAlert(gp, CHECK_NAME, gp.aiViolationLevel, verbose, modelTag(result.sources))
