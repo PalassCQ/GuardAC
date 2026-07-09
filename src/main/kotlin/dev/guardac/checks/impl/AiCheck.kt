@@ -40,6 +40,15 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
 
         val scanning = plugin.scanManager.isScanning(gp.uuid)
 
+        // Client-side lag guard: a window built from bursty packet timings has
+        // distorted deltas - a lagging but honest player reads as inhuman aim.
+        // Requires BOTH bad timings AND real measured latency, so a cheat can't
+        // fake jitter for a free skip while keeping a clean low ping.
+        val unstable = gp.consumeUnstableTicks()
+        if (!scanning && cfg.aiLagProtection &&
+            unstable >= UNSTABLE_TICKS_MIN && gp.player.ping >= UNSTABLE_PING_MIN
+        ) return
+
         // The window must contain enough real aim movement before we judge it: a
         // near-static camera carries no signal and only adds noise. Raising this
         // means the model reacts to a hit only after clear camera work.
@@ -161,5 +170,7 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
 
     companion object {
         private const val CHECK_NAME = "AI"
+        private const val UNSTABLE_TICKS_MIN = 5
+        private const val UNSTABLE_PING_MIN  = 100
     }
 }

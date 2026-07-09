@@ -80,6 +80,12 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
             player.allowFlight = s.allowFlight
             player.isFlying    = s.flying && s.allowFlight
         }
+        runCatching { player.removePotionEffect(PotionEffectType.LEVITATION) }
+        // The player floated a few blocks up during the show; if they survive it
+        // (alert-only tier), let them drift down instead of taking fall damage.
+        runCatching {
+            player.addPotionEffect(PotionEffect(PotionEffectType.SLOW_FALLING, 100, 0, false, false))
+        }
     }
 
     fun playRandom(player: Player, onComplete: () -> Unit) = play(player, TYPES.random(), onComplete)
@@ -149,6 +155,18 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
             player.walkSpeed = 0f
             player.flySpeed = 0f
         }
+        // The rise is part of the freeze itself: the condemned slowly floats up
+        // while ANY animation plays around them (the anchor clamps only X/Z, so
+        // levitation is free to lift). A small kick starts the ascent instantly.
+        if (!player.isInsideVehicle) {
+            runCatching {
+                player.addPotionEffect(PotionEffect(
+                    PotionEffectType.LEVITATION,
+                    plugin.configManager.animationDurationTicks + 20, 1, false, false,
+                ))
+                player.velocity = Vector(0.0, 0.3, 0.0)
+            }
+        }
         return {
             if (player.isOnline) {
                 frozen.remove(player.uniqueId)?.let { applyState(player, it) }
@@ -164,16 +182,15 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         // teleport here would eject the passenger. The pig task re-seats instead.
         if (event.player.isInsideVehicle) return
         val to = event.to
-        if (sameBlockPosition(anchor, to)) return
-        event.setTo(anchor.clone().apply {
-            yaw = to.yaw
-            pitch = to.pitch
+        // Only HORIZONTAL escape is clamped: several animations lift the player
+        // (levitation in "particles", the vortex rise) - snapping Y back would
+        // pin them to the ground and kill the whole effect.
+        if (anchor.world == to.world && anchor.x == to.x && anchor.z == to.z) return
+        event.setTo(to.clone().apply {
+            x = anchor.x
+            z = anchor.z
         })
-        event.player.velocity = Vector(0.0, 0.0, 0.0)
     }
-
-    private fun sameBlockPosition(a: Location, b: Location): Boolean =
-        a.world == b.world && a.x == b.x && a.y == b.y && a.z == b.z
 
     private fun playPig(player: Player, finishWith: (Location) -> Unit) {
         val world = player.world
@@ -245,7 +262,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         val perTick  = cfg.animationParticleCount.coerceAtLeast(1)
         val particle = particle(cfg.animationParticle, "FLAME")
 
-        player.addPotionEffect(PotionEffect(PotionEffectType.LEVITATION, duration + 20, 1, false, false))
+        // Levitation is applied by freeze() for every animation type.
         object : BukkitRunnable() {
             var t = 0
             override fun run() {

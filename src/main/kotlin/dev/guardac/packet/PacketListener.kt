@@ -77,6 +77,7 @@ class PacketListener(private val plugin: GuardAC) :
     }
 
     private fun handleRotation(gp: GuardPlayer, yaw: Float, pitch: Float) {
+        gp.recordRotationTiming(System.nanoTime())
         gp.rotation.update(yaw, pitch)
         if (gp.consumeTeleportGate()) {
 

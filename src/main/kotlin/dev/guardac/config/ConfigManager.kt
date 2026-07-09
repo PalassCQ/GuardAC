@@ -39,7 +39,7 @@ class ConfigManager(private val plugin: GuardAC) {
         if (aiServer.trim().startsWith("http://", ignoreCase = true)) {
             plugin.logger.warning(
                 "[GuardAC] ai.server использует http:// - трафик к бэкенду не шифруется " +
-                "(API-ключ и данные видны по пути). Используйте https://."
+                        "(API-ключ и данные видны по пути). Используйте https://."
             )
         }
     }
@@ -65,7 +65,7 @@ class ConfigManager(private val plugin: GuardAC) {
                 plugin.saveConfig()
                 plugin.logger.info(
                     "[GuardAC] config.yml: добавлено новых ключей из свежей версии плагина - $added " +
-                    "(текущие значения не тронуты). Загляни в config.yml, если хочешь их настроить."
+                            "(текущие значения не тронуты). Загляни в config.yml, если хочешь их настроить."
                 )
             }
         } catch (e: Exception) {
@@ -143,6 +143,11 @@ class ConfigManager(private val plugin: GuardAC) {
     // Skip analysis when server TPS is below this (0 = off): a lag drop distorts
     // tick timing and can make a legit player look like a cheat.
     val aiMinTpsAnalyze: Double get() = cfg.getDouble("ai.min-tps-analyze", 15.0)
+
+    // Client-side lag guard: skip a window when rotation-packet timing was
+    // unstable (burst/stall) AND the player's ping is high. Both conditions
+    // are required so a cheat can't spoof jitter alone to get a free skip.
+    val aiLagProtection: Boolean get() = cfg.getBoolean("ai.lag-protection", true)
 
     val aiOnlyAlert: Boolean   get() = cfg.getBoolean("ai.only-alert", false)
 

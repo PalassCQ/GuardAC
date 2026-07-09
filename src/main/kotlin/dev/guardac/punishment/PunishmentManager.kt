@@ -93,7 +93,14 @@ class PunishmentManager(private val plugin: GuardAC) {
         return PunishGroup(listOf(AI_CHECK), actions)
     }
 
-    fun handle(gp: GuardPlayer, checkGroup: String, vl: Int, verbose: String, bypassCooldown: Boolean = false) {
+    fun handle(
+        gp: GuardPlayer,
+        checkGroup: String,
+        vl: Int,
+        verbose: String,
+        bypassCooldown: Boolean = false,
+        forceAnimation: Boolean = false,
+    ) {
         val group = groups[checkGroup]
             ?: groups.values.firstOrNull { g ->
                 g.checks.any { it.equals(checkGroup, ignoreCase = true) }
@@ -148,9 +155,11 @@ class PunishmentManager(private val plugin: GuardAC) {
 
             val hasRealCommand   = actions.any { isPunishmentCommand(it) }
             val hasExplicitAnim  = actions.any { it.trim().lowercase(Locale.ROOT).startsWith("[animation]") }
+            // Auto-animation plays before a real ban/kick; a MANUAL punish plays it
+            // unconditionally - staff asked for the show, even on alert-only tiers.
+            val autoAnim = plugin.configManager.animationAutoOnBan && hasRealCommand
             if (plugin.configManager.animationsEnabled &&
-                plugin.configManager.animationAutoOnBan &&
-                hasRealCommand && !hasExplicitAnim
+                (autoAnim || forceAnimation) && !hasExplicitAnim
             ) {
                 plugin.banAnimationManager.playRandom(gp.player) {
                     executeChain(gp, checkGroup, vl, verbose, actions, 0)

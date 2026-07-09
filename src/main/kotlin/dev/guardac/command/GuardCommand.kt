@@ -346,7 +346,7 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
         val maxVl = plugin.punishmentManager.maxVl("AI")
         plugin.alertManager.sendAlert(gp, "Manual", maxVl, verbose, "[Manual]")
 
-        plugin.punishmentManager.handle(gp, "AI", maxVl, verbose, bypassCooldown = true)
+        plugin.punishmentManager.handle(gp, "AI", maxVl, verbose, bypassCooldown = true, forceAnimation = true)
         sender.sendMessage(plugin.locale.get(Message.PUNISH_SUCCESS, "player", target.name))
     }
 
