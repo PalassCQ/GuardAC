@@ -168,7 +168,7 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
 
     companion object {
         private const val CHECK_NAME = "AI"
-        private const val UNSTABLE_TICKS_MIN = 5
+        private const val UNSTABLE_TICKS_MIN = 3
         private const val UNSTABLE_PING_MIN  = 100
     }
 }

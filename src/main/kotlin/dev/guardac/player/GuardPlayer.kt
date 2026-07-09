@@ -121,8 +121,12 @@ class GuardPlayer(
         val last = lastRotationNanos
         lastRotationNanos = nowNanos
         if (last == 0L) return
+        // Only BURSTS count. A long gap is just a player not moving the camera
+        // (idle, straight-line walk) - counting stalls would wrongly skip the
+        // first combat window of every calm player. A lagging client always
+        // betrays itself with catch-up clumps of packets.
         val gapMs = (nowNanos - last) / 1_000_000
-        if (gapMs < UNSTABLE_GAP_MIN_MS || gapMs > UNSTABLE_GAP_MAX_MS) unstableTicks++
+        if (gapMs < UNSTABLE_GAP_MIN_MS) unstableTicks++
     }
 
     /** Unstable packet gaps accumulated since the last read; resets on read. */
@@ -378,10 +382,9 @@ class GuardPlayer(
     private companion object {
         const val AIM_ACTIVITY_WINDOW      = 10
         const val MOVE_RECENT_MS           = 500L
-        // Vanilla rotation cadence is ~50ms; way under = catch-up burst, way
-        // over = stall. Internal constants on purpose - not a public knob.
+        // Vanilla rotation cadence is ~50ms; way under = a catch-up burst.
+        // Internal constant on purpose - not a public knob.
         const val UNSTABLE_GAP_MIN_MS      = 15L
-        const val UNSTABLE_GAP_MAX_MS      = 400L
         const val CHEAT_THRESHOLD          = 0.90
         const val LEGIT_THRESHOLD          = 0.10
         const val IDLE_DELTA_THRESHOLD     = 0.05f
