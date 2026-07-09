@@ -156,7 +156,7 @@ class GuardAC : JavaPlugin() {
         if (configManager.clientBrandEnabled) {
             runCatching {
                 server.messenger.registerIncomingPluginChannel(this, ClientBrandListener.BRAND_CHANNEL, ClientBrandListener(this))
-            }.onFailure { logger.warning("[GuardAC] Не удалось включить детект клиент-бренда: ${it.message}") }
+            }.onFailure { logger.warning("[GuardAC] Could not enable client-brand detection: ${it.message}") }
         }
 
         val guardCommand = GuardCommand(this)
@@ -247,9 +247,9 @@ class GuardAC : JavaPlugin() {
         if (configManager.aiEnabled) {
             val key = configManager.aiApiKey
             if (key.isBlank() || key == "PASTE-YOUR-GUARDAC-KEY" || key == "changeme") {
-                logger.warning("[GuardAC] API-ключ не задан (ai.api-key). Получи ключ на " +
-                    "${configManager.aiServer} и впиши в config.yml - " +
-                    "иначе инференс будет отклонён сервером (401).")
+                logger.warning("[GuardAC] API key is not set (ai.api-key). Get a key at " +
+                    "${configManager.aiServer} and paste it into config.yml - " +
+                    "otherwise the backend will reject requests (401).")
             }
         }
     }

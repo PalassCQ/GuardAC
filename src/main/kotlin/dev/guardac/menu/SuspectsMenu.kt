@@ -185,7 +185,7 @@ class SuspectsMenu(
         // shift console-command arguments and hit the wrong player.
         if (!SafeName.isSafe(name) || !SafeName.isSafe(viewer.name)) {
             viewer.sendMessage(plugin.locale.get(Message.MENU_UNSAFE_NAME, "player", name))
-            plugin.logger.warning("[Menu] Ник '$name' небезопасен для консольных команд меню - клик пропущен.")
+            plugin.logger.warning("[Menu] Name '$name' is not safe for menu console commands - click skipped.")
             return
         }
 

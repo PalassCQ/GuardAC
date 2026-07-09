@@ -53,8 +53,8 @@ class WorldGuardCompat(
         } catch (_: Throwable) {
             false
         }
-        if (enabled && available) logger.info("[WorldGuard] Интеграция включена.")
-        else if (enabled) logger.warning("[WorldGuard] Плагин не найден - проверка регионов отключена.")
+        if (enabled && available) logger.info("[WorldGuard] Integration enabled.")
+        else if (enabled) logger.warning("[WorldGuard] Plugin not found - region checks disabled.")
     }
 
     fun shouldBypass(player: Player): Boolean {
@@ -95,7 +95,7 @@ class WorldGuardCompat(
             val regionId = highest?.id?.lowercase() ?: return false
             worldDisabled.contains(regionId) || globalDisabled.contains(regionId)
         } catch (e: Exception) {
-            logger.warning("[WorldGuard] Ошибка проверки регионов: ${e.message}")
+            logger.warning("[WorldGuard] Region check error: ${e.message}")
             false
         }
     }

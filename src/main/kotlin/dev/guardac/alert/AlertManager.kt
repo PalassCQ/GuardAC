@@ -141,8 +141,11 @@ class AlertManager(private val plugin: GuardAC) {
         if (plugin.configManager.alertsToConsole) {
             plugin.logger.info("[Reputation] $playerName - $detections detections on $servers other server(s)")
         }
-        val msg = Colors.translate(
-            "&8[&cGuardAC&8] &eИгрок &f$playerName &eзамечен на &c$servers&e др. сервер(ах) - &c$detections&e детектов."
+        val msg = plugin.locale.get(
+            Message.REPUTATION_NOTICE,
+            "player", playerName,
+            "servers", servers.toString(),
+            "detections", detections.toString(),
         )
         Bukkit.getScheduler().runTask(plugin, Runnable {
             Bukkit.getOnlinePlayers()
@@ -282,7 +285,7 @@ class AlertManager(private val plugin: GuardAC) {
         component.clickEvent = ClickEvent(ClickEvent.Action.RUN_COMMAND, "/guardac profile $playerName")
         component.hoverEvent = HoverEvent(
             HoverEvent.Action.SHOW_TEXT,
-            Text(Colors.translate("&7Клик &8→ &f/guardac profile $playerName")),
+            Text(plugin.locale.get(Message.ALERT_CLICK_HINT, "player", playerName)),
         )
         return component
     }

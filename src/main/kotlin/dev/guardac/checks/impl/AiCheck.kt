@@ -150,7 +150,7 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
                         val minTps = plugin.configManager.punishMinTps
                         if (minTps > 0.0 && tps < minTps) {
                             plugin.logger.info(
-                                "[GuardAC] Наказание для ${gp.player.name} отложено: TPS ${"%.1f".format(tps)} < $minTps (лаг-гейт)."
+                                "[GuardAC] Punishment for ${gp.player.name} delayed: TPS ${"%.1f".format(tps)} < $minTps (lag gate)."
                             )
                         } else if (!plugin.configManager.aiOnlyAlert) {
                             plugin.punishmentManager.handle(gp, CHECK_NAME, gp.aiViolationLevel, verbose)

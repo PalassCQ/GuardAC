@@ -257,7 +257,7 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
                 Message.DEBUG_SUPPRESSION,
                 "stage",    suppressionStageTag(gp.suppressionStage),
                 "penalty",  "%.0f".format(gp.currentAttackSpeedPenalty() * 100.0),
-                "isolated", if (gp.isIsolated) "&#FF4D6Dда" else "&8нет",
+                "isolated", if (gp.isIsolated) plugin.locale.get(Message.COMMON_YES) else plugin.locale.get(Message.COMMON_NO),
             ))
         }
     }
@@ -451,10 +451,13 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
         val hours   = TimeUnit.MILLISECONDS.toHours(ms)
         val minutes = TimeUnit.MILLISECONDS.toMinutes(ms) % 60
         val seconds = TimeUnit.MILLISECONDS.toSeconds(ms) % 60
+        val h = plugin.locale.get(Message.UNIT_HOURS)
+        val m = plugin.locale.get(Message.UNIT_MINUTES)
+        val s = plugin.locale.get(Message.UNIT_SECONDS)
         return when {
-            hours > 0   -> "${hours}ч ${minutes}м"
-            minutes > 0 -> "${minutes}м ${seconds}с"
-            else        -> "${seconds}с"
+            hours > 0   -> "$hours$h $minutes$m"
+            minutes > 0 -> "$minutes$m $seconds$s"
+            else        -> "$seconds$s"
         }
     }
 

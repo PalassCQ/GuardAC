@@ -38,8 +38,8 @@ class ConfigManager(private val plugin: GuardAC) {
         ensureFolders()
         if (aiServer.trim().startsWith("http://", ignoreCase = true)) {
             plugin.logger.warning(
-                "[GuardAC] ai.server использует http:// - трафик к бэкенду не шифруется " +
-                        "(API-ключ и данные видны по пути). Используйте https://."
+                "[GuardAC] ai.server uses http:// - traffic to the backend is not encrypted " +
+                        "(the API key and data are visible in transit). Use https://."
             )
         }
     }
@@ -64,12 +64,12 @@ class ConfigManager(private val plugin: GuardAC) {
             if (added > 0) {
                 plugin.saveConfig()
                 plugin.logger.info(
-                    "[GuardAC] config.yml: добавлено новых ключей из свежей версии плагина - $added " +
-                            "(текущие значения не тронуты). Загляни в config.yml, если хочешь их настроить."
+                    "[GuardAC] config.yml: $added new option(s) added from this plugin version " +
+                            "(your current values are untouched). See config.yml to tune them."
                 )
             }
         } catch (e: Exception) {
-            plugin.logger.warning("[GuardAC] Не удалось обновить config.yml новыми ключами: ${e.message}")
+            plugin.logger.warning("[GuardAC] Could not merge new options into config.yml: ${e.message}")
         }
     }
 
