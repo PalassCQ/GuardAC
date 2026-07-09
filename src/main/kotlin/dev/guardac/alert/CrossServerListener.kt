@@ -25,17 +25,14 @@ import org.bukkit.plugin.messaging.PluginMessageListener
 class CrossServerListener(private val plugin: GuardAC) : PluginMessageListener {
 
     override fun onPluginMessageReceived(channel: String, player: Player, message: ByteArray) {
-        if (channel != AlertManager.CROSS_CHANNEL) return
-        // Plugin messages arrive over player connections, so a modified client can
-        // forge them. Everything below is strict field validation - anything that a
-        // real GuardAC instance would never send is dropped silently.
-        if (message.size > MAX_PAYLOAD_BYTES) return
-
-        val payload = try {
-            String(message, Charsets.UTF_8)
-        } catch (_: Exception) {
-            return
-        }
+        if (channel != CrossServerCodec.PROXY_CHANNEL) return
+        // The proxy routes many plugins' traffic on this channel; the codec only
+        // returns a payload for OUR subchannel. Messages still arrive over player
+        // connections and can be forged by a modified client, so everything below
+        // is strict field validation - anything a real GuardAC instance would
+        // never send is dropped silently.
+        val payload = CrossServerCodec.decode(message) ?: return
+        if (payload.length > MAX_PAYLOAD_BYTES) return
 
         val parts = payload.split("|", limit = 5)
         if (parts.size < 5) return

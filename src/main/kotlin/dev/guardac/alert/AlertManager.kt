@@ -307,9 +307,10 @@ class AlertManager(private val plugin: GuardAC) {
         try {
             val serverName = plugin.configManager.serverName.ifBlank { "main" }
             val payload    = "$serverName|$playerName|$checkName|$vl|$verbose"
-            val msgBytes   = payload.toByteArray(Charsets.UTF_8)
+            // Any player connection works as the carrier - the proxy consumes the
+            // envelope and fans the payload out to every other server.
             val any        = plugin.server.onlinePlayers.firstOrNull() ?: return
-            any.sendPluginMessage(plugin, CROSS_CHANNEL, msgBytes)
+            any.sendPluginMessage(plugin, CrossServerCodec.PROXY_CHANNEL, CrossServerCodec.encode(payload))
         } catch (_: Exception) {}
     }
 
@@ -324,7 +325,6 @@ class AlertManager(private val plugin: GuardAC) {
 
     private fun formatPercent(v: Double): String = "%.1f".format(v * 100.0)
     companion object {
-        const val CROSS_CHANNEL       = "guardac:alert"
         const val MONITOR_THROTTLE_MS = 1_000L
         const val ALERT_THROTTLE_MS   = 1_000L
         const val SUSPICIOUS_THROTTLE_MS = 15_000L

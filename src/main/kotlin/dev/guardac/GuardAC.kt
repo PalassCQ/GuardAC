@@ -149,8 +149,8 @@ class GuardAC : JavaPlugin() {
         hologramManager.start()
 
         if (configManager.crossServerEnabled) {
-            server.messenger.registerOutgoingPluginChannel(this, AlertManager.CROSS_CHANNEL)
-            server.messenger.registerIncomingPluginChannel(this, AlertManager.CROSS_CHANNEL, CrossServerListener(this))
+            server.messenger.registerOutgoingPluginChannel(this, dev.guardac.alert.CrossServerCodec.PROXY_CHANNEL)
+            server.messenger.registerIncomingPluginChannel(this, dev.guardac.alert.CrossServerCodec.PROXY_CHANNEL, CrossServerListener(this))
         }
 
         if (configManager.clientBrandEnabled) {
