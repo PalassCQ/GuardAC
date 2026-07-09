@@ -43,28 +43,23 @@ Punishments:
       3:
         - "[alert]"
         - "[log]"
-        - "[broadcast] &#22D3EE▍ &#FF4D6D<player> &7was temporarily banned by GuardAC."
-        - "tempban <player> 30d Suspicious combat behavior (GuardAC)."
+        - "[broadcast] &#22D3EE▍ &fGuardAC &8» &#FF4D6D<player> &7banned for &f30 days &8• &7combat cheating &8(&fAI <verbose>&8)"
+        - "tempban <player> 30d Cheating detected by GuardAC AI (<verbose> confidence). Think this is a mistake? Contact the staff."
       5:
         - "[alert]"
         - "[log]"
-        - "[broadcast] &#22D3EE▍ &#FF4D6D<player> &7was temporarily banned by GuardAC."
-        - "tempban <player> 60d Suspicious combat behavior (GuardAC)."
+        - "[broadcast] &#22D3EE▍ &fGuardAC &8» &#FF4D6D<player> &7banned for &f30 days &8• &7combat cheating &8(&fAI <verbose>&8)"
+        - "tempban <player> 30d Cheating detected by GuardAC AI (<verbose> confidence). Think this is a mistake? Contact the staff."
       7:
         - "[alert]"
         - "[log]"
-        - "[broadcast] &#22D3EE▍ &#FF4D6D<player> &7was temporarily banned by GuardAC."
-        - "tempban <player> 90d Suspicious combat behavior (GuardAC)."
+        - "[broadcast] &#22D3EE▍ &fGuardAC &8» &#FF4D6D<player> &7banned for &f30 days &8• &7combat cheating &8(&fAI <verbose>&8)"
+        - "tempban <player> 30d Cheating detected by GuardAC AI (<verbose> confidence). Think this is a mistake? Contact the staff."
       10:
         - "[alert]"
         - "[log]"
-        - "[broadcast] &#22D3EE▍ &#FF4D6D<player> &7was temporarily banned by GuardAC."
-        - "tempban <player> 180d Suspicious combat behavior (GuardAC)."
-      15:
-        - "[alert]"
-        - "[log]"
-        - "[broadcast] &#22D3EE▍ &#FF4D6D<player> &cwas permanently banned by GuardAC."
+        - "[broadcast] &#22D3EE▍ &fGuardAC &8» &#FF4D6D<player> &cbanned permanently &8• &7combat cheating &8(&fAI <verbose>&8)"
         # An animation plays automatically before the ban (animations.auto-on-ban).
         # Want a specific one instead of random? Add here: "[animation] pig".
-        - "ban <player> Cheating software detected (GuardAC)."
+        - "ban <player> Cheating detected by GuardAC AI (<verbose> confidence). Repeated offense - permanent ban."
         - "[reset]"
