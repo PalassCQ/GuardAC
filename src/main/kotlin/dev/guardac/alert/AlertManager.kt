@@ -94,6 +94,7 @@ class AlertManager(private val plugin: GuardAC) {
     private class HitDigest {
         var windowOpen = false
         var lastHitMs = 0L
+        var episodeHits = 0
         var count = 0
         var maxProb = 0.0
         var model = "[AI]"
@@ -102,40 +103,40 @@ class AlertManager(private val plugin: GuardAC) {
     private val digests = ConcurrentHashMap<UUID, HitDigest>()
 
     fun sendHitAlert(gp: GuardPlayer, probability: Double, model: String) {
-        val windowSec = plugin.configManager.alertDigestSeconds
-        if (windowSec <= 0) {
-            sendAlert(gp, "AI", gp.aiViolationLevel, detailed(probability), model)
-            return
-        }
+        val minHits = plugin.configManager.alertMinHits.coerceAtLeast(1)
         val d = digests.computeIfAbsent(gp.uuid) { HitDigest() }
-        var immediate = false
+        var announce = false
         synchronized(d) {
             val now = System.currentTimeMillis()
-            val continuing = now - d.lastHitMs <= EPISODE_IDLE_MS
+            if (now - d.lastHitMs > EPISODE_IDLE_MS) {
+                // New fight: the evidence counter starts over.
+                d.episodeHits = 0
+            }
             d.lastHitMs = now
-            if (!d.windowOpen) {
-                d.windowOpen = true
-                d.model = model
-                if (continuing) {
-                    // Mid-episode: stay silent, this hit starts the next summary.
+            d.episodeHits++
+            when {
+                // Not enough evidence yet - a lone spike stays silent.
+                d.episodeHits < minHits -> {}
+                // Evidence bar reached: announce this hit instantly.
+                d.episodeHits == minHits -> announce = true
+                // Established episode: fold into the running summary window.
+                !d.windowOpen -> {
+                    d.windowOpen = true
                     d.count = 1
                     d.maxProb = probability
-                } else {
-                    // Fresh episode: announce instantly, follow-ups get digested.
-                    d.count = 0
-                    d.maxProb = 0.0
-                    immediate = true
+                    d.model = model
+                    Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, Runnable {
+                        flushDigest(gp)
+                    }, DIGEST_WINDOW_TICKS)
                 }
-                Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, Runnable {
-                    flushDigest(gp)
-                }, windowSec * 20L)
-            } else {
-                d.count++
-                if (probability > d.maxProb) d.maxProb = probability
-                d.model = model
+                else -> {
+                    d.count++
+                    if (probability > d.maxProb) d.maxProb = probability
+                    d.model = model
+                }
             }
         }
-        if (immediate) {
+        if (announce) {
             sendAlert(gp, "AI", gp.aiViolationLevel, detailed(probability), model)
         }
     }
@@ -431,8 +432,10 @@ class AlertManager(private val plugin: GuardAC) {
         const val ALERT_THROTTLE_MS   = 1_000L
         const val SUSPICIOUS_THROTTLE_MS = 15_000L
         // A pause this long without confident hits closes the digest episode,
-        // so the next fight gets its instant alert again.
+        // so the next fight starts collecting evidence from zero again.
         const val EPISODE_IDLE_MS     = 30_000L
+        // One summary line at most per this window during an established fight.
+        const val DIGEST_WINDOW_TICKS = 10L * 20L
 
         const val PROB_UPDATE_TICKS   = 10L
     }
