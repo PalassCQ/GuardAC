@@ -16,7 +16,7 @@ softdepend:
 commands:
   guard:
     description: GuardAC main administration command
-    usage: /guard <help|alerts|monitor|profile|reload|suspicious|menu|debug|prob|exempt|reset|punish|scan|stats|log|history|crossserver>
+    usage: /guard <help|alerts|monitor|profile|reload|suspicious|menu|debug|prob|exempt|reset|punish|scan|stats|log|history|results|crossserver>
     aliases: [gac, guardac]
   guarddc:
     description: GuardAC dataset collection for AI training
@@ -49,6 +49,7 @@ permissions:
       guardac.command.crossserver: true
       guardac.command.log: true
       guardac.command.history: true
+      guardac.command.results: true
   guardac.command.help:        { description: Show GuardAC help,          default: op }
   guardac.command.reload:      { description: Reload GuardAC config,       default: op }
   guardac.command.alerts:      { description: Toggle receiving alerts,     default: op }
@@ -66,6 +67,7 @@ permissions:
   guardac.command.crossserver: { description: Toggle cross-server alerts,  default: op }
   guardac.command.log:         { description: View the violation log,      default: op }
   guardac.command.history:     { description: View punishment history,     default: op }
+  guardac.command.results:     { description: AI result history window,    default: op }
   guardac.alerts:
     description: Receive cheat detection alerts
     default: op

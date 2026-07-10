@@ -90,6 +90,7 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
                 val label = result.label ?: "AI"
 
                 plugin.dailyStats.recordRequest()
+                plugin.punishmentHistory.recordResult(gp.uuid, gp.player.name, result.model, prob)
 
                 if (plugin.configManager.debugLogProbability) {
                     plugin.logger.info(

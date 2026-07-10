@@ -25,6 +25,7 @@ import java.sql.DriverManager
 import java.sql.SQLException
 import java.time.Instant
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicLong
 
 class PunishmentHistory(private val plugin: GuardAC) {
 
@@ -37,8 +38,17 @@ class PunishmentHistory(private val plugin: GuardAC) {
         val epochMillis: Long,
     )
 
+    data class AiResult(
+        val uuid: String,
+        val playerName: String,
+        val model: String,
+        val probability: Double,
+        val epochMillis: Long,
+    )
+
     private val lock = Any()
     private var connection: Connection? = null
+    private val resultInserts = AtomicLong(0)
 
     fun initialize() {
         try {
@@ -81,6 +91,24 @@ class PunishmentHistory(private val plugin: GuardAC) {
                             "DELETE FROM buffers WHERE ts < ${Instant.now().toEpochMilli() - ttlMs}"
                         )
                     }
+
+                    st.execute(
+                        """
+                        CREATE TABLE IF NOT EXISTS results (
+                            id    INTEGER PRIMARY KEY AUTOINCREMENT,
+                            uuid  TEXT    NOT NULL,
+                            name  TEXT    NOT NULL,
+                            model TEXT    NOT NULL,
+                            prob  REAL    NOT NULL,
+                            ts    INTEGER NOT NULL
+                        )
+                        """.trimIndent()
+                    )
+                    st.execute("CREATE INDEX IF NOT EXISTS idx_results_uuid ON results(uuid)")
+                    st.execute("CREATE INDEX IF NOT EXISTS idx_results_name ON results(name)")
+                    st.executeUpdate(
+                        "DELETE FROM results WHERE ts < ${Instant.now().toEpochMilli() - RESULTS_TTL_MS}"
+                    )
                 }
             }
             plugin.logger.info("[History] Punishment history database initialized.")
@@ -225,10 +253,87 @@ class PunishmentHistory(private val plugin: GuardAC) {
         }
     }
 
+    fun recordResult(uuid: UUID, name: String, model: String, probability: Double) {
+        if (connection == null) return
+        val ts = Instant.now().toEpochMilli()
+        plugin.server.scheduler.runTaskAsynchronously(plugin, Runnable {
+            try {
+                synchronized(lock) {
+                    val conn = connection ?: return@Runnable
+                    conn.prepareStatement(
+                        "INSERT INTO results (uuid, name, model, prob, ts) VALUES (?, ?, ?, ?, ?)"
+                    ).use { ps ->
+                        ps.setString(1, uuid.toString())
+                        ps.setString(2, name)
+                        ps.setString(3, model)
+                        ps.setDouble(4, probability)
+                        ps.setLong(5, ts)
+                        ps.executeUpdate()
+                    }
+                    // Results arrive every few seconds per fighting player, so the
+                    // per-player tail is trimmed periodically, not on every insert.
+                    if (resultInserts.incrementAndGet() % RESULTS_TRIM_EVERY == 0L) {
+                        conn.prepareStatement(
+                            "DELETE FROM results WHERE uuid = ? AND id NOT IN " +
+                                "(SELECT id FROM results WHERE uuid = ? ORDER BY id DESC LIMIT ?)"
+                        ).use { ps ->
+                            ps.setString(1, uuid.toString())
+                            ps.setString(2, uuid.toString())
+                            ps.setInt(3, RESULTS_CAP_PER_PLAYER)
+                            ps.executeUpdate()
+                        }
+                    }
+                }
+            } catch (e: SQLException) {
+                plugin.logger.warning("[History] Failed to record AI result: ${e.message}")
+            }
+        })
+    }
+
+    fun resultsFor(name: String, limit: Int): List<AiResult> {
+        val out = ArrayList<AiResult>()
+        try {
+            synchronized(lock) {
+                val conn = connection ?: return emptyList()
+                conn.prepareStatement(
+                    "SELECT uuid, name, model, prob, ts FROM results " +
+                        "WHERE name = ? COLLATE NOCASE ORDER BY ts DESC LIMIT ?"
+                ).use { ps ->
+                    ps.setString(1, name)
+                    ps.setInt(2, limit)
+                    ps.executeQuery().use { rs ->
+                        while (rs.next()) {
+                            out.add(
+                                AiResult(
+                                    uuid        = rs.getString("uuid"),
+                                    playerName  = rs.getString("name"),
+                                    model       = rs.getString("model"),
+                                    probability = rs.getDouble("prob"),
+                                    epochMillis = rs.getLong("ts"),
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+        } catch (e: SQLException) {
+            plugin.logger.warning("[History] Results query failed: ${e.message}")
+        }
+        return out
+    }
+
     fun shutdown() {
         synchronized(lock) {
             try { connection?.close() } catch (_: SQLException) {}
             connection = null
         }
+    }
+
+    private companion object {
+        // AI window results: per-player cap, periodic trim, and a hard age limit
+        // so the table never grows unbounded on a busy server.
+        const val RESULTS_CAP_PER_PLAYER = 450
+        const val RESULTS_TRIM_EVERY     = 64L
+        const val RESULTS_TTL_MS         = 7L * 24 * 60 * 60 * 1000
     }
 }

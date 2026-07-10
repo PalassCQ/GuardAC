@@ -20,6 +20,7 @@ package dev.guardac.command
 
 import dev.guardac.GuardAC
 import dev.guardac.combat.SuppressionStage
+import dev.guardac.menu.ResultsMenu
 import dev.guardac.menu.SuspectsMenu
 import dev.guardac.util.Colors
 import dev.guardac.util.Message
@@ -65,6 +66,7 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
             "crossserver" -> handleCrossServer(sender)
             "log"         -> handleLog(sender, args)
             "history"     -> handleHistory(sender, args)
+            "results"     -> handleResults(sender, args)
             else          -> sendHelp(sender)
         }
         return true
@@ -80,7 +82,7 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
                 .filter { sender.hasPermission("guardac.command.$it") }
                 .filter { it.startsWith(args[0].lowercase()) }
             2 -> when (args[0].lowercase()) {
-                "profile", "debug", "prob", "reset", "punish", "scan", "log", "history"
+                "profile", "debug", "prob", "reset", "punish", "scan", "log", "history", "results"
                     -> online.filter { it.startsWith(args[1], ignoreCase = true) }
                 "exempt"
                     -> (listOf("remove", "status") + online).filter { it.startsWith(args[1], ignoreCase = true) }
@@ -425,6 +427,19 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
         }
     }
 
+    private fun handleResults(sender: CommandSender, args: Array<out String>) {
+        if (sender !is Player) { sender.sendMessage(plugin.locale.get(Message.RUN_AS_PLAYER)); return }
+        val name = args.getOrNull(1)
+            ?: return sender.sendMessage(plugin.locale.get(Message.USAGE_RESULTS))
+        // History lives in the local database, so offline players work too.
+        val results = plugin.punishmentHistory.resultsFor(name, ResultsMenu.CAPACITY)
+        if (results.isEmpty()) {
+            sender.sendMessage(plugin.locale.get(Message.RESULTS_EMPTY, "player", name))
+            return
+        }
+        ResultsMenu(plugin, sender, results.first().playerName, results).open()
+    }
+
     private fun sendHelp(sender: CommandSender) {
         sender.sendMessage(plugin.locale.get(Message.HELP_HEADER))
         sender.sendMessage(plugin.locale.get(Message.HELP_RELOAD))
@@ -442,6 +457,7 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
         sender.sendMessage(plugin.locale.get(Message.HELP_STATS))
         sender.sendMessage(plugin.locale.get(Message.HELP_LOG))
         sender.sendMessage(plugin.locale.get(Message.HELP_HISTORY))
+        sender.sendMessage(plugin.locale.get(Message.HELP_RESULTS))
         sender.sendMessage(plugin.locale.get(Message.HELP_CROSSSERVER))
         sender.sendMessage(plugin.locale.get(Message.HELP_DATACOLLECT))
         sender.sendMessage(plugin.locale.get(Message.HELP_FOOTER))
@@ -469,7 +485,7 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
         val SUBCOMMANDS = listOf(
             "help", "reload", "alerts", "monitor", "profile", "suspicious", "menu",
             "debug", "prob", "exempt", "reset", "punish", "scan", "stats",
-            "crossserver", "log", "history",
+            "crossserver", "log", "history", "results",
         )
     }
 }
