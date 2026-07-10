@@ -69,8 +69,11 @@ enum class Message(val key: String) {
 
     PROB_STARTED("prob-started"),
     PROB_STOPPED("prob-stopped"),
-    PROB_ACTIONBAR("prob-actionbar"),
+    PROB_ACTIONBAR("prob-hud"),
     PROB_NO_DATA("prob-no-data"),
+
+    WEB_BAN_EXECUTED("web-ban-executed"),
+    WEB_BAN_KICK("web-ban-kick"),
 
     MONITOR_ENABLED("monitor-enabled"),
     MONITOR_DISABLED("monitor-disabled"),

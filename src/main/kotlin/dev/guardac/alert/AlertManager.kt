@@ -316,16 +316,10 @@ class AlertManager(private val plugin: GuardAC) {
             val prob    = gp.lastAiProbability * 100
             val avg     = gp.avgProbability * 100
             val peak    = gp.peakProbability * 100
-            val probColor = when {
-                prob >= 90.0 -> "&c"
-                prob >= 60.0 -> "&e"
-                else         -> "&a"
-            }
-            val avgColor = when {
-                avg >= 90.0 -> "&c"
-                avg >= 60.0 -> "&e"
-                else        -> "&a"
-            }
+            // Same color scale as alerts and /guard monitor (monitor.yml), so
+            // the HUD reads identically to every other staff surface.
+            val probColor = plugin.monitorConfig.colorForProbability(prob)
+            val avgColor  = plugin.monitorConfig.colorForProbability(avg)
             val pingColor = when {
                 onlineTarget.ping > 200 -> "&c"
                 onlineTarget.ping > 100 -> "&e"
@@ -334,6 +328,7 @@ class AlertManager(private val plugin: GuardAC) {
             val msg = plugin.locale.get(
                 Message.PROB_ACTIONBAR,
                 "player",     onlineTarget.name,
+                "bar",        probBar(prob),
                 "prob",       "%.1f".format(prob),
                 "prob_color", probColor,
                 "avg",        "%.1f".format(avg),
@@ -366,6 +361,22 @@ class AlertManager(private val plugin: GuardAC) {
     fun hasProbSession(uuid: UUID): Boolean = probSessions.containsKey(uuid)
     private fun sendActionBar(player: Player, msg: String) {
         player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent(msg))
+    }
+
+    // 10-segment probability meter for the /guard prob HUD. Filled segments are
+    // colored by THEIR OWN level on the shared monitor.yml scale, so the bar
+    // reads as a green->red gradient as suspicion grows.
+    private fun probBar(pct: Double): String {
+        val filled = (pct / 10.0).toInt().coerceIn(0, 10)
+        val sb = StringBuilder()
+        for (i in 1..10) {
+            if (i <= filled) {
+                sb.append(plugin.monitorConfig.colorForProbability(i * 10.0 - 5.0)).append('▰')
+            } else {
+                sb.append("&8▱")
+            }
+        }
+        return sb.toString()
     }
 
     private fun clickableAlert(legacyMsg: String, playerName: String): TextComponent {

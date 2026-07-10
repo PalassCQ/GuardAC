@@ -6,7 +6,7 @@
 # below switches everything the plugin SAYS (staff alerts, command output,
 # player messages) between languages.
 
-config-version: 27
+config-version: 29
 
 # Language of all plugin messages: en | ru
 locale: "en"
@@ -20,36 +20,14 @@ ai:
   api-key: "PASTE-YOUR-GUARDAC-KEY"
   # How many movement ticks make one analysis window. 40 = ~2 seconds of combat.
   sequence: 40
-  # After a full window, how many new ticks trigger the next analysis.
-  # Smaller = more frequent checks, more of your request quota used.
-  step: 10
   # Give up on a backend request after this many seconds.
   timeout-seconds: 5
-  # true = analyze aim all the time, not only in combat. Uses far more quota;
-  # leave false unless you know you need it.
-  continuous: false
-  # Minimum total camera movement in a window before it is worth analyzing.
-  # Higher = fewer requests on players who barely move their crosshair.
-  min-movement: 15.0
   # Pause analysis while server TPS is below this (0 = never pause).
   # Lag distorts movement data and could make honest players look suspicious.
   min-tps-analyze: 15.0
   # true = staff get alerts but nobody is punished automatically.
   # Recommended while you are still evaluating the detections.
   only-alert: false
-
-  # The violation buffer: every suspicious window adds to it, calm play drains
-  # it. When it crosses `flag`, the player is flagged and punishments apply.
-  buffer:
-    # Buffer value that counts as a confirmed detection (flag).
-    flag: 50.0
-    # Where the buffer is set back to after a flag (so repeat offenders
-    # escalate faster than fresh suspects).
-    reset-on-flag: 25.0
-    # How strongly one suspicious window fills the buffer.
-    multiplier: 100.0
-    # How much the buffer drains on every clean window.
-    decrease: 0.25
 
 alerts:
   # Show a hit to staff when the AI is at least this confident (0-100).
@@ -59,17 +37,13 @@ alerts:
   min-hits: 3
   # Also print alerts to the server console.
   print-to-console: true
-  # Sound played to staff on an alert.
+  # Sound played to staff on an alert. A soft, pleasant note-block chime by
+  # default; any Bukkit Sound name works (e.g. ENTITY_EXPERIENCE_ORB_PICKUP).
   sound:
     enabled: true
-    type: "ENTITY_EXPERIENCE_ORB_PICKUP"
-    volume: 1.0
-    pitch: 1.8
-  # Early heads-up to staff when a player's buffer starts climbing,
-  # before a full detection. Fires once per climb, no spam.
-  suspicious:
-    enabled: true
-    buffer: 25.0
+    type: "BLOCK_NOTE_BLOCK_PLING"
+    volume: 0.8
+    pitch: 1.5
 
 # Violation levels slowly expire so an old flag does not haunt a player forever.
 vl-decay:
@@ -85,9 +59,6 @@ punishment:
   # Ignore repeat punishments for the same player within this window (ms).
   # Protects against a burst of flags stacking several bans in one fight.
   cooldown-ms: 5000
-  # Delay punishments while server TPS is below this (0 = never delay).
-  # Alerts still go out; the punishment waits until the server is healthy.
-  min-tps: 16.0
 
 animations:
   # Visual show played on the cheater right before a ban (see punishments.yml).
@@ -210,6 +181,13 @@ cross-server:
   server-name: ""
   # How often to ask the backend for new alerts, in seconds.
   poll-seconds: 10
+
+# Moderation from the web dashboard (guardac.net): a ban issued on the site is
+# picked up by every server using this API key and applied locally.
+web-commands:
+  enabled: true
+  # How often to check for new commands, in seconds.
+  poll-seconds: 15
 
 # GuardAC global reputation network: detections on other servers using GuardAC
 # are visible to you, and yours help everyone else.

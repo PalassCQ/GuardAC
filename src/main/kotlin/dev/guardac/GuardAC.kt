@@ -150,9 +150,10 @@ class GuardAC : JavaPlugin() {
         startVlDecayTask()
         hologramManager.start()
 
-        // Cross-server alerts are relayed through the GuardAC backend: servers
-        // using the same API key form one network, no proxy required. The task
-        // is a cheap no-op while cross-server.enabled is false.
+        // Backend sync loop: pushes the AI result history (powers /guard results
+        // and the dashboard player lookup), picks up moderation commands issued
+        // from the web dashboard, and - when cross-server.enabled - relays
+        // detection alerts between the servers sharing this API key.
         reputationClient.startNetworkAlertPolling()
 
         if (configManager.clientBrandEnabled) {

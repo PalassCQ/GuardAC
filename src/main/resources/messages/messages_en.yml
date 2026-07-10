@@ -18,7 +18,7 @@ alerts-disabled: "&#FFC857● &7Alerts &8disabled&7."
 alerts-format: "{prefix} &8[&#FF4D6DDETECT&8] {prob_color}{player} &7failed the check &8• {prob_color}{verbose} &8• &7buffer {buffer}"
 # Cumulative alert: every min-hits hits (x3, x6, x9...) with the batch peak.
 # Placeholders: {player} {model} {count} {max} {prob_color} {buffer}
-alerts-digest-format: "{prefix} &8[&#FF4D6DDETECT&8] {prob_color}{player} &7failed the check &7×&c{count} &8• &7max {prob_color}{max} &8• &7buffer {buffer}"
+alerts-digest-format: "{prefix} &8[&#FF4D6DDETECT&8] {prob_color}{player} &7failed the check {prob_color}×{count} &8• &7max {prob_color}{max} &8• &7buffer {buffer}"
 alerts-console-format: "[GuardAC] {player} | {verbose} | buffer {buffer}"
 # Auto-update: a new version was downloaded and applies after a restart. Placeholder: {tag}
 update-downloaded: "{prefix} &#4ADE80GuardAC update &f{tag} &#4ADE80downloaded &8- &7it will apply after a server restart."
@@ -67,11 +67,17 @@ debug-idle: " &8▏ &7Idle / total ticks&8: &f{idle} &8/ &f{total}"
 # Placeholders: {stage} {penalty} {isolated}
 debug-suppression: " &8▏ &7Suppression&8: {stage} &8(&7attack &8-&f{penalty}%&8, &7isolate&8: {isolated}&8)"
 
-# Placeholders: {player} {prob} {prob_color} {avg} {avg_color} {peak} {buffer} {vl} {ping} {ping_color}
+# Live probability HUD (action bar). {bar} is a colored 10-segment meter.
+# Placeholders: {player} {bar} {prob} {prob_color} {avg} {avg_color} {peak} {buffer} {vl} {ping} {ping_color}
 prob-started: "&#4ADE80✔ &7Watching &f{player}&7 - action bar active."
 prob-stopped: "&#FFC857● &7Monitoring stopped."
-prob-actionbar: "&#22D3EE{player} &8| {prob_color}{prob}% &8| &7avg {avg_color}{avg}% &8| &7buf &f{buffer} &8| &#FF4D6DVL {vl} &8| {ping_color}{ping}ms"
+prob-hud: "&#22D3EE&lGuardAC &8▏ &f{player} {bar} {prob_color}{prob}% &8▏ &7buffer &f{buffer} &8▏ &7VL &f{vl} &8▏ {ping_color}{ping}ms"
 prob-no-data: "&#FF4D6D✖ &7No data for &f{player}&7."
+
+# Ban issued from the web dashboard, applied by this server.
+# Placeholders: {player} {staff} {reason} {duration} (∞ = permanent)
+web-ban-executed: "{prefix} &8[&#FF4D6DWEB BAN&8] &f{player} &7banned from the dashboard by &f{staff} &8• &7{reason} &8• &f{duration}"
+web-ban-kick: "&#FF4D6DYou have been banned.\n&7Reason: &f{reason}"
 
 exempt-added: "&#4ADE80✔ &f{player} &7added to exemptions."
 exempt-removed: "&#FFC857● &f{player} &7removed from exemptions."

@@ -164,13 +164,16 @@ class ConfigManager(private val plugin: GuardAC) {
     val suspiciousAlertBuffer: Double   get() = cfg.getDouble("alerts.suspicious.buffer", 25.0)
 
     val alertSoundEnabled: Boolean get() = cfg.getBoolean("alerts.sound.enabled", true)
-    val alertSoundType: String     get() = cfg.getString("alerts.sound.type", "ENTITY_EXPERIENCE_ORB_PICKUP")!!
-    val alertSoundVolume: Float    get() = cfg.getDouble("alerts.sound.volume", 1.0).toFloat()
-    val alertSoundPitch: Float     get() = cfg.getDouble("alerts.sound.pitch", 1.8).toFloat()
+    val alertSoundType: String     get() = cfg.getString("alerts.sound.type", "BLOCK_NOTE_BLOCK_PLING")!!
+    val alertSoundVolume: Float    get() = cfg.getDouble("alerts.sound.volume", 0.8).toFloat()
+    val alertSoundPitch: Float     get() = cfg.getDouble("alerts.sound.pitch", 1.5).toFloat()
 
     val crossServerEnabled: Boolean get() = cfg.getBoolean("cross-server.enabled", false)
     val crossServerPollSeconds: Long get() = cfg.getLong("cross-server.poll-seconds", 10L).coerceIn(3L, 300L)
     val serverName: String          get() = cfg.getString("cross-server.server-name", "")!!
+
+    val webCommandsEnabled: Boolean    get() = cfg.getBoolean("web-commands.enabled", true)
+    val webCommandsPollSeconds: Long   get() = cfg.getLong("web-commands.poll-seconds", 15L).coerceIn(5L, 300L)
 
     val debugEnabled: Boolean        get() = cfg.getBoolean("debug.enabled", false)
     val debugLogProbability: Boolean get() = cfg.getBoolean("debug.log-probability", false)

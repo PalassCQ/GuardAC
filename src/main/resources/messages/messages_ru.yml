@@ -18,7 +18,7 @@ alerts-disabled: "&#FFC857● &7Оповещения &8выключены&7."
 alerts-format: "{prefix} &8[&#FF4D6DДЕТЕКТ&8] {prob_color}{player} &7не прошёл проверку &8• {prob_color}{verbose} &8• &7буфер {buffer}"
 # Накопительный алерт: каждые min-hits ударов (×3, ×6, ×9...) с пиком пачки.
 # Плейсхолдеры: {player} {model} {count} {max} {prob_color} {buffer}
-alerts-digest-format: "{prefix} &8[&#FF4D6DДЕТЕКТ&8] {prob_color}{player} &7не прошёл проверку &7×&c{count} &8• &7макс {prob_color}{max} &8• &7буфер {buffer}"
+alerts-digest-format: "{prefix} &8[&#FF4D6DДЕТЕКТ&8] {prob_color}{player} &7не прошёл проверку {prob_color}×{count} &8• &7макс {prob_color}{max} &8• &7буфер {buffer}"
 alerts-console-format: "[GuardAC] {player} | {verbose} | buffer {buffer}"
 # Авто-обновление: новая версия скачана и применится после перезапуска. Плейсхолдер: {tag}
 update-downloaded: "{prefix} &#4ADE80Обновление GuardAC &f{tag} &#4ADE80загружено &8- &7применится после перезапуска сервера."
@@ -67,11 +67,17 @@ debug-idle: " &8▏ &7Idle / всего тиков&8: &f{idle} &8/ &f{total}"
 # Плейсхолдеры: {stage} {penalty} {isolated}
 debug-suppression: " &8▏ &7Suppression&8: {stage} &8(&7атака &8-&f{penalty}%&8, &7isolate&8: {isolated}&8)"
 
-# Плейсхолдеры: {player} {prob} {prob_color} {avg} {avg_color} {peak} {buffer} {vl} {ping} {ping_color}
+# Живой HUD вероятности (action bar). {bar} - цветная шкала из 10 сегментов.
+# Плейсхолдеры: {player} {bar} {prob} {prob_color} {avg} {avg_color} {peak} {buffer} {vl} {ping} {ping_color}
 prob-started: "&#4ADE80✔ &7Слежу за &f{player}&7 - action bar активен."
 prob-stopped: "&#FFC857● &7Слежение остановлено."
-prob-actionbar: "&#22D3EE{player} &8| {prob_color}{prob}% &8| &7avg {avg_color}{avg}% &8| &7буф &f{buffer} &8| &#FF4D6DVL {vl} &8| {ping_color}{ping}мс"
+prob-hud: "&#22D3EE&lGuardAC &8▏ &f{player} {bar} {prob_color}{prob}% &8▏ &7буфер &f{buffer} &8▏ &7VL &f{vl} &8▏ {ping_color}{ping}мс"
 prob-no-data: "&#FF4D6D✖ &7Нет данных для &f{player}&7."
+
+# Бан, выданный из веб-кабинета и применённый этим сервером.
+# Плейсхолдеры: {player} {staff} {reason} {duration} (∞ = навсегда)
+web-ban-executed: "{prefix} &8[&#FF4D6DВЕБ-БАН&8] &f{player} &7забанен из кабинета модератором &f{staff} &8• &7{reason} &8• &f{duration}"
+web-ban-kick: "&#FF4D6DВы забанены.\n&7Причина: &f{reason}"
 
 exempt-added: "&#4ADE80✔ &f{player} &7добавлен в исключения."
 exempt-removed: "&#FFC857● &f{player} &7удалён из исключений."
