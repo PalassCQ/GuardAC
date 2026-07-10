@@ -85,18 +85,15 @@ class AlertManager(private val plugin: GuardAC) {
     }
 
     // ------------------------------------------------------------------
-    // Per-hit alerts with digesting. The FIRST confident hit of an episode is
-    // announced instantly; every further hit is folded into one summary line
-    // per digest window ("x7 • max 0.99... • buffer"). An episode closes after
-    // EPISODE_IDLE_MS without confident hits, so the next fight is instant
-    // again. Keeps the immediate signal, caps chat at one line per window.
+    // Per-hit alerts, batched by count: every alerts.min-hits confident hits
+    // of a fight produce one line with the running total - x3, then x6, x9...
+    // A lone spike below the bar stays silent. An episode closes after
+    // EPISODE_IDLE_MS without confident hits and the count starts over.
     // ------------------------------------------------------------------
     private class HitDigest {
-        var windowOpen = false
         var lastHitMs = 0L
         var episodeHits = 0
-        var count = 0
-        var maxProb = 0.0
+        var batchMax = 0.0
         var model = "[AI]"
     }
 
@@ -105,57 +102,34 @@ class AlertManager(private val plugin: GuardAC) {
     fun sendHitAlert(gp: GuardPlayer, probability: Double, model: String) {
         val minHits = plugin.configManager.alertMinHits.coerceAtLeast(1)
         val d = digests.computeIfAbsent(gp.uuid) { HitDigest() }
-        var announce = false
+        var announceCount = 0
+        var announceMax = 0.0
+        var firstOfEpisode = false
         synchronized(d) {
             val now = System.currentTimeMillis()
             if (now - d.lastHitMs > EPISODE_IDLE_MS) {
-                // New fight: the evidence counter starts over.
+                // New fight: the counter starts over.
                 d.episodeHits = 0
+                d.batchMax = 0.0
             }
             d.lastHitMs = now
             d.episodeHits++
-            when {
-                // Not enough evidence yet - a lone spike stays silent.
-                d.episodeHits < minHits -> {}
-                // Evidence bar reached: announce this hit instantly.
-                d.episodeHits == minHits -> announce = true
-                // Established episode: fold into the running summary window.
-                !d.windowOpen -> {
-                    d.windowOpen = true
-                    d.count = 1
-                    d.maxProb = probability
-                    d.model = model
-                    Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, Runnable {
-                        flushDigest(gp)
-                    }, DIGEST_WINDOW_TICKS)
-                }
-                else -> {
-                    d.count++
-                    if (probability > d.maxProb) d.maxProb = probability
-                    d.model = model
-                }
+            if (probability > d.batchMax) d.batchMax = probability
+            d.model = model
+            if (d.episodeHits % minHits == 0) {
+                announceCount = d.episodeHits
+                announceMax = d.batchMax
+                firstOfEpisode = d.episodeHits == minHits
+                // The next line reports the peak of ITS OWN batch of hits.
+                d.batchMax = 0.0
             }
         }
-        if (announce) {
-            sendAlert(gp, "AI", gp.aiViolationLevel, detailed(probability), model)
+        if (announceCount > 0) {
+            sendCountAlert(gp, announceCount, announceMax, model, withSound = firstOfEpisode)
         }
     }
 
-    private fun flushDigest(gp: GuardPlayer) {
-        val d = digests[gp.uuid] ?: return
-        val count: Int
-        val maxProb: Double
-        val model: String
-        synchronized(d) {
-            d.windowOpen = false
-            count = d.count
-            maxProb = d.maxProb
-            model = d.model
-            d.count = 0
-            d.maxProb = 0.0
-        }
-        if (count <= 0) return
-
+    private fun sendCountAlert(gp: GuardPlayer, count: Int, maxProb: Double, model: String, withSound: Boolean) {
         val playerName = gp.player.name
         val probColor = plugin.monitorConfig.colorForProbability(maxProb * 100.0)
         val buffer = "%.1f".format(gp.aiBuffer)
@@ -178,8 +152,8 @@ class AlertManager(private val plugin: GuardAC) {
             "verbose", "x$count max $max",
             "buffer",  buffer,
         )
-        // No sound here - the episode already chimed on its instant alert.
-        deliverAlert(msg, consoleLine, playerName, withSound = false)
+        // The chime plays once per fight (the x3 line); follow-ups are quiet.
+        deliverAlert(msg, consoleLine, playerName, withSound)
     }
 
     fun onPlayerQuit(uuid: UUID) {
@@ -432,10 +406,8 @@ class AlertManager(private val plugin: GuardAC) {
         const val ALERT_THROTTLE_MS   = 1_000L
         const val SUSPICIOUS_THROTTLE_MS = 15_000L
         // A pause this long without confident hits closes the digest episode,
-        // so the next fight starts collecting evidence from zero again.
+        // so the next fight starts counting from zero again.
         const val EPISODE_IDLE_MS     = 30_000L
-        // One summary line at most per this window during an established fight.
-        const val DIGEST_WINDOW_TICKS = 10L * 20L
 
         const val PROB_UPDATE_TICKS   = 10L
     }

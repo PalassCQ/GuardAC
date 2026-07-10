@@ -126,10 +126,9 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
 
                 plugin.alertManager.dispatchMonitorHit(gp, prob, result.model)
 
-                // Per-hit staff alert: the first confident hit of an episode is
-                // announced instantly, follow-ups are digested into one summary
-                // line per window (alerts.digest-seconds) - full visibility
-                // without flooding staff chat during a long fight.
+                // Per-hit staff alert, batched by count: one line per every
+                // alerts.min-hits confident hits (x3, x6, x9...) - full
+                // visibility without flooding staff chat during a long fight.
                 if (prob * 100.0 >= plugin.configManager.alertMinConfidence) {
                     plugin.alertManager.sendHitAlert(gp, prob, modelTag(result.sources))
                 }

@@ -54,8 +54,8 @@ ai:
 alerts:
   # Show a hit to staff when the AI is at least this confident (0-100).
   min-hit-confidence: 75
-  # How many such hits in one fight before the first alert. Filters out a lone
-  # random spike; further hits are summarized automatically ("x7 ...").
+  # One alert per this many suspicious hits: x3, then x6, x9 and so on.
+  # A lone random spike below the bar stays silent.
   min-hits: 3
   # Also print alerts to the server console.
   print-to-console: true
