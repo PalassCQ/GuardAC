@@ -15,7 +15,7 @@ alerts-disabled: "&#FFC857● &7Alerts &8disabled&7."
 # Fired for EVERY confident hit (threshold - alerts.min-hit-confidence in config.yml).
 # Placeholders: {player} {check} {vl} {verbose} {prob_color} {buffer} {avg} {peak}
 # (the [Def]/[Extreme] model tag is deliberately not shown here - only in /guard monitor)
-alerts-format: "{prefix} &f{player} &7failed the check &8(&#FF4D6DAim-AI&8: {prob_color}{verbose}&8) &8(&7buffer&8: &f{buffer}&8)"
+alerts-format: "{prefix} &8[&#FF4D6DDETECT&8] &#67E8F9{player} &7failed the check &8• {prob_color}{verbose} &8• &7buffer {buffer}"
 alerts-console-format: "[GuardAC] {player} | {verbose} | buffer {buffer}"
 # Auto-update: a new version was downloaded and applies after a restart. Placeholder: {tag}
 update-downloaded: "{prefix} &#4ADE80GuardAC update &f{tag} &#4ADE80downloaded &8- &7it will apply after a server restart."
@@ -198,14 +198,14 @@ help-history: " &#22D3EE/guardac history &7[player] &8- &7when & why players wer
 
 # /guardac results window - a player's AI result history.
 # Each glass pane = 10 results, dyed by the bucket's average probability.
-results-menu-title: "&#22D3EEGuardAC &8• &7History &f{player}"
-results-empty: "&#22D3EE▍ &7No AI results recorded for &f{player}&7 yet."
-results-head-title: "&#22D3EE&l{player}"
-results-head-total: " &8» &7Results&8: &f{count}"
+results-menu-title: "&#22D3EEGuardAC &8• &7History {player}"
+results-empty: "&#22D3EE▍ &7No AI results recorded for &#67E8F9{player}&7 yet."
+results-head-title: "&#67E8F9{player}"
+results-head-total: " &8» &7Results&8: &7{count}"
 results-head-avg: " &8» &7Average&8: {color}{avg}"
 results-head-peak: " &8» &7Peak&8: {color}{peak}"
-results-head-span: " &8» &7Span&8: &f{time}"
-results-pane-title: "&#22D3EE▍ &fAVG&8: {color}{avg}"
+results-head-span: " &8» &7Span&8: &7{time}"
+results-pane-title: "&7AVG&8: {color}{avg}"
 # Table column titles (the plugin computes pixel-perfect alignment itself).
 results-col-prob: "Prob."
 results-col-model: "Model"

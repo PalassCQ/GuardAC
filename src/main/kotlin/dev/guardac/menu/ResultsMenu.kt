@@ -66,6 +66,10 @@ class ResultsMenu(
         Bukkit.createInventory(null, INV_SIZE, title)
     }
 
+    // Newest bucket first, reading order: top-left pane = the latest fight.
+    private val buckets = rows.chunked(RESULTS_PER_PANE)
+    private var page = 0
+
     init {
         Bukkit.getPluginManager().registerEvents(this, plugin)
     }
@@ -76,16 +80,32 @@ class ResultsMenu(
     }
 
     private fun build() {
-        val border = buildItem(Material.BLACK_STAINED_GLASS_PANE, " ", emptyList())
+        inventory.clear()
+        val border = buildItem(Material.GRAY_STAINED_GLASS_PANE, " ", emptyList())
         for (i in 0 until GRID_START) inventory.setItem(i, border)
+        for (i in INV_SIZE - 9 until INV_SIZE) inventory.setItem(i, border)
         inventory.setItem(HEAD_SLOT, buildHead())
 
-        // Newest bucket first, reading order: top-left pane = the latest fight.
-        val buckets = rows.chunked(RESULTS_PER_PANE)
-        for ((i, bucket) in buckets.withIndex()) {
-            val slot = GRID_START + i
-            if (slot >= INV_SIZE) break
-            inventory.setItem(slot, buildBucketPane(bucket))
+        val totalPages = ((buckets.size - 1) / PANES_PER_PAGE).coerceAtLeast(0)
+        page = page.coerceIn(0, totalPages)
+        val pageBuckets = buckets.drop(page * PANES_PER_PAGE).take(PANES_PER_PAGE)
+        for ((i, bucket) in pageBuckets.withIndex()) {
+            inventory.setItem(GRID_START + i, buildBucketPane(bucket))
+        }
+
+        if (page > 0) {
+            inventory.setItem(PREV_SLOT, buildItem(
+                Material.ARROW,
+                plugin.locale.get(Message.SUSPECTS_MENU_PREV),
+                listOf(plugin.locale.get(Message.MENU_PAGE, "page", page.toString())),
+            ))
+        }
+        if (page < totalPages) {
+            inventory.setItem(NEXT_SLOT, buildItem(
+                Material.ARROW,
+                plugin.locale.get(Message.SUSPECTS_MENU_NEXT),
+                listOf(plugin.locale.get(Message.MENU_PAGE, "page", (page + 2).toString())),
+            ))
         }
     }
 
@@ -145,8 +165,8 @@ class ResultsMenu(
         for (i in bucket.indices) {
             val row = StringBuilder()
             row.append(colorFor(bucket[i].probability)).append(padPx(probs[i], wProb)).append(SEP)
-            row.append("&f").append(padPx(models[i], wModel))
-            if (wServer != null) row.append(SEP).append("&#67E8F9").append(padPx(servers!![i], wServer))
+            row.append("&7").append(padPx(models[i], wModel))
+            if (wServer != null) row.append(SEP).append("&7").append(padPx(servers!![i], wServer))
             row.append(SEP).append("&7").append(times[i])
             lore.add(Colors.translate(row.toString()))
         }
@@ -216,7 +236,14 @@ class ResultsMenu(
 
     @EventHandler
     fun onClick(event: InventoryClickEvent) {
-        if (event.inventory === inventory) event.isCancelled = true
+        if (event.inventory !== inventory) return
+        event.isCancelled = true
+        val clicker = event.whoClicked as? Player ?: return
+        if (clicker.uniqueId != viewer.uniqueId) return
+        when (event.rawSlot) {
+            PREV_SLOT -> { page--; build() }
+            NEXT_SLOT -> { page++; build() }
+        }
     }
 
     @EventHandler
@@ -238,6 +265,11 @@ class ResultsMenu(
         private const val GRID_START       = 9
         private const val HEAD_SLOT        = 4
         private const val RESULTS_PER_PANE = 10
+        // Four middle rows hold panes; the top row (head) and the bottom row
+        // (frame + page arrows) are chrome.
+        private const val PANES_PER_PAGE   = 36
+        private const val PREV_SLOT        = INV_SIZE - 9
+        private const val NEXT_SLOT        = INV_SIZE - 1
         // Breathing room between columns; the "| " separator itself is 6px
         // ('|' 2px + space 4px, color codes are zero-width).
         private const val COLUMN_GAP_PX    = 12
@@ -245,7 +277,7 @@ class ResultsMenu(
 
         private const val SEP = "&8| "
 
-        /** Max results the window can show: 45 panes of 10. */
-        const val CAPACITY = (INV_SIZE - GRID_START) * RESULTS_PER_PANE
+        /** Max results the window can show: 45 panes of 10 across pages. */
+        const val CAPACITY = 450
     }
 }
