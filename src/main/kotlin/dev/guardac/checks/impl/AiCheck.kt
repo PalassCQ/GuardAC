@@ -40,12 +40,16 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
 
         val scanning = plugin.scanManager.isScanning(gp.uuid)
 
-        // Client-side lag guard: a window built from bursty packet timings has
-        // distorted deltas - a lagging but honest player reads as inhuman aim.
-        // Requires BOTH bad timings AND real measured latency, so a cheat can't
-        // fake jitter for a free skip while keeping a clean low ping.
+        // Client-side lag signal: bursty packet arrival plus real measured
+        // latency. It must NEVER skip analysis outright - both inputs are under
+        // the client's control (a cheat can hold packets and inflate its ping),
+        // so a hard skip hands fake-laggers permanent invisibility. Every window
+        // is analyzed; a lag-distorted verdict is just applied dampened (see
+        // addAiProbability): honest laggy players build suspicion much slower,
+        // a sustained cheater still climbs to the flag.
         val unstable = gp.consumeUnstableTicks()
-        if (!scanning && unstable >= UNSTABLE_TICKS_MIN && gp.player.ping >= UNSTABLE_PING_MIN) return
+        val lagDistorted = !scanning &&
+            unstable >= UNSTABLE_TICKS_MIN && gp.player.ping >= UNSTABLE_PING_MIN
 
         // The window must contain enough real aim movement before we judge it: a
         // near-static camera carries no signal and only adds noise. Raising this
@@ -60,7 +64,7 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
         if (!scanning && minTps > 0.0 && plugin.tpsMonitor.tps < minTps) return
 
         plugin.aiTransport.infer(ticks, scanning)
-            .thenAccept { result -> handleResult(gp, result) }
+            .thenAccept { result -> handleResult(gp, result, lagDistorted) }
     }
 
     private fun isBelowMovementThreshold(ticks: Array<TickData>, minMovement: Double): Boolean {
@@ -72,7 +76,7 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
         return true
     }
 
-    private fun handleResult(gp: GuardPlayer, result: InferenceResult) {
+    private fun handleResult(gp: GuardPlayer, result: InferenceResult, lagDistorted: Boolean) {
         when (result) {
             is InferenceResult.Disabled -> return
             is InferenceResult.Failure  -> {
@@ -99,7 +103,7 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
 
                 val bufferBefore   = gp.aiBuffer
                 val isolatedBefore = gp.isIsolated
-                gp.addAiProbability(prob)
+                gp.addAiProbability(prob, lagDistorted)
                 val bufferAfter  = gp.aiBuffer
 
                 plugin.scanManager.onResult(gp.uuid, prob, result.sources)

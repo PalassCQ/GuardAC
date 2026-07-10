@@ -114,6 +114,9 @@ class GuardPlayer(
     // ~50ms; a lagging one delivers them in bursts (a stall, then a catch-up
     // clump). Those bursts distort the per-tick movement deltas and read as
     // inhuman aim - the number-one source of false flags on laggy players.
+    // The signal only DAMPENS the verdict (see addAiProbability), it never
+    // skips analysis: the client controls its own jitter and ping, so a hard
+    // skip would let a fake-lag cheat stay invisible forever.
     @Volatile private var lastRotationNanos: Long = 0L
     @Volatile private var unstableTicks: Int = 0
 
@@ -228,13 +231,15 @@ class GuardPlayer(
     }
 
     @Synchronized
-    fun addAiProbability(probability: Double) {
+    fun addAiProbability(probability: Double, lagDistorted: Boolean = false) {
 
         maybeResetStaleCombat()
 
         lastAiProbability = probability
         updateProbStats(probability)
-        updateFingerprint(probability)
+        // A lag-distorted window must not teach the personal aim fingerprint:
+        // its probability reflects the network, not the hand.
+        if (!lagDistorted) updateFingerprint(probability)
 
         hitProbHistory.addLast(probability)
         while (hitProbHistory.size > HIT_HISTORY_SIZE) hitProbHistory.removeFirst()
@@ -243,7 +248,11 @@ class GuardPlayer(
         aiBuffer = when {
             probability > CHEAT_THRESHOLD -> {
                 val excess = probability - CHEAT_THRESHOLD
-                aiBuffer + excess * cfg.aiBufferMultiplier * (1.0 + excess * CONFIDENCE_WEIGHT_FACTOR)
+                val gain   = excess * cfg.aiBufferMultiplier * (1.0 + excess * CONFIDENCE_WEIGHT_FACTOR)
+                // Under lag the verdict still counts, just slower: honest lag
+                // spikes decay away between fights, a real cheater keeps
+                // climbing no matter how hard he fakes his connection.
+                aiBuffer + gain * (if (lagDistorted) LAG_GAIN_SCALE else 1.0)
             }
             probability < LEGIT_THRESHOLD -> max(0.0, aiBuffer - cfg.aiBufferDecrease)
             else                           -> aiBuffer
@@ -387,6 +396,9 @@ class GuardPlayer(
         const val UNSTABLE_GAP_MIN_MS      = 15L
         const val CHEAT_THRESHOLD          = 0.90
         const val LEGIT_THRESHOLD          = 0.10
+        // Buffer-gain multiplier for windows that arrived visibly lag-distorted
+        // (packet bursts + high ping). 0.5 = suspicion builds at half speed.
+        const val LAG_GAIN_SCALE           = 0.5
         const val IDLE_DELTA_THRESHOLD     = 0.05f
         const val AVG_WINDOW               = 10
         const val HIT_HISTORY_SIZE         = 5
