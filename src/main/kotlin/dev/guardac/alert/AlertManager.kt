@@ -56,13 +56,9 @@ class AlertManager(private val plugin: GuardAC) {
         if (now - last < ALERT_THROTTLE_MS) return
         if (!gp.lastAlertMs.compareAndSet(last, now)) return
         val playerName = gp.player.name
-        val probPct   = gp.lastAiProbability * 100.0
-        val probColor = when {
-            probPct >= 90.0 -> "&c"
-            probPct >= 80.0 -> "&6"
-            probPct >= 70.0 -> "&e"
-            else            -> "&a"
-        }
+        // Same color scale as /guard monitor (monitor.yml thresholds), so the
+        // nick and the number read identically in both streams.
+        val probColor = plugin.monitorConfig.colorForProbability(gp.lastAiProbability * 100.0)
         val buffer = "%.1f".format(gp.aiBuffer)
         val msg = plugin.locale.get(
             Message.ALERTS_FORMAT,
@@ -177,6 +173,8 @@ class AlertManager(private val plugin: GuardAC) {
             "player",      gp.player.name,
             "model",       "[$model]",
             "color",       color,
+            "detailed",    "%.12f".format(java.util.Locale.ROOT, probability),
+            "buffer",      "%.1f".format(gp.aiBuffer),
             "prob",        "%.1f".format(pct),
             "avg",         "%.1f".format(avg),
             "avg_color",   avgColor,

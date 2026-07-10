@@ -15,7 +15,7 @@ alerts-disabled: "&#FFC857● &7Оповещения &8выключены&7."
 # Алерт на КАЖДЫЙ уверенный удар (порог - alerts.min-hit-confidence в config.yml).
 # Плейсхолдеры: {player} {check} {vl} {verbose} {prob_color} {buffer} {avg} {peak}
 # (тег модели [Def]/[Extreme] намеренно не показывается здесь - он только в /guard monitor)
-alerts-format: "{prefix} &8[&#FF4D6DДЕТЕКТ&8] &#67E8F9{player} &7не прошёл проверку &8• {prob_color}{verbose} &8• &7буфер {buffer}"
+alerts-format: "{prefix} &8[&#FF4D6DДЕТЕКТ&8] {prob_color}{player} &7не прошёл проверку &8• {prob_color}{verbose} &8• &7буфер {buffer}"
 alerts-console-format: "[GuardAC] {player} | {verbose} | buffer {buffer}"
 # Авто-обновление: новая версия скачана и применится после перезапуска. Плейсхолдер: {tag}
 update-downloaded: "{prefix} &#4ADE80Обновление GuardAC &f{tag} &#4ADE80загружено &8- &7применится после перезапуска сервера."
@@ -28,8 +28,8 @@ suppression-isolate-notice: "&7Соединение нестабильно &8- &
 
 monitor-enabled: "&#4ADE80✔ &7Монитор &#4ADE80включён&7 &8- показываю каждый результат модели."
 monitor-disabled: "&#FFC857● &7Монитор &8выключен&7."
-# Плейсхолдеры: {player} {model} {color} {prob} {avg} {avg_color} {vl} {ping} {peak} {high_count} {suppression}
-monitor-hit: "{prefix} &7{model} {color}{player} &8• {color}{prob}% &8• &7avg {avg_color}{avg}% &8• &#FF4D6DVL {vl} &8• &7{ping}ms{suppression}"
+# Плейсхолдеры: {player} {model} {color} {detailed} {buffer} {prob} {avg} {avg_color} {vl} {ping} {peak} {high_count} {suppression}
+monitor-hit: "{prefix} &7{model} {color}{player} &8• {color}{detailed} &8• &7буфер {buffer}{suppression}"
 
 profile-header: "&8&m        &r {prefix} &#67E8F9&l{player} &8&m        "
 profile-ping: " &8▏ &7Пинг&8: &f{ping}мс"
