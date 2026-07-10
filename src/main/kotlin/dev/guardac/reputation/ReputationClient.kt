@@ -27,17 +27,30 @@ import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
+import java.net.URLEncoder
 import java.time.Duration
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import org.bukkit.Bukkit
 import org.bukkit.scheduler.BukkitTask
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 
 data class ReputationResult(
     val detections: Int,
     val servers: Int,
     val maxProb: Double,
+)
+
+data class NetworkResult(
+    val uuid: String,
+    val name: String,
+    val server: String,
+    val model: String,
+    val probability: Double,
+    val epochMillis: Long,
 )
 
 class ReputationClient(private val plugin: GuardAC) {
@@ -46,7 +59,7 @@ class ReputationClient(private val plugin: GuardAC) {
     // even when two servers share a blank server-name. Random per boot.
     val instanceId: String = UUID.randomUUID().toString()
 
-    private val displayName: String
+    val displayName: String
         get() = plugin.configManager.serverName.ifBlank { "srv-${plugin.server.port}" }
 
     private val mapper = ObjectMapper().apply {
@@ -139,13 +152,23 @@ class ReputationClient(private val plugin: GuardAC) {
     // ------------------------------------------------------------------
     @Volatile private var pollTask: BukkitTask? = null
     @Volatile private var pollSince: Double = 0.0
+    // The timer fires on schedule even if the previous run is still waiting on a
+    // slow request - without this guard two overlapping polls would use the same
+    // `since` cursor and deliver every alert twice.
+    private val pollInFlight = AtomicBoolean(false)
 
     fun startNetworkAlertPolling() {
         pollTask?.cancel()
         val period = plugin.configManager.crossServerPollSeconds * 20L
         pollTask = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, Runnable {
             if (shuttingDown || !plugin.configManager.crossServerEnabled) return@Runnable
-            pollNetworkAlerts()
+            if (!pollInFlight.compareAndSet(false, true)) return@Runnable
+            try {
+                flushPendingResults()
+                pollNetworkAlerts()
+            } finally {
+                pollInFlight.set(false)
+            }
         }, period, period)
     }
 
@@ -168,19 +191,129 @@ class ReputationClient(private val plugin: GuardAC) {
             val resp = http.send(req, HttpResponse.BodyHandlers.ofString())
             if (resp.statusCode() !in 200..299) return
             val dto = mapper.readValue(resp.body(), NetworkAlertsDto::class.java)
-            pollSince = dto.now
             dto.alerts.orEmpty().forEach { a ->
-                val server  = sanitize(a.server.ifBlank { "network" }, 24)
-                val player  = sanitize(a.player, 20)
-                val verbose = sanitize(a.verbose, 64)
-                if (player.isBlank()) return@forEach
-                plugin.alertManager.deliverCrossServerAlert(
-                    server, player, "AI", a.vl.coerceIn(0, 1_000_000), verbose,
-                )
+                // One malformed alert must not eat the rest of the page.
+                runCatching {
+                    val server  = sanitize(a.server.ifBlank { "network" }, 24)
+                    val player  = sanitize(a.player, 20)
+                    val verbose = sanitize(a.verbose, 64)
+                    if (player.isNotBlank()) {
+                        plugin.alertManager.deliverCrossServerAlert(
+                            server, player, "AI", a.vl.coerceIn(0, 1_000_000), verbose,
+                        )
+                    }
+                }
             }
+            // Advance the cursor only after the page is handled - an exception
+            // above would otherwise skip alerts that were never delivered.
+            pollSince = dto.now
         } catch (_: Exception) {
             // Network hiccup: keep the old `since`, the next poll catches up.
         }
+    }
+
+    // ------------------------------------------------------------------
+    // Cross-server result history: every AI window result is queued here and
+    // flushed to the backend in one small batch per poll interval, so /guard
+    // results on ANY server of the key can show the player's hits from all of
+    // them. Deliberately decoupled from the inference hot path.
+    // ------------------------------------------------------------------
+    private data class PendingResult(
+        val uuid: String, val name: String, val prob: Double, val model: String, val tsMs: Long,
+    )
+
+    private val pendingResults = ConcurrentLinkedQueue<PendingResult>()
+    private val pendingCount = AtomicInteger(0)
+
+    fun queueResult(uuid: UUID, name: String, probability: Double, model: String) {
+        if (shuttingDown || !plugin.configManager.crossServerEnabled) return
+        // Bounded queue: under a long backend outage the freshest history wins.
+        while (pendingCount.get() >= MAX_PENDING_RESULTS) {
+            if (pendingResults.poll() == null) break
+            pendingCount.decrementAndGet()
+        }
+        pendingResults.add(PendingResult(uuid.toString(), name, probability, model, System.currentTimeMillis()))
+        pendingCount.incrementAndGet()
+    }
+
+    private fun flushPendingResults() {
+        if (pendingCount.get() == 0) return
+        val batch = ArrayList<PendingResult>(MAX_PUSH_BATCH)
+        while (batch.size < MAX_PUSH_BATCH) {
+            val r = pendingResults.poll() ?: break
+            pendingCount.decrementAndGet()
+            batch.add(r)
+        }
+        if (batch.isEmpty()) return
+
+        val cfg = plugin.configManager
+        val body = try {
+            mapper.writeValueAsString(
+                mapOf(
+                    "server" to displayName,
+                    "results" to batch.map {
+                        mapOf(
+                            "uuid" to it.uuid,
+                            "name" to it.name,
+                            "model" to it.model,
+                            "prob" to it.prob,
+                            "ts" to it.tsMs / 1000.0,
+                        )
+                    },
+                )
+            )
+        } catch (e: Exception) {
+            return
+        }
+        val req = HttpRequest.newBuilder(URI.create(cfg.aiBaseUrl + RESULTS_PUSH_PATH))
+            .header("Content-Type", "application/json")
+            .header("X-API-Key", cfg.aiApiKey)
+            .POST(HttpRequest.BodyPublishers.ofString(body))
+            .timeout(Duration.ofSeconds(cfg.aiTimeoutSeconds))
+            .build()
+        try {
+            // Best effort: a failed batch is not retried - the local history
+            // database still holds every row, only the network copy is thinner.
+            http.send(req, HttpResponse.BodyHandlers.discarding())
+        } catch (_: Exception) {
+        }
+    }
+
+    fun queryNetworkResults(name: String, limit: Int): CompletableFuture<List<NetworkResult>?> {
+        val cfg = plugin.configManager
+        if (shuttingDown || !cfg.crossServerEnabled) {
+            return CompletableFuture.completedFuture(null)
+        }
+        val url = cfg.aiBaseUrl + RESULTS_QUERY_PATH +
+            "?name=" + URLEncoder.encode(name, Charsets.UTF_8) + "&limit=" + limit
+        val req = HttpRequest.newBuilder(URI.create(url))
+            .header("Accept", "application/json")
+            .header("X-API-Key", cfg.aiApiKey)
+            .GET()
+            .timeout(Duration.ofSeconds(cfg.aiTimeoutSeconds))
+            .build()
+        return http.sendAsync(req, HttpResponse.BodyHandlers.ofString())
+            .thenApply { resp ->
+                if (resp.statusCode() !in 200..299) return@thenApply null
+                try {
+                    val dto = mapper.readValue(resp.body(), NetworkResultsDto::class.java)
+                    dto.results.orEmpty().mapNotNull { r ->
+                        val player = sanitize(r.name, 20)
+                        if (player.isBlank() || r.uuid.isBlank()) null
+                        else NetworkResult(
+                            uuid        = r.uuid.take(64),
+                            name        = player,
+                            server      = sanitize(r.server.ifBlank { "network" }, 24),
+                            model       = sanitize(r.model.ifBlank { "Def" }, 24),
+                            probability = r.prob.coerceIn(0.0, 1.0),
+                            epochMillis = (r.ts * 1000.0).toLong(),
+                        )
+                    }
+                } catch (e: Exception) {
+                    null
+                }
+            }
+            .exceptionally { null }
     }
 
     private fun sanitize(v: String, max: Int): String =
@@ -190,6 +323,12 @@ class ReputationClient(private val plugin: GuardAC) {
         const val REPORT_PATH = "/v1/report"
         const val REPUTATION_PATH = "/v1/reputation/"
         const val NETWORK_ALERTS_PATH = "/v1/network/alerts"
+        const val RESULTS_PUSH_PATH = "/v1/results/push"
+        const val RESULTS_QUERY_PATH = "/v1/results/query"
+        // Backend caps a push at 200 results; the queue keeps a little headroom
+        // so a short outage doesn't throw history away immediately.
+        const val MAX_PUSH_BATCH = 200
+        const val MAX_PENDING_RESULTS = 600
     }
 }
 
@@ -212,4 +351,17 @@ private data class NetworkAlertDto @JsonCreator constructor(
     @JsonProperty("verbose")     val verbose: String = "",
     @JsonProperty("probability") val probability: Double = 0.0,
     @JsonProperty("ts")          val ts: Double = 0.0,
+)
+
+private data class NetworkResultsDto @JsonCreator constructor(
+    @JsonProperty("results") val results: List<NetworkResultDto>? = null,
+)
+
+private data class NetworkResultDto @JsonCreator constructor(
+    @JsonProperty("uuid")   val uuid: String = "",
+    @JsonProperty("name")   val name: String = "",
+    @JsonProperty("server") val server: String = "",
+    @JsonProperty("model")  val model: String = "",
+    @JsonProperty("prob")   val prob: Double = 0.0,
+    @JsonProperty("ts")     val ts: Double = 0.0,
 )

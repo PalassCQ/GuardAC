@@ -432,12 +432,39 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
         val name = args.getOrNull(1)
             ?: return sender.sendMessage(plugin.locale.get(Message.USAGE_RESULTS))
         // History lives in the local database, so offline players work too.
-        val results = plugin.punishmentHistory.resultsFor(name, ResultsMenu.CAPACITY)
-        if (results.isEmpty()) {
-            sender.sendMessage(plugin.locale.get(Message.RESULTS_EMPTY, "player", name))
+        val ourServer = plugin.reputationClient.displayName
+        val local = plugin.punishmentHistory.resultsFor(name, ResultsMenu.CAPACITY)
+            .map { ResultsMenu.Row(it.uuid, it.playerName, it.model, ourServer, it.probability, it.epochMillis) }
+
+        if (!plugin.configManager.crossServerEnabled) {
+            openResultsMenu(sender, name, local, showServer = false)
             return
         }
-        ResultsMenu(plugin, sender, results.first().playerName, results).open()
+
+        // Network mode: the backend holds this player's results from EVERY
+        // server of the key. Local rows are this server's source of truth, so
+        // remote rows from our own server name are dropped as duplicates.
+        plugin.reputationClient.queryNetworkResults(name, ResultsMenu.CAPACITY)
+            .thenAccept { remote ->
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    if (!sender.isOnline) return@Runnable
+                    val merged = ArrayList<ResultsMenu.Row>(local.size + (remote?.size ?: 0))
+                    merged.addAll(local)
+                    remote.orEmpty()
+                        .filter { it.server != ourServer }
+                        .forEach { merged.add(ResultsMenu.Row(it.uuid, it.name, it.model, it.server, it.probability, it.epochMillis)) }
+                    merged.sortByDescending { it.epochMillis }
+                    openResultsMenu(sender, name, merged.take(ResultsMenu.CAPACITY), showServer = true)
+                })
+            }
+    }
+
+    private fun openResultsMenu(viewer: Player, requestedName: String, rows: List<ResultsMenu.Row>, showServer: Boolean) {
+        if (rows.isEmpty()) {
+            viewer.sendMessage(plugin.locale.get(Message.RESULTS_EMPTY, "player", requestedName))
+            return
+        }
+        ResultsMenu(plugin, viewer, rows.first().name, rows, showServer).open()
     }
 
     private fun sendHelp(sender: CommandSender) {

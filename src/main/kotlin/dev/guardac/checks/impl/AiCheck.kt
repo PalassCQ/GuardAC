@@ -91,6 +91,7 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
 
                 plugin.dailyStats.recordRequest()
                 plugin.punishmentHistory.recordResult(gp.uuid, gp.player.name, result.model, prob)
+                plugin.reputationClient.queueResult(gp.uuid, gp.player.name, prob, result.model)
 
                 if (plugin.configManager.debugLogProbability) {
                     plugin.logger.info(

@@ -19,7 +19,7 @@
 package dev.guardac.menu
 
 import dev.guardac.GuardAC
-import dev.guardac.history.PunishmentHistory
+import dev.guardac.util.Colors
 import dev.guardac.util.Message
 import org.bukkit.Bukkit
 import org.bukkit.Material
@@ -35,18 +35,31 @@ import org.bukkit.inventory.meta.SkullMeta
 import java.util.Locale
 import java.util.UUID
 import java.util.concurrent.TimeUnit
+import kotlin.math.roundToInt
 
 /**
  * Read-only hit-history window: every AI window result is a cell, ten results
  * per glass pane, the pane dyed by the average probability of its bucket.
- * Hovering a pane lists the individual results (probability / model / age).
+ * Hovering a pane lists the individual results (probability / model / age,
+ * plus the source server when the history is network-wide).
  */
 class ResultsMenu(
     private val plugin: GuardAC,
     private val viewer: Player,
     private val targetName: String,
-    private val results: List<PunishmentHistory.AiResult>,
+    private val rows: List<Row>,
+    private val showServer: Boolean = false,
 ) : Listener {
+
+    /** One AI window result, from the local database or the key's network. */
+    data class Row(
+        val uuid: String,
+        val name: String,
+        val model: String,
+        val server: String?,
+        val probability: Double,
+        val epochMillis: Long,
+    )
 
     private val inventory: Inventory = run {
         val title = plugin.locale.get(Message.RESULTS_MENU_TITLE, "player", targetName)
@@ -68,7 +81,7 @@ class ResultsMenu(
         inventory.setItem(HEAD_SLOT, buildHead())
 
         // Newest bucket first, reading order: top-left pane = the latest fight.
-        val buckets = results.chunked(RESULTS_PER_PANE)
+        val buckets = rows.chunked(RESULTS_PER_PANE)
         for ((i, bucket) in buckets.withIndex()) {
             val slot = GRID_START + i
             if (slot >= INV_SIZE) break
@@ -77,42 +90,65 @@ class ResultsMenu(
     }
 
     private fun buildHead(): ItemStack {
-        val avg  = results.sumOf { it.probability } / results.size
-        val peak = results.maxOf { it.probability }
+        val avg  = rows.sumOf { it.probability } / rows.size
+        val peak = rows.maxOf { it.probability }
 
         val skull = ItemStack(Material.PLAYER_HEAD)
         val meta  = skull.itemMeta as? SkullMeta ?: return skull
-        runCatching { meta.owningPlayer = Bukkit.getOfflinePlayer(UUID.fromString(results.first().uuid)) }
+        runCatching { meta.owningPlayer = Bukkit.getOfflinePlayer(UUID.fromString(rows.first().uuid)) }
 
         meta.setDisplayName(plugin.locale.get(Message.RESULTS_HEAD_TITLE, "player", targetName))
         meta.lore = listOf(
             "",
-            plugin.locale.get(Message.RESULTS_HEAD_TOTAL, "count", results.size.toString()),
+            plugin.locale.get(Message.RESULTS_HEAD_TOTAL, "count", rows.size.toString()),
             plugin.locale.get(Message.RESULTS_HEAD_AVG, "color", colorFor(avg), "avg", fmt(avg)),
             plugin.locale.get(Message.RESULTS_HEAD_PEAK, "color", colorFor(peak), "peak", fmt(peak)),
             plugin.locale.get(
                 Message.RESULTS_HEAD_SPAN,
-                "time", formatAge(System.currentTimeMillis() - results.last().epochMillis),
+                "time", formatAge(System.currentTimeMillis() - rows.last().epochMillis),
             ),
         )
         skull.itemMeta = meta
         return skull
     }
 
-    private fun buildBucketPane(bucket: List<PunishmentHistory.AiResult>): ItemStack {
-        val avg  = bucket.sumOf { it.probability } / bucket.size
-        val now  = System.currentTimeMillis()
+    private fun buildBucketPane(bucket: List<Row>): ItemStack {
+        val avg = bucket.sumOf { it.probability } / bucket.size
+        val now = System.currentTimeMillis()
+
+        val probs   = bucket.map { fmt(it.probability) }
+        val models  = bucket.map { it.model.ifBlank { "Def" }.take(12) }
+        val servers = if (showServer) bucket.map { (it.server ?: "-").take(12) } else null
+        val times   = bucket.map { formatAge(now - it.epochMillis) }
+
+        val hProb   = plugin.locale.get(Message.RESULTS_COL_PROB)
+        val hModel  = plugin.locale.get(Message.RESULTS_COL_MODEL)
+        val hServer = plugin.locale.get(Message.RESULTS_COL_SERVER)
+        val hTime   = plugin.locale.get(Message.RESULTS_COL_TIME)
+
+        val wProb   = colWidth(hProb, probs)
+        val wModel  = colWidth(hModel, models)
+        val wServer = servers?.let { colWidth(hServer, it) }
 
         val lore = ArrayList<String>(bucket.size + 2)
-        lore.add(plugin.locale.get(Message.RESULTS_LORE_HEADER))
-        for (r in bucket) {
-            lore.add(plugin.locale.get(
-                Message.RESULTS_LORE_ROW,
-                "color", colorFor(r.probability),
-                "prob",  fmt(r.probability),
-                "model", r.model,
-                "time",  formatAge(now - r.epochMillis),
-            ))
+
+        val header = StringBuilder("&7").append(padPx(hProb, wProb)).append(SEP)
+            .append("&7").append(padPx(hModel, wModel))
+        if (wServer != null) header.append(SEP).append("&7").append(padPx(hServer, wServer))
+        header.append(SEP).append("&7").append(hTime)
+        lore.add(Colors.translate(header.toString()))
+
+        // Thin strikethrough divider sized to the table (spaces are 4px each).
+        val totalPx = wProb + wModel + (wServer ?: 0) + pxWidth(hTime) + SEP_PX * (if (wServer != null) 3 else 2)
+        lore.add(Colors.translate("&8&m" + " ".repeat((totalPx / 4).coerceIn(8, 44))))
+
+        for (i in bucket.indices) {
+            val row = StringBuilder()
+            row.append(colorFor(bucket[i].probability)).append(padPx(probs[i], wProb)).append(SEP)
+            row.append("&f").append(padPx(models[i], wModel))
+            if (wServer != null) row.append(SEP).append("&#67E8F9").append(padPx(servers!![i], wServer))
+            row.append(SEP).append("&7").append(times[i])
+            lore.add(Colors.translate(row.toString()))
         }
 
         return buildItem(
@@ -138,6 +174,30 @@ class ResultsMenu(
 
     // Dot decimal separator regardless of the server's system locale.
     private fun fmt(p: Double): String = "%.4f".format(Locale.ROOT, p)
+
+    // ------------------------------------------------------------------
+    // Column alignment. Minecraft's font is NOT monospace: most glyphs advance
+    // 6px, but '.'/':'/'i' are 2px and a space is 4px - so columns are padded
+    // to pixel targets, never to character counts.
+    // ------------------------------------------------------------------
+    private fun pxWidth(s: String): Int = s.sumOf { c ->
+        when (c) {
+            '.', ',', ':', ';', 'i', '!', '|', '\'' -> 2
+            'l'                                     -> 3
+            ' ', 't', 'I', '[', ']'                 -> 4
+            'f', 'k', '(', ')', '<', '>', '{', '}'  -> 5
+            else                                    -> 6
+        }.toInt()
+    }
+
+    private fun padPx(s: String, targetPx: Int): String {
+        val need = targetPx - pxWidth(s)
+        if (need <= 0) return s
+        return s + " ".repeat((need / 4.0).roundToInt().coerceAtLeast(1))
+    }
+
+    private fun colWidth(header: String, values: List<String>): Int =
+        (values.maxOfOrNull { pxWidth(it) } ?: 0).coerceAtLeast(pxWidth(header)) + COLUMN_GAP_PX
 
     private fun formatAge(ms: Long): String {
         val minutes = TimeUnit.MILLISECONDS.toMinutes(ms)
@@ -178,6 +238,12 @@ class ResultsMenu(
         private const val GRID_START       = 9
         private const val HEAD_SLOT        = 4
         private const val RESULTS_PER_PANE = 10
+        // Breathing room between columns; the "| " separator itself is 6px
+        // ('|' 2px + space 4px, color codes are zero-width).
+        private const val COLUMN_GAP_PX    = 12
+        private const val SEP_PX           = 6
+
+        private const val SEP = "&8| "
 
         /** Max results the window can show: 45 panes of 10. */
         const val CAPACITY = (INV_SIZE - GRID_START) * RESULTS_PER_PANE
