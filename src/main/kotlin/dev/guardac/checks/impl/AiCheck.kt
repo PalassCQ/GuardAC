@@ -126,11 +126,13 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
 
                 plugin.alertManager.dispatchMonitorHit(gp, prob, result.model)
 
-                // Per-hit staff alert (MLSAC-style): every confident hit is shown
-                // the moment it happens - not only when the buffer finally flags.
-                // Per-player throttle lives inside sendAlert.
+                // Per-hit staff alert: every confident hit is shown the moment it
+                // happens - not only when the buffer finally flags. The raw model
+                // output is shown with full detail (a long fraction reads as the
+                // AI's actual voice, not a rounded percent). Per-player throttle
+                // lives inside sendAlert.
                 if (prob * 100.0 >= plugin.configManager.alertMinConfidence) {
-                    plugin.alertManager.sendAlert(gp, CHECK_NAME, gp.aiViolationLevel, buildVerbose(prob), modelTag(result.sources))
+                    plugin.alertManager.sendAlert(gp, CHECK_NAME, gp.aiViolationLevel, buildDetailed(prob), modelTag(result.sources))
                 }
 
                 Bukkit.getScheduler().runTask(plugin, Runnable {
@@ -171,6 +173,9 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
     }
 
     private fun buildVerbose(prob: Double): String = "${"%.0f".format(prob * 100.0)}%"
+
+    // Dot decimal separator regardless of the server's system locale.
+    private fun buildDetailed(prob: Double): String = "%.12f".format(java.util.Locale.ROOT, prob)
 
     private fun modelTag(sources: List<String>): String =
         if (sources.isEmpty()) "[AI]" else sources.joinToString("") { "[$it]" }

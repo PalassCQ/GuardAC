@@ -93,20 +93,15 @@ class ResultsMenu(
             inventory.setItem(GRID_START + i, buildBucketPane(bucket))
         }
 
-        if (page > 0) {
-            inventory.setItem(PREV_SLOT, buildItem(
-                Material.ARROW,
-                plugin.locale.get(Message.SUSPECTS_MENU_PREV),
-                listOf(plugin.locale.get(Message.MENU_PAGE, "page", page.toString())),
-            ))
-        }
-        if (page < totalPages) {
-            inventory.setItem(NEXT_SLOT, buildItem(
-                Material.ARROW,
-                plugin.locale.get(Message.SUSPECTS_MENU_NEXT),
-                listOf(plugin.locale.get(Message.MENU_PAGE, "page", (page + 2).toString())),
-            ))
-        }
+        // Both arrows are always visible (clicking past an edge is a no-op) -
+        // an appearing/disappearing arrow reads as a missing feature.
+        val pageInfo = plugin.locale.get(Message.MENU_PAGE, "page", "${page + 1}/${totalPages + 1}")
+        inventory.setItem(PREV_SLOT, buildItem(
+            Material.ARROW, plugin.locale.get(Message.SUSPECTS_MENU_PREV), listOf(pageInfo),
+        ))
+        inventory.setItem(NEXT_SLOT, buildItem(
+            Material.ARROW, plugin.locale.get(Message.SUSPECTS_MENU_NEXT), listOf(pageInfo),
+        ))
     }
 
     private fun buildHead(): ItemStack {
