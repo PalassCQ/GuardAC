@@ -6,7 +6,7 @@
 # below switches everything the plugin SAYS (staff alerts, command output,
 # player messages) between languages.
 
-config-version: 24
+config-version: 25
 
 # Language of all plugin messages: en | ru
 locale: "en"
@@ -52,8 +52,9 @@ ai:
     decrease: 0.25
 
 alerts:
-  # Only alert staff when the AI is at least this confident (0-100; 0 = always).
-  min-confidence-percent: 0
+  # A staff alert is sent for every HIT where the AI is at least this confident
+  # (0-100). Raise it for quieter chat, lower it to see more borderline hits.
+  min-hit-confidence: 75
   # Also print alerts to the server console.
   print-to-console: true
   # Sound played to staff on an alert.

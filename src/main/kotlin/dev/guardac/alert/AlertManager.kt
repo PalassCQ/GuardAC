@@ -56,15 +56,25 @@ class AlertManager(private val plugin: GuardAC) {
         if (now - last < ALERT_THROTTLE_MS) return
         if (!gp.lastAlertMs.compareAndSet(last, now)) return
         val playerName = gp.player.name
+        val probPct   = gp.lastAiProbability * 100.0
+        val probColor = when {
+            probPct >= 90.0 -> "&c"
+            probPct >= 80.0 -> "&6"
+            probPct >= 70.0 -> "&e"
+            else            -> "&a"
+        }
+        val buffer = "%.1f".format(gp.aiBuffer)
         val msg = plugin.locale.get(
             Message.ALERTS_FORMAT,
-            "player",  playerName,
-            "check",   checkName,
-            "model",   model,
-            "vl",      vl.toString(),
-            "verbose", verbose,
-            "avg",     formatPercent(gp.avgProbability),
-            "peak",    formatPercent(gp.peakProbability),
+            "player",     playerName,
+            "check",      checkName,
+            "model",      model,
+            "vl",         vl.toString(),
+            "verbose",    verbose,
+            "prob_color", probColor,
+            "buffer",     buffer,
+            "avg",        formatPercent(gp.avgProbability),
+            "peak",       formatPercent(gp.peakProbability),
         )
         val consoleLine = plugin.locale.get(
             Message.ALERTS_CONSOLE_FORMAT,
@@ -73,6 +83,7 @@ class AlertManager(private val plugin: GuardAC) {
             "model",   model,
             "vl",      vl.toString(),
             "verbose", verbose,
+            "buffer",  buffer,
         )
         Bukkit.getScheduler().runTask(plugin, Runnable {
             if (!gp.player.isOnline) return@Runnable

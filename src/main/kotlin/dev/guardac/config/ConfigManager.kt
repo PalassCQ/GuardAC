@@ -153,7 +153,11 @@ class ConfigManager(private val plugin: GuardAC) {
 
     val alertsToConsole: Boolean get() = cfg.getBoolean("alerts.print-to-console", true)
 
-    val alertMinConfidence: Double get() = cfg.getDouble("alerts.min-confidence-percent", 0.0)
+    // Per-HIT alert gate: staff are pinged for every window at or above this
+    // confidence (MLSAC-style), not only when the buffer finally flags. A fresh
+    // key on purpose - old configs carry min-confidence-percent: 0, which under
+    // per-hit semantics would flood staff chat right after an auto-update.
+    val alertMinConfidence: Double get() = cfg.getDouble("alerts.min-hit-confidence", 75.0)
 
     val suspiciousAlertsEnabled: Boolean get() = cfg.getBoolean("alerts.suspicious.enabled", true)
     val suspiciousAlertBuffer: Double   get() = cfg.getDouble("alerts.suspicious.buffer", 25.0)

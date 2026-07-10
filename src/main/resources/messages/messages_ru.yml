@@ -12,10 +12,11 @@ reload-success: "&#4ADE80✔ &7Конфигурация перезагружен
 
 alerts-enabled: "&#4ADE80✔ &7Оповещения &#4ADE80включены&7."
 alerts-disabled: "&#FFC857● &7Оповещения &8выключены&7."
-# Плейсхолдеры: {player} {check} {vl} {verbose} {avg} {peak}
+# Алерт на КАЖДЫЙ уверенный удар (порог - alerts.min-hit-confidence в config.yml).
+# Плейсхолдеры: {player} {check} {vl} {verbose} {prob_color} {buffer} {avg} {peak}
 # (тег модели [Def]/[Extreme] намеренно не показывается здесь - он только в /guard monitor)
-alerts-format: "{prefix} &#FF4D6D&l{player} &8- &7{verbose} &8• &#FF4D6DVL {vl}"
-alerts-console-format: "[GuardAC] {player} | x{vl} | {verbose}"
+alerts-format: "{prefix} &f{player} &7не прошёл проверку &8(&#FF4D6DAim-AI&8: {prob_color}{verbose}&8) &8(&7буфер&8: &f{buffer}&8)"
+alerts-console-format: "[GuardAC] {player} | {verbose} | buffer {buffer}"
 # Авто-обновление: новая версия скачана и применится после перезапуска. Плейсхолдер: {tag}
 update-downloaded: "{prefix} &#4ADE80Обновление GuardAC &f{tag} &#4ADE80загружено &8- &7применится после перезапуска сервера."
 # Aim Fingerprint: почерк прицела игрока резко изменился. Плейсхолдеры: {player} {base} {now}

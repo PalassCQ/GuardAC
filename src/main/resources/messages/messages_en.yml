@@ -12,10 +12,11 @@ reload-success: "&#4ADE80✔ &7Configuration reloaded."
 
 alerts-enabled: "&#4ADE80✔ &7Alerts &#4ADE80enabled&7."
 alerts-disabled: "&#FFC857● &7Alerts &8disabled&7."
-# Placeholders: {player} {check} {vl} {verbose} {avg} {peak}
+# Fired for EVERY confident hit (threshold - alerts.min-hit-confidence in config.yml).
+# Placeholders: {player} {check} {vl} {verbose} {prob_color} {buffer} {avg} {peak}
 # (the [Def]/[Extreme] model tag is deliberately not shown here - only in /guard monitor)
-alerts-format: "{prefix} &#FF4D6D&l{player} &8- &7{verbose} &8• &#FF4D6DVL {vl}"
-alerts-console-format: "[GuardAC] {player} | x{vl} | {verbose}"
+alerts-format: "{prefix} &f{player} &7failed the check &8(&#FF4D6DAim-AI&8: {prob_color}{verbose}&8) &8(&7buffer&8: &f{buffer}&8)"
+alerts-console-format: "[GuardAC] {player} | {verbose} | buffer {buffer}"
 # Auto-update: a new version was downloaded and applies after a restart. Placeholder: {tag}
 update-downloaded: "{prefix} &#4ADE80GuardAC update &f{tag} &#4ADE80downloaded &8- &7it will apply after a server restart."
 # Aim Fingerprint: player's aim style shifted sharply. Placeholders: {player} {base} {now}

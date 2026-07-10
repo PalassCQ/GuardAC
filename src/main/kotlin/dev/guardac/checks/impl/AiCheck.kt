@@ -126,6 +126,13 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
 
                 plugin.alertManager.dispatchMonitorHit(gp, prob, result.model)
 
+                // Per-hit staff alert (MLSAC-style): every confident hit is shown
+                // the moment it happens - not only when the buffer finally flags.
+                // Per-player throttle lives inside sendAlert.
+                if (prob * 100.0 >= plugin.configManager.alertMinConfidence) {
+                    plugin.alertManager.sendAlert(gp, CHECK_NAME, gp.aiViolationLevel, buildVerbose(prob), modelTag(result.sources))
+                }
+
                 Bukkit.getScheduler().runTask(plugin, Runnable {
                     if (!gp.player.isOnline) return@Runnable
 
@@ -147,10 +154,6 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
 
                         val verbose = buildVerbose(prob)
                         plugin.reputationClient.report(gp.uuid, gp.player.name, prob, gp.aiViolationLevel, verbose)
-
-                        if (prob * 100.0 >= plugin.configManager.alertMinConfidence) {
-                            plugin.alertManager.sendAlert(gp, CHECK_NAME, gp.aiViolationLevel, verbose, modelTag(result.sources))
-                        }
 
                         val tps = plugin.tpsMonitor.tps
                         val minTps = plugin.configManager.punishMinTps
