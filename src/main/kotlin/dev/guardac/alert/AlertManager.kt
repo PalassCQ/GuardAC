@@ -81,8 +81,115 @@ class AlertManager(private val plugin: GuardAC) {
             "verbose", verbose,
             "buffer",  buffer,
         )
+        deliverAlert(msg, consoleLine, playerName, withSound = true)
+    }
+
+    // ------------------------------------------------------------------
+    // Per-hit alerts with digesting. The FIRST confident hit of an episode is
+    // announced instantly; every further hit is folded into one summary line
+    // per digest window ("x7 • max 0.99... • buffer"). An episode closes after
+    // EPISODE_IDLE_MS without confident hits, so the next fight is instant
+    // again. Keeps the immediate signal, caps chat at one line per window.
+    // ------------------------------------------------------------------
+    private class HitDigest {
+        var windowOpen = false
+        var lastHitMs = 0L
+        var count = 0
+        var maxProb = 0.0
+        var model = "[AI]"
+    }
+
+    private val digests = ConcurrentHashMap<UUID, HitDigest>()
+
+    fun sendHitAlert(gp: GuardPlayer, probability: Double, model: String) {
+        val windowSec = plugin.configManager.alertDigestSeconds
+        if (windowSec <= 0) {
+            sendAlert(gp, "AI", gp.aiViolationLevel, detailed(probability), model)
+            return
+        }
+        val d = digests.computeIfAbsent(gp.uuid) { HitDigest() }
+        var immediate = false
+        synchronized(d) {
+            val now = System.currentTimeMillis()
+            val continuing = now - d.lastHitMs <= EPISODE_IDLE_MS
+            d.lastHitMs = now
+            if (!d.windowOpen) {
+                d.windowOpen = true
+                d.model = model
+                if (continuing) {
+                    // Mid-episode: stay silent, this hit starts the next summary.
+                    d.count = 1
+                    d.maxProb = probability
+                } else {
+                    // Fresh episode: announce instantly, follow-ups get digested.
+                    d.count = 0
+                    d.maxProb = 0.0
+                    immediate = true
+                }
+                Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, Runnable {
+                    flushDigest(gp)
+                }, windowSec * 20L)
+            } else {
+                d.count++
+                if (probability > d.maxProb) d.maxProb = probability
+                d.model = model
+            }
+        }
+        if (immediate) {
+            sendAlert(gp, "AI", gp.aiViolationLevel, detailed(probability), model)
+        }
+    }
+
+    private fun flushDigest(gp: GuardPlayer) {
+        val d = digests[gp.uuid] ?: return
+        val count: Int
+        val maxProb: Double
+        val model: String
+        synchronized(d) {
+            d.windowOpen = false
+            count = d.count
+            maxProb = d.maxProb
+            model = d.model
+            d.count = 0
+            d.maxProb = 0.0
+        }
+        if (count <= 0) return
+
+        val playerName = gp.player.name
+        val probColor = plugin.monitorConfig.colorForProbability(maxProb * 100.0)
+        val buffer = "%.1f".format(gp.aiBuffer)
+        val max = detailed(maxProb)
+        val msg = plugin.locale.get(
+            Message.ALERTS_DIGEST_FORMAT,
+            "player",     playerName,
+            "model",      model,
+            "count",      count.toString(),
+            "max",        max,
+            "prob_color", probColor,
+            "buffer",     buffer,
+        )
+        val consoleLine = plugin.locale.get(
+            Message.ALERTS_CONSOLE_FORMAT,
+            "player",  playerName,
+            "check",   "AI",
+            "model",   model,
+            "vl",      gp.aiViolationLevel.toString(),
+            "verbose", "x$count max $max",
+            "buffer",  buffer,
+        )
+        // No sound here - the episode already chimed on its instant alert.
+        deliverAlert(msg, consoleLine, playerName, withSound = false)
+    }
+
+    fun onPlayerQuit(uuid: UUID) {
+        digests.remove(uuid)
+    }
+
+    // Dot decimal separator regardless of the server's system locale.
+    private fun detailed(p: Double): String = "%.12f".format(java.util.Locale.ROOT, p)
+
+    private fun deliverAlert(msg: String, consoleLine: String, playerName: String, withSound: Boolean) {
         Bukkit.getScheduler().runTask(plugin, Runnable {
-            if (!gp.player.isOnline) return@Runnable
             if (plugin.configManager.alertsToConsole) {
                 plugin.logger.info(consoleLine)
             }
@@ -92,7 +199,7 @@ class AlertManager(private val plugin: GuardAC) {
 
             val component = clickableAlert(msg, playerName)
             recipients.forEach { it.spigot().sendMessage(component) }
-            if (plugin.configManager.alertSoundEnabled) {
+            if (withSound && plugin.configManager.alertSoundEnabled) {
                 playAlertSound(recipients)
             }
         })
@@ -323,6 +430,9 @@ class AlertManager(private val plugin: GuardAC) {
         const val MONITOR_THROTTLE_MS = 1_000L
         const val ALERT_THROTTLE_MS   = 1_000L
         const val SUSPICIOUS_THROTTLE_MS = 15_000L
+        // A pause this long without confident hits closes the digest episode,
+        // so the next fight gets its instant alert again.
+        const val EPISODE_IDLE_MS     = 30_000L
 
         const val PROB_UPDATE_TICKS   = 10L
     }

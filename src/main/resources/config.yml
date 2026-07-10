@@ -6,7 +6,7 @@
 # below switches everything the plugin SAYS (staff alerts, command output,
 # player messages) between languages.
 
-config-version: 25
+config-version: 26
 
 # Language of all plugin messages: en | ru
 locale: "en"
@@ -55,6 +55,10 @@ alerts:
   # A staff alert is sent for every HIT where the AI is at least this confident
   # (0-100). Raise it for quieter chat, lower it to see more borderline hits.
   min-hit-confidence: 75
+  # Anti-spam digest: the first confident hit of a fight is announced instantly,
+  # further hits are folded into one summary line ("x7 ...") every this many
+  # seconds. 0 = no digest, every hit gets its own line.
+  digest-seconds: 10
   # Also print alerts to the server console.
   print-to-console: true
   # Sound played to staff on an alert.

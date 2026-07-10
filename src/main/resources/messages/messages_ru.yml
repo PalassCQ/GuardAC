@@ -16,6 +16,9 @@ alerts-disabled: "&#FFC857● &7Оповещения &8выключены&7."
 # Плейсхолдеры: {player} {check} {vl} {verbose} {prob_color} {buffer} {avg} {peak}
 # (тег модели [Def]/[Extreme] намеренно не показывается здесь - он только в /guard monitor)
 alerts-format: "{prefix} &8[&#FF4D6DДЕТЕКТ&8] {prob_color}{player} &7не прошёл проверку &8• {prob_color}{verbose} &8• &7буфер {buffer}"
+# Сводка за окно digest-seconds: сколько ударов и максимальный результат.
+# Плейсхолдеры: {player} {model} {count} {max} {prob_color} {buffer}
+alerts-digest-format: "{prefix} &8[&#FF4D6DДЕТЕКТ&8] {prob_color}{player} &7не прошёл проверку &7×&c{count} &8• &7макс {prob_color}{max} &8• &7буфер {buffer}"
 alerts-console-format: "[GuardAC] {player} | {verbose} | buffer {buffer}"
 # Авто-обновление: новая версия скачана и применится после перезапуска. Плейсхолдер: {tag}
 update-downloaded: "{prefix} &#4ADE80Обновление GuardAC &f{tag} &#4ADE80загружено &8- &7применится после перезапуска сервера."

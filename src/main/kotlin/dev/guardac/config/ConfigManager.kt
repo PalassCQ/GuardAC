@@ -158,6 +158,7 @@ class ConfigManager(private val plugin: GuardAC) {
     // key on purpose - old configs carry min-confidence-percent: 0, which under
     // per-hit semantics would flood staff chat right after an auto-update.
     val alertMinConfidence: Double get() = cfg.getDouble("alerts.min-hit-confidence", 75.0)
+    val alertDigestSeconds: Int    get() = cfg.getInt("alerts.digest-seconds", 10)
 
     val suspiciousAlertsEnabled: Boolean get() = cfg.getBoolean("alerts.suspicious.enabled", true)
     val suspiciousAlertBuffer: Double   get() = cfg.getDouble("alerts.suspicious.buffer", 25.0)

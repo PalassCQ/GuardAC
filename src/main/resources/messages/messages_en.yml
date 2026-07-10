@@ -16,6 +16,9 @@ alerts-disabled: "&#FFC857● &7Alerts &8disabled&7."
 # Placeholders: {player} {check} {vl} {verbose} {prob_color} {buffer} {avg} {peak}
 # (the [Def]/[Extreme] model tag is deliberately not shown here - only in /guard monitor)
 alerts-format: "{prefix} &8[&#FF4D6DDETECT&8] {prob_color}{player} &7failed the check &8• {prob_color}{verbose} &8• &7buffer {buffer}"
+# Summary for one digest-seconds window: hit count and the peak result.
+# Placeholders: {player} {model} {count} {max} {prob_color} {buffer}
+alerts-digest-format: "{prefix} &8[&#FF4D6DDETECT&8] {prob_color}{player} &7failed the check &7×&c{count} &8• &7max {prob_color}{max} &8• &7buffer {buffer}"
 alerts-console-format: "[GuardAC] {player} | {verbose} | buffer {buffer}"
 # Auto-update: a new version was downloaded and applies after a restart. Placeholder: {tag}
 update-downloaded: "{prefix} &#4ADE80GuardAC update &f{tag} &#4ADE80downloaded &8- &7it will apply after a server restart."

@@ -28,6 +28,7 @@ enum class Message(val key: String) {
     ALERTS_ENABLED("alerts-enabled"),
     ALERTS_DISABLED("alerts-disabled"),
     ALERTS_FORMAT("alerts-format"),
+    ALERTS_DIGEST_FORMAT("alerts-digest-format"),
     ALERTS_CONSOLE_FORMAT("alerts-console-format"),
     FINGERPRINT_ALERT("fingerprint-alert"),
     SUSPICIOUS_ALERT("suspicious-alert"),

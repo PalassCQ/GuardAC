@@ -67,6 +67,7 @@ class PlayerDataManager(private val plugin: GuardAC) : Listener {
         plugin.scanManager.onQuit(uuid)
         plugin.hologramManager.onQuit(player)
         plugin.alertManager.removeProbSession(uuid)
+        plugin.alertManager.onPlayerQuit(uuid)
         plugin.punishmentManager.onPlayerQuit(uuid)
         plugin.banAnimationManager.onQuit(uuid)
         entityIdToUuid.remove(player.entityId)
