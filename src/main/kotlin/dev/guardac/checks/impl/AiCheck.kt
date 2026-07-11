@@ -64,7 +64,7 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
         if (!scanning && minTps > 0.0 && plugin.tpsMonitor.tps < minTps) return
 
         plugin.aiTransport.infer(ticks, scanning)
-            .thenAccept { result -> handleResult(gp, result, lagDistorted) }
+            .thenAccept { result -> handleResult(gp, result, lagDistorted, ticks) }
     }
 
     private fun isBelowMovementThreshold(ticks: Array<TickData>, minMovement: Double): Boolean {
@@ -76,7 +76,9 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
         return true
     }
 
-    private fun handleResult(gp: GuardPlayer, result: InferenceResult, lagDistorted: Boolean) {
+    private fun handleResult(
+        gp: GuardPlayer, result: InferenceResult, lagDistorted: Boolean, ticks: Array<TickData>,
+    ) {
         when (result) {
             is InferenceResult.Disabled -> return
             is InferenceResult.Failure  -> {
@@ -153,7 +155,11 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
                         plugin.dailyStats.recordDetection()
 
                         val verbose = buildVerbose(prob)
-                        plugin.reputationClient.report(gp.uuid, gp.player.name, prob, gp.aiViolationLevel, verbose)
+                        // Attach the window that just triggered this flag so the
+                        // dashboard can replay the exact aim the model judged.
+                        plugin.reputationClient.report(
+                            gp.uuid, gp.player.name, prob, gp.aiViolationLevel, verbose, ticks,
+                        )
 
                         val tps = plugin.tpsMonitor.tps
                         val minTps = plugin.configManager.punishMinTps

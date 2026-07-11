@@ -23,6 +23,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import dev.guardac.GuardAC
+import dev.guardac.data.TickData
 import dev.guardac.util.Message
 import dev.guardac.util.SafeName
 import java.net.URI
@@ -92,26 +93,38 @@ class ReputationClient(private val plugin: GuardAC) {
         executor.shutdownNow()
     }
 
-    fun report(uuid: UUID, name: String, probability: Double, vl: Int = 0, verbose: String = "") {
+    fun report(
+        uuid: UUID, name: String, probability: Double, vl: Int = 0,
+        verbose: String = "", window: Array<TickData>? = null,
+    ) {
         val cfg = plugin.configManager
         if (shuttingDown) return
 
         val shareReputation = cfg.reputationEnabled && cfg.reputationReport
-        val body = try {
-            mapper.writeValueAsString(
-                mapOf(
-                    "uuid" to uuid.toString(),
-                    "name" to name,
-                    "probability" to probability,
-                    "share_reputation" to shareReputation,
-                    // Cross-server relay context: which server of this key's
-                    // network flagged, so the others can show it to their staff.
-                    "server" to displayName,
-                    "instance" to instanceId,
-                    "vl" to vl,
-                    "verbose" to verbose,
+        val payload = linkedMapOf<String, Any>(
+            "uuid" to uuid.toString(),
+            "name" to name,
+            "probability" to probability,
+            "share_reputation" to shareReputation,
+            // Cross-server relay context: which server of this key's network
+            // flagged, so the others can show it to their staff.
+            "server" to displayName,
+            "instance" to instanceId,
+            "vl" to vl,
+            "verbose" to verbose,
+        )
+        // The exact aim window the model judged, so the dashboard can replay why
+        // the flag fired. Sent as N rows of 8 features (same order the model sees).
+        if (window != null && window.isNotEmpty()) {
+            payload["window"] = window.map {
+                listOf(
+                    it.deltaYaw, it.deltaPitch, it.accelYaw, it.accelPitch,
+                    it.jerkYaw, it.jerkPitch, it.gcdErrorYaw, it.gcdErrorPitch,
                 )
-            )
+            }
+        }
+        val body = try {
+            mapper.writeValueAsString(payload)
         } catch (e: Exception) {
             return
         }
