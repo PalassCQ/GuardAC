@@ -365,7 +365,7 @@ class ReputationClient(private val plugin: GuardAC) {
     private fun handleWebCommand(c: WebCommandDto) {
         if (c.id <= 0 || !executedWebCommandIds.add(c.id)) return
         if (executedWebCommandIds.size > 1_000) executedWebCommandIds.clear()
-        if (c.type != "ban") return
+        if (c.type != "ban" && c.type != "unban") return
         // The name ends up in the ban list and staff chat - same strict rule as
         // console commands. An unsafe name is refused, not "cleaned".
         val name = c.player.take(16)
@@ -374,8 +374,20 @@ class ReputationClient(private val plugin: GuardAC) {
             ackWebCommand(c.id)
             return
         }
+        val staff = sanitize(c.requestedBy, 32).ifBlank { "dashboard" }
+        if (c.type == "unban") {
+            Bukkit.getScheduler().runTask(plugin, Runnable {
+                Bukkit.getBanList(BanList.Type.NAME).pardon(name)
+                val msg = plugin.locale.get(Message.WEB_UNBAN_EXECUTED, "player", name, "staff", staff)
+                Bukkit.getOnlinePlayers()
+                    .filter { it.hasPermission("guardac.alerts") }
+                    .forEach { it.sendMessage(msg) }
+                plugin.logger.info("[GuardAC] Web unban applied: $name by $staff")
+            })
+            ackWebCommand(c.id)
+            return
+        }
         val reason  = sanitize(c.reason, 120).ifBlank { "Banned by server staff" }
-        val staff   = sanitize(c.requestedBy, 32).ifBlank { "dashboard" }
         val minutes = c.durationMinutes.coerceIn(0, 527_040)
         val durationLabel = when {
             minutes <= 0          -> "\u221E"

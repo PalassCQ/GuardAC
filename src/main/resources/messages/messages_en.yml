@@ -78,6 +78,7 @@ prob-no-data: "&#FF4D6D✖ &7No data for &f{player}&7."
 # Placeholders: {player} {staff} {reason} {duration} (∞ = permanent)
 web-ban-executed: "{prefix} &8[&#FF4D6DWEB BAN&8] &f{player} &7banned from the dashboard by &f{staff} &8• &7{reason} &8• &f{duration}"
 web-ban-kick: "&#FF4D6DYou have been banned.\n&7Reason: &f{reason}"
+web-unban-executed: "{prefix} &8[&#22D3EEWEB UNBAN&8] &f{player} &7unbanned from the dashboard by &f{staff}"
 
 exempt-added: "&#4ADE80✔ &f{player} &7added to exemptions."
 exempt-removed: "&#FFC857● &f{player} &7removed from exemptions."

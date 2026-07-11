@@ -78,6 +78,7 @@ prob-no-data: "&#FF4D6D✖ &7Нет данных для &f{player}&7."
 # Плейсхолдеры: {player} {staff} {reason} {duration} (∞ = навсегда)
 web-ban-executed: "{prefix} &8[&#FF4D6DВЕБ-БАН&8] &f{player} &7забанен из кабинета модератором &f{staff} &8• &7{reason} &8• &f{duration}"
 web-ban-kick: "&#FF4D6DВы забанены.\n&7Причина: &f{reason}"
+web-unban-executed: "{prefix} &8[&#22D3EEВЕБ-РАЗБАН&8] &f{player} &7разбанен из кабинета модератором &f{staff}"
 
 exempt-added: "&#4ADE80✔ &f{player} &7добавлен в исключения."
 exempt-removed: "&#FFC857● &f{player} &7удалён из исключений."

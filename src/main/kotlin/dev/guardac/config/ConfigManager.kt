@@ -170,7 +170,13 @@ class ConfigManager(private val plugin: GuardAC) {
 
     val crossServerEnabled: Boolean get() = cfg.getBoolean("cross-server.enabled", false)
     val crossServerPollSeconds: Long get() = cfg.getLong("cross-server.poll-seconds", 10L).coerceIn(3L, 300L)
-    val serverName: String          get() = cfg.getString("cross-server.server-name", "")!!
+    // Display name of THIS server, shown in the web dashboard, staff alerts and
+    // cross-server messages. Reads the top-level `server-name` first, then falls
+    // back to the old `cross-server.server-name` so existing configs keep working.
+    val serverName: String
+        get() = cfg.getString("server-name", "")!!.ifBlank {
+            cfg.getString("cross-server.server-name", "")!!
+        }
 
     val webCommandsEnabled: Boolean    get() = cfg.getBoolean("web-commands.enabled", true)
     val webCommandsPollSeconds: Long   get() = cfg.getLong("web-commands.poll-seconds", 15L).coerceIn(5L, 300L)

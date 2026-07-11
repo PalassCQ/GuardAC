@@ -6,10 +6,15 @@
 # below switches everything the plugin SAYS (staff alerts, command output,
 # player messages) between languages.
 
-config-version: 29
+config-version: 30
 
 # Language of all plugin messages: en | ru
 locale: "en"
+
+# Name of this server, shown in your web dashboard, in staff alerts and in
+# cross-server messages. Give each of your servers its own name (e.g. "survival",
+# "bedwars-1"). Leave empty to auto-name it srv-<port>.
+server-name: ""
 
 ai:
   # Master switch for the AI detection.
@@ -177,8 +182,6 @@ deep-scan:
 # staff on every other one (staff toggle it with /guard crossserver).
 cross-server:
   enabled: false
-  # Name shown as the alert source, e.g. "sw-1". Empty = srv-<port>.
-  server-name: ""
   # How often to ask the backend for new alerts, in seconds.
   poll-seconds: 10
 

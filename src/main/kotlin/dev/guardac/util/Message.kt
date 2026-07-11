@@ -74,6 +74,7 @@ enum class Message(val key: String) {
 
     WEB_BAN_EXECUTED("web-ban-executed"),
     WEB_BAN_KICK("web-ban-kick"),
+    WEB_UNBAN_EXECUTED("web-unban-executed"),
 
     MONITOR_ENABLED("monitor-enabled"),
     MONITOR_DISABLED("monitor-disabled"),
