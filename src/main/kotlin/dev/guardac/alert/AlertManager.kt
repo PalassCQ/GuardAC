@@ -225,7 +225,7 @@ class AlertManager(private val plugin: GuardAC) {
 
     fun sendReputationNotice(playerName: String, detections: Int, servers: Int) {
         if (plugin.configManager.alertsToConsole) {
-            plugin.logger.info("[Reputation] $playerName - $detections detections on $servers other server(s)")
+            plugin.logger.info("[Reputation] $playerName - $detections detections across $servers network server(s)")
         }
         val msg = plugin.locale.get(
             Message.REPUTATION_NOTICE,
@@ -363,17 +363,18 @@ class AlertManager(private val plugin: GuardAC) {
         player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent(msg))
     }
 
-    // 10-segment probability meter for the /guard prob HUD. Filled segments are
-    // colored by THEIR OWN level on the shared monitor.yml scale, so the bar
-    // reads as a green->red gradient as suspicion grows.
+    // 10-dot probability meter for the /guard prob HUD - the same circle motif
+    // as the over-head hit feed. Filled dots are colored by THEIR OWN level on
+    // the shared monitor.yml scale, so the meter reads green->red as suspicion
+    // grows; empty dots stay a quiet dark grey.
     private fun probBar(pct: Double): String {
         val filled = (pct / 10.0).toInt().coerceIn(0, 10)
         val sb = StringBuilder()
         for (i in 1..10) {
             if (i <= filled) {
-                sb.append(plugin.monitorConfig.colorForProbability(i * 10.0 - 5.0)).append('▰')
+                sb.append(plugin.monitorConfig.colorForProbability(i * 10.0 - 5.0)).append('●')
             } else {
-                sb.append("&8▱")
+                sb.append("&8○")
             }
         }
         return sb.toString()

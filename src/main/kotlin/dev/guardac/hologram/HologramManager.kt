@@ -136,9 +136,9 @@ class HologramManager(private val plugin: GuardAC) {
         while (cache.lines.size > texts.size) {
             destroy(viewer, cache.lines.removeAt(cache.lines.size - 1).entityId)
         }
-        // loc = the BOTTOM of the stack; line 0 (the AVG header) sits on top and
-        // the hit feed reads downward, newest hit first. The stack grows upward
-        // as history fills, so it never sinks into the vanilla name tag.
+        // loc = the BOTTOM of the stack; the hit feed reads downward (newest hit
+        // on top) and the AVG line anchors the bottom, closest to the name tag.
+        // The stack grows upward as history fills, never sinking into the tag.
         for (i in texts.indices) {
             val lineLoc = loc.clone().add(0.0, (texts.size - 1 - i) * lh, 0.0)
             val line    = cache.lines.getOrNull(i)
@@ -166,19 +166,21 @@ class HologramManager(private val plugin: GuardAC) {
         state.targets.clear()
     }
 
-    /** Header ("AVG 38%") + the hit feed, newest first - one string per line. */
+    /** The hit feed (newest on top, raw "0.9999" colored by its own level)
+     *  followed by the AVG line at the bottom - one string per line. */
     private fun buildLines(gp: GuardPlayer, cfg: HologramConfig): List<String> {
-        val avg    = gp.avgProbability
-        val avgStr = "${cfg.colorFor(avg)}${"%.0f".format(avg * 100.0)}%"
-
         val lines = ArrayList<String>(cfg.maxHits + 1)
-        lines.add(cfg.header.replace("{AVG}", avgStr))
 
         val hits = gp.getHitProbHistory()
         for (prob in hits.asReversed().take(cfg.maxHits)) {
-            val probStr = "${cfg.colorFor(prob)}${"%.0f".format(prob * 100.0)}%"
+            val probStr = "${cfg.colorFor(prob)}${"%.4f".format(java.util.Locale.ROOT, prob)}"
             lines.add(cfg.hitFormat.replace("{PROB}", probStr))
         }
+
+        val avg    = gp.avgProbability
+        val avgStr = "${cfg.colorFor(avg)}${"%.0f".format(avg * 100.0)}%"
+        lines.add(cfg.header.replace("{AVG}", avgStr))
+
         return lines.map { GSON.serialize(LEGACY.deserialize(it)) }
     }
 

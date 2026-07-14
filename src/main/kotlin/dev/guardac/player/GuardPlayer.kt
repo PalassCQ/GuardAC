@@ -387,6 +387,7 @@ class GuardPlayer(
         get() = !player.isOnline
             || player.hasPermission("guardac.bypass")
             || plugin.exemptManager.isExempt(uuid)
+            || plugin.exemptManager.isGloballyExempt(player.name)
 
     private companion object {
         const val AIM_ACTIVITY_WINDOW      = 10

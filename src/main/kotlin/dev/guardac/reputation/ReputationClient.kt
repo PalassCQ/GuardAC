@@ -187,6 +187,7 @@ class ReputationClient(private val plugin: GuardAC) {
                 flushPendingResults()
                 if (plugin.configManager.crossServerEnabled) pollNetworkAlerts()
                 pollWebCommands()
+                pollGlobalExempt()
             } finally {
                 pollInFlight.set(false)
             }
@@ -429,6 +430,35 @@ class ReputationClient(private val plugin: GuardAC) {
         ackWebCommand(c.id)
     }
 
+    // ------------------------------------------------------------------
+    // Network-wide exemptions: nicknames the panel admin excluded from all
+    // checks. Refreshed on a slow cadence - the list is tiny and changes rarely.
+    // ------------------------------------------------------------------
+    @Volatile private var lastExemptPollMs = 0L
+
+    private fun pollGlobalExempt() {
+        val cfg = plugin.configManager
+        val now = System.currentTimeMillis()
+        if (now - lastExemptPollMs < EXEMPT_REFRESH_MS) return
+        lastExemptPollMs = now
+        val req = HttpRequest.newBuilder(URI.create(cfg.aiBaseUrl + EXEMPT_PATH))
+            .header("Accept", "application/json")
+            .header("X-API-Key", cfg.aiApiKey)
+            .GET()
+            .timeout(Duration.ofSeconds(cfg.aiTimeoutSeconds))
+            .build()
+        try {
+            val resp = http.send(req, HttpResponse.BodyHandlers.ofString())
+            if (resp.statusCode() !in 200..299) return
+            val dto = mapper.readValue(resp.body(), ExemptDto::class.java)
+            plugin.exemptManager.setGlobalNames(
+                dto.names.orEmpty().mapNotNull { n -> sanitize(n, 16).ifBlank { null } }
+            )
+        } catch (_: Exception) {
+            // Keep the last known list on a hiccup - never fail open to "empty".
+        }
+    }
+
     private fun ackWebCommand(id: Long) {
         val cfg = plugin.configManager
         val body = try {
@@ -458,6 +488,8 @@ class ReputationClient(private val plugin: GuardAC) {
         const val RESULTS_QUERY_PATH = "/v1/results/query"
         const val COMMANDS_POLL_PATH = "/v1/commands/poll"
         const val COMMANDS_ACK_PATH = "/v1/commands/ack"
+        const val EXEMPT_PATH = "/v1/exempt"
+        const val EXEMPT_REFRESH_MS = 120_000L
         // Backend caps a push at 200 results; the queue keeps a little headroom
         // so a short outage doesn't throw history away immediately.
         const val MAX_PUSH_BATCH = 200
@@ -502,6 +534,10 @@ private data class WebCommandDto @JsonCreator constructor(
     @JsonProperty("duration_minutes") val durationMinutes: Int = 0,
     @JsonProperty("requested_by")     val requestedBy: String = "",
     @JsonProperty("ts")               val ts: Double = 0.0,
+)
+
+private data class ExemptDto @JsonCreator constructor(
+    @JsonProperty("names") val names: List<String>? = null,
 )
 
 private data class NetworkResultDto @JsonCreator constructor(

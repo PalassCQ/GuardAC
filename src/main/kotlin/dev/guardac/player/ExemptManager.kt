@@ -25,11 +25,21 @@ class ExemptManager {
 
     private val exempted = CopyOnWriteArraySet<UUID>()
 
+    @Volatile
+    private var globalNames: Set<String> = emptySet()
+
     fun addExempt(uuid: UUID): Boolean = exempted.add(uuid)
 
     fun removeExempt(uuid: UUID): Boolean = exempted.remove(uuid)
 
     fun isExempt(uuid: UUID): Boolean = exempted.contains(uuid)
+
+    fun setGlobalNames(names: Collection<String>) {
+        globalNames = names.mapTo(HashSet()) { it.lowercase() }
+    }
+
+    fun isGloballyExempt(name: String): Boolean =
+        globalNames.isNotEmpty() && name.lowercase() in globalNames
 
     fun clearAll() = exempted.clear()
 }

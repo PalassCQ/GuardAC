@@ -173,7 +173,7 @@ enum class Message(val key: String) {
     MENU_REFRESH_LORE("menu-refresh-lore"),
     MENU_PLAYER_OFFLINE("menu-player-offline"),
     MENU_UNSAFE_NAME("menu-unsafe-name"),
-    REPUTATION_NOTICE("reputation-notice"),
+    REPUTATION_NOTICE("reputation-join-notice"),
     ALERT_CLICK_HINT("alert-click-hint"),
     UNIT_DAYS("unit-d"),
     UNIT_HOURS("unit-h"),
