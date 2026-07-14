@@ -85,16 +85,6 @@ class PacketListener(private val plugin: GuardAC) :
             return
         }
 
-        // Non-physical yaw snap (client normalizes rotations % 360). Vehicles are
-        // exempt - mounting resets the client camera and can jump the raw yaw.
-        if (gp.rotation.yawSnapArtifact && !gp.isRiding) {
-            val n = gp.noteYawSnap()
-            if (n == ARTIFACT_ALERT_AT || (n > ARTIFACT_ALERT_AT &&
-                        (n - ARTIFACT_ALERT_AT) % ARTIFACT_ALERT_EVERY == 0)) {
-                plugin.alertManager.sendClientArtifactAlert(gp, n)
-            }
-        }
-
         val dyaw   = gp.rotation.deltaYaw
         val dpitch = gp.rotation.deltaPitch
         // Zeros are recorded too - a frozen crosshair must AGE OUT the recent-aim
@@ -143,11 +133,6 @@ class PacketListener(private val plugin: GuardAC) :
         // bars only drop no-signal windows, never genuine fights.
         const val MIN_HIT_ROTATION_STILL  = 8.0
         const val MIN_HIT_ROTATION_MOVING = 16.0
-
-        // First staff notice after this many yaw-snap artifacts, then every Nth -
-        // rare enough not to spam, frequent enough to catch a toggling client.
-        const val ARTIFACT_ALERT_AT    = 3
-        const val ARTIFACT_ALERT_EVERY = 10
     }
 
     private fun buildTick(gp: GuardPlayer) = TickData(

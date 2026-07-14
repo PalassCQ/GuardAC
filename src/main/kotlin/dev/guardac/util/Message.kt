@@ -32,8 +32,6 @@ enum class Message(val key: String) {
     ALERTS_CONSOLE_FORMAT("alerts-console-format"),
     FINGERPRINT_ALERT("fingerprint-alert"),
     SUSPICIOUS_ALERT("suspicious-alert"),
-    CLIENT_ARTIFACT_ALERT("client-artifact-alert"),
-    PROFILE_ARTIFACTS("profile-artifacts"),
     UPDATE_DOWNLOADED("update-downloaded"),
 
     SUPPRESSION_ISOLATE_NOTICE("suppression-isolate-notice"),

@@ -26,9 +26,6 @@ update-downloaded: "{prefix} &#4ADE80Обновление GuardAC &#AEB8C4{tag} 
 fingerprint-alert: "{prefix} &8[&#A78BFAПОЧЕРК&8] &#FF4D6D&l{player} &7- стиль прицела резко изменился &8(&7{base}% &8→ &c{now}%&8)&7, возможен включённый чит."
 # Раннее предупреждение стаффу. Плейсхолдеры: {player} {buffer} {flag}
 suspicious-alert: "{prefix} &8[&#FFC857НАБЛЮДЕНИЕ&8] &#AEB8C4{player} &7становится подозрительным &8(&#FFC857{buffer} &8/ &7{flag}&8)"
-# Клиент шлёт нефизичные повороты камеры (признак модифицированного клиента).
-# Только информирует, само по себе не наказывает. Плейсхолдеры: {player} {count}
-client-artifact-alert: "{prefix} &8[&#FFC857КЛИЕНТ&8] &#AEB8C4{player} &7шлёт нефизичные повороты камеры &8(&#FFC857×{count}&8) &7- признак стороннего клиента."
 # Сообщение игроку, когда включается доп. защита в бою (combat-suppression в config.yml).
 suppression-isolate-notice: "&7Соединение нестабильно &8- &7атаки временно не засчитываются."
 
@@ -47,7 +44,6 @@ profile-sensitivity: " &8▏ &7Чувствительность&8: &#AEB8C4{sens
 profile-riding: " &8▏ &7В транспорте&8: {riding}"
 profile-brand: " &8▏ &7Клиент&8: &#AEB8C4{brand}"
 profile-avg-prob: " &8▏ &7Средняя вероятность&8: &#67E8F9{avg}% &8(пик&8: &#FF4D6D{peak}%&8)"
-profile-artifacts: " &8▏ &7Артефакты клиента&8: &#FFC857{count}"
 # Плейсхолдеры: {stage} {penalty}
 profile-suppression: " &8▏ &7Suppression&8: {stage} &8(&7атака &8-&#AEB8C4{penalty}%&8)"
 

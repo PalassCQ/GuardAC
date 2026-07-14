@@ -77,20 +77,7 @@ class RotationState {
     val sensitivityY: Double
         get() = if (modeY > 0) convertToSensitivity(modeY) else 0.5
 
-    var yawSnapArtifact: Boolean = false
-        private set
-    private var prevRawDeltaYaw: Float = 0f
-
     fun update(newYaw: Float, newPitch: Float) {
-        // Raw (unwrapped) yaw continuity. A vanilla client lets yaw grow freely
-        // past ±360, so its raw deltas stay small; a client that normalizes yaw
-        // (% 360) produces a ~360° raw jump out of a calm camera when crossing
-        // the boundary. The wrapped deltaYaw below folds that jump into a tiny
-        // value, so this is the only point where the artifact is still visible.
-        val rawDelta = newYaw - yaw
-        yawSnapArtifact = abs(newYaw) < 360f && abs(rawDelta) > 320f && abs(prevRawDeltaYaw) < 30f
-        prevRawDeltaYaw = rawDelta
-
         prevAccelYaw   = accelYaw
         prevAccelPitch = accelPitch
         prevDeltaYaw   = deltaYaw
@@ -112,8 +99,6 @@ class RotationState {
         prevAccelPitch = 0f
         lastAbsDeltaYaw   = 0.0
         lastAbsDeltaPitch = 0.0
-        yawSnapArtifact   = false
-        prevRawDeltaYaw   = 0f
     }
 
     private fun updateGcd() {

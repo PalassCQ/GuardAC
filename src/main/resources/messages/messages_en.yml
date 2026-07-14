@@ -26,9 +26,6 @@ update-downloaded: "{prefix} &#4ADE80GuardAC update &#AEB8C4{tag} &#4ADE80downlo
 fingerprint-alert: "{prefix} &8[&#A78BFAFINGERPRINT&8] &#FF4D6D&l{player} &7- aim style shifted sharply &8(&7{base}% &8→ &c{now}%&8)&7, possible cheat toggle."
 # Early warning to staff. Placeholders: {player} {buffer} {flag}
 suspicious-alert: "{prefix} &8[&#FFC857WATCH&8] &#AEB8C4{player} &7is becoming suspicious &8(&#FFC857{buffer} &8/ &7{flag}&8)"
-# The client is sending non-physical camera turns (a modified-client artifact).
-# Informational only, never punishes by itself. Placeholders: {player} {count}
-client-artifact-alert: "{prefix} &8[&#FFC857CLIENT&8] &#AEB8C4{player} &7sent non-physical camera turns &8(&#FFC857×{count}&8) &7- a sign of a modified client."
 # Shown to the player when the extra in-combat protection kicks in (combat-suppression in config.yml).
 suppression-isolate-notice: "&7Connection unstable &8- &7attacks are temporarily not registering."
 
@@ -47,7 +44,6 @@ profile-sensitivity: " &8▏ &7Sensitivity&8: &#AEB8C4{sens_x} &8/ &#AEB8C4{sens
 profile-riding: " &8▏ &7In vehicle&8: {riding}"
 profile-brand: " &8▏ &7Client&8: &#AEB8C4{brand}"
 profile-avg-prob: " &8▏ &7Avg probability&8: &#67E8F9{avg}% &8(peak&8: &#FF4D6D{peak}%&8)"
-profile-artifacts: " &8▏ &7Client artifacts&8: &#FFC857{count}"
 # Placeholders: {stage} {penalty}
 profile-suppression: " &8▏ &7Suppression&8: {stage} &8(&7attack &8-&#AEB8C4{penalty}%&8)"
 
