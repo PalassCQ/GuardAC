@@ -32,6 +32,8 @@ enum class Message(val key: String) {
     ALERTS_CONSOLE_FORMAT("alerts-console-format"),
     FINGERPRINT_ALERT("fingerprint-alert"),
     SUSPICIOUS_ALERT("suspicious-alert"),
+    CLIENT_ARTIFACT_ALERT("client-artifact-alert"),
+    PROFILE_ARTIFACTS("profile-artifacts"),
     UPDATE_DOWNLOADED("update-downloaded"),
 
     SUPPRESSION_ISOLATE_NOTICE("suppression-isolate-notice"),
@@ -69,7 +71,7 @@ enum class Message(val key: String) {
 
     PROB_STARTED("prob-started"),
     PROB_STOPPED("prob-stopped"),
-    PROB_ACTIONBAR("prob-hud"),
+    PROB_ACTIONBAR("prob-display"),
     PROB_NO_DATA("prob-no-data"),
 
     WEB_BAN_EXECUTED("web-ban-executed"),

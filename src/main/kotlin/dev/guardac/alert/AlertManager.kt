@@ -201,6 +201,24 @@ class AlertManager(private val plugin: GuardAC) {
         })
     }
 
+    fun sendClientArtifactAlert(gp: GuardPlayer, count: Int) {
+        if (plugin.configManager.alertsToConsole) {
+            plugin.logger.info("[Client] ${gp.player.name} non-physical yaw snaps: x$count")
+        }
+        val msg = plugin.locale.get(
+            Message.CLIENT_ARTIFACT_ALERT,
+            "player", gp.player.name,
+            "count",  count.toString(),
+        )
+        Bukkit.getScheduler().runTask(plugin, Runnable {
+            if (!gp.player.isOnline) return@Runnable
+            val component = clickableAlert(msg, gp.player.name)
+            Bukkit.getOnlinePlayers()
+                .filter { it.hasPermission("guardac.alerts") && !alertsMuted.contains(it.uniqueId) }
+                .forEach { it.spigot().sendMessage(component) }
+        })
+    }
+
     fun sendSuspiciousAlert(gp: GuardPlayer, buffer: Double) {
         val now = System.currentTimeMillis()
         val last = gp.lastSuspiciousMs.get()
@@ -323,7 +341,7 @@ class AlertManager(private val plugin: GuardAC) {
             val pingColor = when {
                 onlineTarget.ping > 200 -> "&c"
                 onlineTarget.ping > 100 -> "&e"
-                else                    -> "&f"
+                else                    -> "&#AEB8C4"
             }
             val msg = plugin.locale.get(
                 Message.PROB_ACTIONBAR,

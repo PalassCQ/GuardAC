@@ -175,6 +175,11 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
         gp.clientBrand?.let { brand ->
             sender.sendMessage(plugin.locale.get(Message.PROFILE_BRAND, "brand", brand))
         }
+        if (gp.clientYawSnaps > 0) {
+            sender.sendMessage(plugin.locale.get(
+                Message.PROFILE_ARTIFACTS, "count", gp.clientYawSnaps.toString(),
+            ))
+        }
         if (plugin.configManager.suppressionEnabled) {
             sender.sendMessage(plugin.locale.get(
                 Message.PROFILE_SUPPRESSION,

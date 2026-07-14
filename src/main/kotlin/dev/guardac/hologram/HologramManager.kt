@@ -111,6 +111,9 @@ class HologramManager(private val plugin: GuardAC) {
                 val gp = plugin.playerDataManager.get(target) ?: continue
                 val targetLoc = target.location
                 if (viewerLoc.distanceSquared(targetLoc) > viewDistSq) continue
+                // No combat data yet -> no hologram at all. Innocent bystanders
+                // shouldn't carry a permanent "AVG 0%" tag over their heads.
+                if (gp.getHitProbHistory().isEmpty()) continue
 
                 alive += target.uniqueId
 
@@ -126,56 +129,57 @@ class HologramManager(private val plugin: GuardAC) {
         viewer: Player, targetId: UUID, loc: Location,
         gp: GuardPlayer, state: ViewerState, cfg: HologramConfig,
     ) {
-        val text  = buildText(gp, cfg)
-        val cache = state.targets[targetId]
-        if (cache == null) {
-            val entityId = state.entityIds.getOrPut(targetId) { entityIdCounter.incrementAndGet() }
-            destroy(viewer, entityId)
-            spawn(viewer, entityId, loc, text)
-            state.targets[targetId] = EntityCache(entityId, text, loc)
-        } else {
-            teleport(viewer, cache.entityId, loc)
-            if (text != cache.lastText) {
-                updateText(viewer, cache.entityId, text)
-                cache.lastText = text
+        val texts = buildLines(gp, cfg)
+        val cache = state.targets.getOrPut(targetId) { EntityCache() }
+        val lh    = cfg.lineHeight
+
+        while (cache.lines.size > texts.size) {
+            destroy(viewer, cache.lines.removeAt(cache.lines.size - 1).entityId)
+        }
+        // loc = the BOTTOM of the stack; line 0 (the AVG header) sits on top and
+        // the hit feed reads downward, newest hit first. The stack grows upward
+        // as history fills, so it never sinks into the vanilla name tag.
+        for (i in texts.indices) {
+            val lineLoc = loc.clone().add(0.0, (texts.size - 1 - i) * lh, 0.0)
+            val line    = cache.lines.getOrNull(i)
+            if (line == null) {
+                val entityId = entityIdCounter.incrementAndGet()
+                spawn(viewer, entityId, lineLoc, texts[i])
+                cache.lines.add(LineEntity(entityId, texts[i]))
+            } else {
+                teleport(viewer, line.entityId, lineLoc)
+                if (texts[i] != line.lastText) {
+                    updateText(viewer, line.entityId, texts[i])
+                    line.lastText = texts[i]
+                }
             }
-            cache.lastLoc = loc
         }
     }
 
     private fun removeTarget(viewer: Player, targetId: UUID, state: ViewerState) {
         val cache = state.targets.remove(targetId) ?: return
-        destroy(viewer, cache.entityId)
+        cache.lines.forEach { destroy(viewer, it.entityId) }
     }
 
     private fun destroyAll(viewer: Player, state: ViewerState) {
-        state.targets.values.forEach { destroy(viewer, it.entityId) }
+        state.targets.values.forEach { c -> c.lines.forEach { destroy(viewer, it.entityId) } }
         state.targets.clear()
     }
 
-    private fun buildText(gp: GuardPlayer, cfg: HologramConfig): String {
-        val avg      = gp.avgProbability
-        val avgColor = cfg.colorFor(avg)
+    /** Header ("AVG 38%") + the hit feed, newest first - one string per line. */
+    private fun buildLines(gp: GuardPlayer, cfg: HologramConfig): List<String> {
+        val avg    = gp.avgProbability
+        val avgStr = "${cfg.colorFor(avg)}${"%.0f".format(avg * 100.0)}%"
 
-        val avgStr   = "$avgColor${"%.0f".format(avg * 100.0)}%"
+        val lines = ArrayList<String>(cfg.maxHits + 1)
+        lines.add(cfg.header.replace("{AVG}", avgStr))
 
-        val hitHistory = gp.getHitProbHistory()
-        val histPart = if (hitHistory.isEmpty()) {
-            "&8---"
-        } else {
-            hitHistory.joinToString(" ") { prob ->
-                val color = cfg.colorFor(prob)
-                "$color${"%.0f".format(prob * 100.0)}%"
-            }
+        val hits = gp.getHitProbHistory()
+        for (prob in hits.asReversed().take(cfg.maxHits)) {
+            val probStr = "${cfg.colorFor(prob)}${"%.0f".format(prob * 100.0)}%"
+            lines.add(cfg.hitFormat.replace("{PROB}", probStr))
         }
-
-        val formatted = cfg.format
-            .replace("{AVG}",  avgStr)
-            .replace("{PROB}", "${"${cfg.colorFor(gp.lastAiProbability)}"}${"%.0f".format(gp.lastAiProbability * 100.0)}%")
-            .replace("{VL}",   gp.aiViolationLevel.toString())
-            .replace("{HIST}", histPart)
-
-        return GSON.serialize(LEGACY.deserialize(formatted))
+        return lines.map { GSON.serialize(LEGACY.deserialize(it)) }
     }
 
     private fun spawn(viewer: Player, entityId: Int, loc: Location, text: String) {
@@ -238,11 +242,14 @@ class HologramManager(private val plugin: GuardAC) {
     }
 
     private class ViewerState(val viewerId: UUID) {
-        val targets   = ConcurrentHashMap<UUID, EntityCache>()
-        val entityIds = ConcurrentHashMap<UUID, Int>()
+        val targets = ConcurrentHashMap<UUID, EntityCache>()
     }
 
-    private class EntityCache(val entityId: Int, var lastText: String, var lastLoc: Location?)
+    private class EntityCache {
+        val lines = ArrayList<LineEntity>(6)
+    }
+
+    private class LineEntity(val entityId: Int, var lastText: String)
 
     private companion object {
         val LEGACY = LegacyComponentSerializer.legacyAmpersand()

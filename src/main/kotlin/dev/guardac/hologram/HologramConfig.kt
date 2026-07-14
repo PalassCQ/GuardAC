@@ -55,8 +55,17 @@ class HologramConfig(private val plugin: GuardAC) {
     val yOffset: Double
         get() = cfg.getDouble("hologram.y-offset", 2.3)
 
-    val format: String
-        get() = cfg.getString("hologram.format", "&7AVG {AVG}% &8| {HIST}")!!
+    val header: String
+        get() = cfg.getString("hologram.header", "&7AVG {AVG}")!!
+
+    val hitFormat: String
+        get() = cfg.getString("hologram.hit-format", "&8○ {PROB}")!!
+
+    val maxHits: Int
+        get() = cfg.getInt("hologram.max-hits", 4).coerceIn(0, 10)
+
+    val lineHeight: Double
+        get() = cfg.getDouble("hologram.line-height", 0.26)
 
     val colorLow: String      get() = cfg.getString("hologram.colors.low", "&a")!!
     val colorMedium: String   get() = cfg.getString("hologram.colors.medium", "&2")!!

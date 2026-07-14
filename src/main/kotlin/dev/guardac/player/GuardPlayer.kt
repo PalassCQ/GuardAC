@@ -107,6 +107,14 @@ class GuardPlayer(
         lastMoveMs = System.currentTimeMillis()
     }
 
+    // Non-physical camera turns (a client that normalizes yaw % 360). Purely
+    // informational: counted for staff, never punished by itself. Only ever
+    // touched from this player's netty thread.
+    @Volatile var clientYawSnaps: Int = 0
+        private set
+
+    fun noteYawSnap(): Int = ++clientYawSnaps
+
     val isMovingRecently: Boolean
         get() = System.currentTimeMillis() - lastMoveMs < MOVE_RECENT_MS
 

@@ -43,22 +43,22 @@ Punishments:
       3:
         - "[alert]"
         - "[log]"
-        - "[broadcast] &#22D3EE▍ &fGuardAC &8» &#FF4D6D<player> &7banned for &f30 days &8(&7VL:&f<vl>&8)"
+        - "[broadcast] &#22D3EE▍ &#AEB8C4GuardAC &8» &#FF4D6D<player> &7banned for &#AEB8C430 days &8(&7VL:&#AEB8C4<vl>&8)"
         - "tempban <player> 30d GuardAC Detection (VL:<vl>)"
       5:
         - "[alert]"
         - "[log]"
-        - "[broadcast] &#22D3EE▍ &fGuardAC &8» &#FF4D6D<player> &7banned for &f30 days &8(&7VL:&f<vl>&8)"
+        - "[broadcast] &#22D3EE▍ &#AEB8C4GuardAC &8» &#FF4D6D<player> &7banned for &#AEB8C430 days &8(&7VL:&#AEB8C4<vl>&8)"
         - "tempban <player> 30d GuardAC Detection (VL:<vl>)"
       7:
         - "[alert]"
         - "[log]"
-        - "[broadcast] &#22D3EE▍ &fGuardAC &8» &#FF4D6D<player> &7banned for &f30 days &8(&7VL:&f<vl>&8)"
+        - "[broadcast] &#22D3EE▍ &#AEB8C4GuardAC &8» &#FF4D6D<player> &7banned for &#AEB8C430 days &8(&7VL:&#AEB8C4<vl>&8)"
         - "tempban <player> 30d GuardAC Detection (VL:<vl>)"
       10:
         - "[alert]"
         - "[log]"
-        - "[broadcast] &#22D3EE▍ &fGuardAC &8» &#FF4D6D<player> &cbanned permanently &8(&7VL:&f<vl>&8)"
+        - "[broadcast] &#22D3EE▍ &#AEB8C4GuardAC &8» &#FF4D6D<player> &cbanned permanently &8(&7VL:&#AEB8C4<vl>&8)"
         # An animation plays automatically before the ban (animations.auto-on-ban).
         # Want a specific one instead of random? Add here: "[animation] pig".
         - "ban <player> Cheating (GuardAC VL:<vl>)"
