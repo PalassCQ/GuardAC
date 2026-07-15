@@ -270,8 +270,7 @@ class PunishmentHistory(private val plugin: GuardAC) {
                         ps.setLong(5, ts)
                         ps.executeUpdate()
                     }
-                    // Results arrive every few seconds per fighting player, so the
-                    // per-player tail is trimmed periodically, not on every insert.
+
                     if (resultInserts.incrementAndGet() % RESULTS_TRIM_EVERY == 0L) {
                         conn.prepareStatement(
                             "DELETE FROM results WHERE uuid = ? AND id NOT IN " +
@@ -330,8 +329,7 @@ class PunishmentHistory(private val plugin: GuardAC) {
     }
 
     private companion object {
-        // AI window results: per-player cap, periodic trim, and a hard age limit
-        // so the table never grows unbounded on a busy server.
+
         const val RESULTS_CAP_PER_PLAYER = 450
         const val RESULTS_TRIM_EVERY     = 64L
         const val RESULTS_TTL_MS         = 7L * 24 * 60 * 60 * 1000

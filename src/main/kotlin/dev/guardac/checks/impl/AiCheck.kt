@@ -40,26 +40,12 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
 
         val scanning = plugin.scanManager.isScanning(gp.uuid)
 
-        // Client-side lag signal: bursty packet arrival plus real measured
-        // latency. It must NEVER skip analysis outright - both inputs are under
-        // the client's control (a cheat can hold packets and inflate its ping),
-        // so a hard skip hands fake-laggers permanent invisibility. Every window
-        // is analyzed; a lag-distorted verdict is just applied dampened (see
-        // addAiProbability): honest laggy players build suspicion much slower,
-        // a sustained cheater still climbs to the flag.
         val unstable = gp.consumeUnstableTicks()
         val lagDistorted = !scanning &&
             unstable >= UNSTABLE_TICKS_MIN && gp.player.ping >= UNSTABLE_PING_MIN
 
-        // The window must contain enough real aim movement before we judge it: a
-        // near-static camera carries no signal and only adds noise. Raising this
-        // means the model reacts to a hit only after clear camera work.
         if (isBelowMovementThreshold(ticks, cfg.aiMinMovement)) return
 
-        // Lag guard: when the server TPS drops, tick timing is stretched and the
-        // movement features look unnatural - that is exactly when a laggy but
-        // legit player can read as a cheat. Skip analysis during a drop so lag
-        // never becomes a detection. A Deep Scan (explicit staff request) overrides.
         val minTps = cfg.aiMinTpsAnalyze
         if (!scanning && minTps > 0.0 && plugin.tpsMonitor.tps < minTps) return
 
@@ -128,9 +114,6 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
 
                 plugin.alertManager.dispatchMonitorHit(gp, prob, result.model)
 
-                // Per-hit staff alert, batched by count: one line per every
-                // alerts.min-hits confident hits (x3, x6, x9...) - full
-                // visibility without flooding staff chat during a long fight.
                 if (prob * 100.0 >= plugin.configManager.alertMinConfidence) {
                     plugin.alertManager.sendHitAlert(gp, prob, modelTag(result.sources))
                 }
@@ -155,8 +138,7 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
                         plugin.dailyStats.recordDetection()
 
                         val verbose = buildVerbose(prob)
-                        // Attach the window that just triggered this flag so the
-                        // dashboard can replay the exact aim the model judged.
+
                         plugin.reputationClient.report(
                             gp.uuid, gp.player.name, prob, gp.aiViolationLevel, verbose, ticks,
                         )

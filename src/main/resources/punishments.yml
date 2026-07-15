@@ -1,3 +1,36 @@
+# ╔══════════════════════════════════════════════════════════════╗
+# ║                  GuardAC · Punishments                        ║
+# ╚══════════════════════════════════════════════════════════════╝
+#
+# GuardAC has a single check - the neural "AI" aim analysis. This file decides
+# what happens at each violation level (VL). A player gains VL with every
+# confirmed detection and loses it over time (config.yml -> vl-decay).
+#
+# Placeholders usable in commands:
+#   <player>          - player name
+#   <check>           - check name (always AI)
+#   <vl>              - current violation level
+#   <verbose>         - model confidence, e.g. "94%"
+#
+# Special actions:
+#   [alert]           - notify staff
+#   [log]             - write to console
+#   [reset]           - reset the group's VL
+#   [wait] <time>     - pause the chain (2s, 40t, 500ms)
+#   [broadcast] <msg> - message to all players
+#   [animation] <type>- visual show BEFORE the next action:
+#                       pig | explode | particles | lightning | vortex | meteor | cage
+#                       (settings in config.yml -> animations)
+#   <command>         - run as console
+#
+# `actions` are grouped by VL. The nearest level BELOW fires: at VL=4 the
+# block "3" runs. A random animation plays automatically before any real
+# command (config.yml -> animations.auto-on-ban), no [animation] line needed.
+#
+# This file is only about commands on specific violation levels. Early staff
+# warnings and soft in-combat measures live in config.yml instead - they have
+# no commands, only thresholds and switches.
+
 Punishments:
 
   AI:
@@ -26,5 +59,7 @@ Punishments:
         - "[alert]"
         - "[log]"
         - "[broadcast] &#22D3EE▍ &#AEB8C4GuardAC &8» &#FF4D6D<player> &cbanned permanently &8(&7VL:&#AEB8C4<vl>&8)"
+        # An animation plays automatically before the ban (animations.auto-on-ban).
+        # Want a specific one instead of random? Add here: "[animation] pig".
         - "ban <player> Cheating (GuardAC VL:<vl>)"
         - "[reset]"

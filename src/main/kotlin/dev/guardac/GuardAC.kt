@@ -150,10 +150,6 @@ class GuardAC : JavaPlugin() {
         startVlDecayTask()
         hologramManager.start()
 
-        // Backend sync loop: pushes the AI result history (powers /guard results
-        // and the dashboard player lookup), picks up moderation commands issued
-        // from the web dashboard, and - when cross-server.enabled - relays
-        // detection alerts between the servers sharing this API key.
         reputationClient.startNetworkAlertPolling()
 
         if (configManager.clientBrandEnabled) {

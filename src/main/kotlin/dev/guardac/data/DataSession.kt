@@ -43,8 +43,7 @@ class DataSession(
     fun generateFileName(): String {
         val timestamp  = TIMESTAMP_FORMAT.format(startTime)
         val safeStatus = status.replace(' ', '#').replace(UNSAFE, "-")
-        // Sanitize the player too: Bedrock/Geyser nicks can carry spaces and other
-        // characters that are illegal in a filename (normal Java nicks are unchanged).
+
         val safePlayer = player.replace(UNSAFE, "-").ifBlank { "player" }
         return "${safeStatus}_${safePlayer}_${timestamp}.csv"
     }

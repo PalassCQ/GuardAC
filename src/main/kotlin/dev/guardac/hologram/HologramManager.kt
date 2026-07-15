@@ -111,8 +111,7 @@ class HologramManager(private val plugin: GuardAC) {
                 val gp = plugin.playerDataManager.get(target) ?: continue
                 val targetLoc = target.location
                 if (viewerLoc.distanceSquared(targetLoc) > viewDistSq) continue
-                // No combat data yet -> no hologram at all. Innocent bystanders
-                // shouldn't carry a permanent "AVG 0%" tag over their heads.
+
                 if (gp.getHitProbHistory().isEmpty()) continue
 
                 alive += target.uniqueId
@@ -136,9 +135,7 @@ class HologramManager(private val plugin: GuardAC) {
         while (cache.lines.size > texts.size) {
             destroy(viewer, cache.lines.removeAt(cache.lines.size - 1).entityId)
         }
-        // loc = the BOTTOM of the stack; the hit feed reads downward (newest hit
-        // on top) and the AVG line anchors the bottom, closest to the name tag.
-        // The stack grows upward as history fills, never sinking into the tag.
+
         for (i in texts.indices) {
             val lineLoc = loc.clone().add(0.0, (texts.size - 1 - i) * lh, 0.0)
             val line    = cache.lines.getOrNull(i)
@@ -166,8 +163,6 @@ class HologramManager(private val plugin: GuardAC) {
         state.targets.clear()
     }
 
-    /** The hit feed (newest on top, raw "0.9999" colored by its own level)
-     *  followed by the AVG line at the bottom - one string per line. */
     private fun buildLines(gp: GuardPlayer, cfg: HologramConfig): List<String> {
         val lines = ArrayList<String>(cfg.maxHits + 1)
 

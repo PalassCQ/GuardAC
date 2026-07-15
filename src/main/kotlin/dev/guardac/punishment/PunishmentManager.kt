@@ -110,9 +110,6 @@ class PunishmentManager(private val plugin: GuardAC) {
         val entry = group.actions.floorEntry(vl) ?: return
         val actions = entry.value
 
-        // The cooldown exists to stop auto-flag storms from stacking bans; a manual
-        // staff punish is a deliberate decision and must never be silently eaten by
-        // a flag that happened a few seconds earlier.
         val cooldownMs = plugin.configManager.punishCooldownMs
         if (cooldownMs > 0) {
             val now = System.currentTimeMillis()
@@ -155,13 +152,11 @@ class PunishmentManager(private val plugin: GuardAC) {
 
             val hasRealCommand   = actions.any { isPunishmentCommand(it) }
             val hasExplicitAnim  = actions.any { it.trim().lowercase(Locale.ROOT).startsWith("[animation]") }
-            // Auto-animation plays before a real ban/kick; a MANUAL punish plays it
-            // unconditionally - staff asked for the show, even on alert-only tiers.
+
             val autoAnim = plugin.configManager.animationAutoOnBan && hasRealCommand
             val willAnimate = plugin.configManager.animationsEnabled &&
                 (autoAnim || forceAnimation || hasExplicitAnim)
-            // A ban animation must END with a ban. If the tier that fired carries
-            // no real command of its own, append the configurable fallback ban.
+
             val chain = if (willAnimate && !hasRealCommand) actions + fallbackBanAction() else actions
             if (willAnimate && !hasExplicitAnim) {
                 plugin.banAnimationManager.playRandom(gp.player) {
@@ -270,10 +265,6 @@ class PunishmentManager(private val plugin: GuardAC) {
                 }
             }
 
-            // A Bedrock/Geyser name with spaces or special characters substituted
-            // into a console command shifts the arguments - the punishment could
-            // land on a different player entirely. Such players are removed
-            // directly through the API instead of through the command.
             touchesPlayer && !SafeName.isSafe(name) -> {
                 plugin.logger.warning(
                     "[Punish] Name '$name' is not safe for a console command - command skipped, player kicked directly."

@@ -185,13 +185,6 @@ class HttpAiTransport(private val plugin: GuardAC) : AiTransport {
         }
     }
 
-    /**
-     * The response drives the violation buffer, so it must never be trusted
-     * blindly: a probability outside 0..1 (NaN, Infinity, huge numbers) would
-     * inflate the buffer to an instant flag in one window. Anything malformed
-     * becomes a Failure, which the check silently skips. The display strings
-     * are length-capped - they end up verbatim in staff alerts.
-     */
     private fun toResult(dto: InferenceResponseDto): InferenceResult {
         val p = dto.probability
         if (p !in 0.0..1.0) {

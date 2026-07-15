@@ -56,8 +56,7 @@ class AlertManager(private val plugin: GuardAC) {
         if (now - last < ALERT_THROTTLE_MS) return
         if (!gp.lastAlertMs.compareAndSet(last, now)) return
         val playerName = gp.player.name
-        // Same color scale as /guard monitor (monitor.yml thresholds), so the
-        // nick and the number read identically in both streams.
+
         val probColor = plugin.monitorConfig.colorForProbability(gp.lastAiProbability * 100.0)
         val buffer = "%.1f".format(gp.aiBuffer)
         val msg = plugin.locale.get(
@@ -84,12 +83,6 @@ class AlertManager(private val plugin: GuardAC) {
         deliverAlert(msg, consoleLine, playerName, withSound = true)
     }
 
-    // ------------------------------------------------------------------
-    // Per-hit alerts, batched by count: every alerts.min-hits confident hits
-    // of a fight produce one line with the running total - x3, then x6, x9...
-    // A lone spike below the bar stays silent. An episode closes after
-    // EPISODE_IDLE_MS without confident hits and the count starts over.
-    // ------------------------------------------------------------------
     private class HitDigest {
         var lastHitMs = 0L
         var episodeHits = 0
@@ -108,7 +101,7 @@ class AlertManager(private val plugin: GuardAC) {
         synchronized(d) {
             val now = System.currentTimeMillis()
             if (now - d.lastHitMs > EPISODE_IDLE_MS) {
-                // New fight: the counter starts over.
+
                 d.episodeHits = 0
                 d.batchMax = 0.0
             }
@@ -120,7 +113,7 @@ class AlertManager(private val plugin: GuardAC) {
                 announceCount = d.episodeHits
                 announceMax = d.batchMax
                 firstOfEpisode = d.episodeHits == minHits
-                // The next line reports the peak of ITS OWN batch of hits.
+
                 d.batchMax = 0.0
             }
         }
@@ -152,7 +145,7 @@ class AlertManager(private val plugin: GuardAC) {
             "verbose", "x$count max $max",
             "buffer",  buffer,
         )
-        // The chime plays once per fight (the x3 line); follow-ups are quiet.
+
         deliverAlert(msg, consoleLine, playerName, withSound)
     }
 
@@ -160,7 +153,6 @@ class AlertManager(private val plugin: GuardAC) {
         digests.remove(uuid)
     }
 
-    // Dot decimal separator regardless of the server's system locale.
     private fun detailed(p: Double): String = "%.12f".format(java.util.Locale.ROOT, p)
 
     private fun deliverAlert(msg: String, consoleLine: String, playerName: String, withSound: Boolean) {
@@ -316,8 +308,7 @@ class AlertManager(private val plugin: GuardAC) {
             val prob    = gp.lastAiProbability * 100
             val avg     = gp.avgProbability * 100
             val peak    = gp.peakProbability * 100
-            // Same color scale as alerts and /guard monitor (monitor.yml), so
-            // the HUD reads identically to every other staff surface.
+
             val probColor = plugin.monitorConfig.colorForProbability(prob)
             val avgColor  = plugin.monitorConfig.colorForProbability(avg)
             val pingColor = when {
@@ -363,10 +354,6 @@ class AlertManager(private val plugin: GuardAC) {
         player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent(msg))
     }
 
-    // 10-dot probability meter for the /guard prob HUD - the same circle motif
-    // as the over-head hit feed. Filled dots are colored by THEIR OWN level on
-    // the shared monitor.yml scale, so the meter reads green->red as suspicion
-    // grows; empty dots stay a quiet dark grey.
     private fun probBar(pct: Double): String {
         val filled = (pct / 10.0).toInt().coerceIn(0, 10)
         val sb = StringBuilder()
@@ -417,8 +404,7 @@ class AlertManager(private val plugin: GuardAC) {
         const val MONITOR_THROTTLE_MS = 1_000L
         const val ALERT_THROTTLE_MS   = 1_000L
         const val SUSPICIOUS_THROTTLE_MS = 15_000L
-        // A pause this long without confident hits closes the digest episode,
-        // so the next fight starts counting from zero again.
+
         const val EPISODE_IDLE_MS     = 30_000L
 
         const val PROB_UPDATE_TICKS   = 10L

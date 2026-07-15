@@ -42,7 +42,6 @@ class GuardPlayer(
 
     val joinTime: Long = System.currentTimeMillis()
 
-    // What the client reports itself as (minecraft:brand); null until it arrives.
     @Volatile var clientBrand: String? = null
 
     private val sequenceSize get() = plugin.configManager.aiSequence
@@ -56,7 +55,6 @@ class GuardPlayer(
 
     val isRiding: Boolean
         get() = player.isInsideVehicle
-
 
     private enum class TeleportPhase { NONE, WAITING, JUST_CONFIRMED }
     @Volatile private var teleportPhase: TeleportPhase = TeleportPhase.NONE
@@ -80,10 +78,6 @@ class GuardPlayer(
         TeleportPhase.JUST_CONFIRMED -> { teleportPhase = TeleportPhase.NONE; true }
     }
 
-    // Rolling record of aim movement over the last AIM_ACTIVITY_WINDOW rotation
-    // ticks. Written on every processed movement packet (zeros included), so an
-    // attack can be gated on "was the camera actually moving just now" - a hit
-    // thrown with a near-static crosshair carries no useful signal.
     private val recentAim = FloatArray(AIM_ACTIVITY_WINDOW)
     private var recentAimIdx = 0
 
@@ -98,9 +92,6 @@ class GuardPlayer(
         return sum
     }
 
-    // Last time the client sent a position-changing packet. Lets the attack gate
-    // distinguish a standing player (barely turns while clicking) from a moving
-    // one (real strafing PvP always comes with camera work).
     @Volatile private var lastMoveMs: Long = 0L
 
     fun noteMovement() {
@@ -110,13 +101,6 @@ class GuardPlayer(
     val isMovingRecently: Boolean
         get() = System.currentTimeMillis() - lastMoveMs < MOVE_RECENT_MS
 
-    // Network-jitter detector. A healthy client sends rotation packets every
-    // ~50ms; a lagging one delivers them in bursts (a stall, then a catch-up
-    // clump). Those bursts distort the per-tick movement deltas and read as
-    // inhuman aim - the number-one source of false flags on laggy players.
-    // The signal only DAMPENS the verdict (see addAiProbability), it never
-    // skips analysis: the client controls its own jitter and ping, so a hard
-    // skip would let a fake-lag cheat stay invisible forever.
     @Volatile private var lastRotationNanos: Long = 0L
     @Volatile private var unstableTicks: Int = 0
 
@@ -124,15 +108,11 @@ class GuardPlayer(
         val last = lastRotationNanos
         lastRotationNanos = nowNanos
         if (last == 0L) return
-        // Only BURSTS count. A long gap is just a player not moving the camera
-        // (idle, straight-line walk) - counting stalls would wrongly skip the
-        // first combat window of every calm player. A lagging client always
-        // betrays itself with catch-up clumps of packets.
+
         val gapMs = (nowNanos - last) / 1_000_000
         if (gapMs < UNSTABLE_GAP_MIN_MS) unstableTicks++
     }
 
-    /** Unstable packet gaps accumulated since the last read; resets on read. */
     fun consumeUnstableTicks(): Int {
         val v = unstableTicks
         unstableTicks = 0
@@ -237,8 +217,7 @@ class GuardPlayer(
 
         lastAiProbability = probability
         updateProbStats(probability)
-        // A lag-distorted window must not teach the personal aim fingerprint:
-        // its probability reflects the network, not the hand.
+
         if (!lagDistorted) updateFingerprint(probability)
 
         hitProbHistory.addLast(probability)
@@ -249,9 +228,7 @@ class GuardPlayer(
             probability > CHEAT_THRESHOLD -> {
                 val excess = probability - CHEAT_THRESHOLD
                 val gain   = excess * cfg.aiBufferMultiplier * (1.0 + excess * CONFIDENCE_WEIGHT_FACTOR)
-                // Under lag the verdict still counts, just slower: honest lag
-                // spikes decay away between fights, a real cheater keeps
-                // climbing no matter how hard he fakes his connection.
+
                 aiBuffer + gain * (if (lagDistorted) LAG_GAIN_SCALE else 1.0)
             }
             probability < LEGIT_THRESHOLD -> max(0.0, aiBuffer - cfg.aiBufferDecrease)
@@ -392,13 +369,11 @@ class GuardPlayer(
     private companion object {
         const val AIM_ACTIVITY_WINDOW      = 10
         const val MOVE_RECENT_MS           = 500L
-        // Vanilla rotation cadence is ~50ms; way under = a catch-up burst.
-        // Internal constant on purpose - not a public knob.
+
         const val UNSTABLE_GAP_MIN_MS      = 15L
         const val CHEAT_THRESHOLD          = 0.90
         const val LEGIT_THRESHOLD          = 0.10
-        // Buffer-gain multiplier for windows that arrived visibly lag-distorted
-        // (packet bursts + high ping). 0.5 = suspicion builds at half speed.
+
         const val LAG_GAIN_SCALE           = 0.5
         const val IDLE_DELTA_THRESHOLD     = 0.05f
         const val AVG_WINDOW               = 10

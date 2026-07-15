@@ -23,17 +23,6 @@ import java.util.Date
 import org.bukkit.BanList
 import org.bukkit.Bukkit
 
-/**
- * Applies web-issued bans through the ban system the server actually uses.
- *
- * Servers with LiteBans/AdvancedBan keep their history, templates and sync in
- * those plugins - a vanilla ban-list entry would be invisible there. So the
- * bridge routes to the installed ban plugin's commands ("auto"), can be pinned
- * to a specific one, or runs fully custom console commands. Vanilla remains
- * the fallback so a ban NEVER silently fails to apply.
- *
- * Must be called on the main server thread (dispatchCommand / BanList).
- */
 object BanBridge {
 
     fun ban(plugin: GuardAC, name: String, reason: String, minutes: Int, source: String) {
@@ -41,7 +30,7 @@ object BanBridge {
         val duration = if (minutes <= 0) "permanent" else durationLabel(minutes)
         when (resolveProvider(plugin)) {
             Provider.LITEBANS -> {
-                // LiteBans: /ban <player> [duration] [reason] (-s omitted on purpose)
+
                 val cmd = if (minutes <= 0) "ban $name $reason"
                           else "ban $name ${minutes}m $reason"
                 dispatch(plugin, cmd)
@@ -86,7 +75,7 @@ object BanBridge {
             "litebans"    -> Provider.LITEBANS
             "advancedban" -> Provider.ADVANCEDBAN
             "command"     -> Provider.COMMAND
-            else -> when { // "auto"
+            else -> when {
                 pm.getPlugin("LiteBans") != null    -> Provider.LITEBANS
                 pm.getPlugin("AdvancedBan") != null -> Provider.ADVANCEDBAN
                 else                                -> Provider.VANILLA

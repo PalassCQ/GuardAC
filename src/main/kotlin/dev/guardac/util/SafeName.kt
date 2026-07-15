@@ -18,12 +18,6 @@
 
 package dev.guardac.util
 
-/**
- * A name is "safe" when it can be substituted into a console command without
- * changing the command's argument structure. Java Edition names always match;
- * Bedrock/Geyser names can carry spaces, dots and other characters that would
- * shift command arguments - a punishment could land on the wrong player.
- */
 object SafeName {
     private val SAFE = Regex("^\\w{1,16}$")
 

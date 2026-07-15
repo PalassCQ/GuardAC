@@ -181,8 +181,6 @@ class SuspectsMenu(
             return
         }
 
-        // Same guard as punishments: a name with spaces/special characters would
-        // shift console-command arguments and hit the wrong player.
         if (!SafeName.isSafe(name) || !SafeName.isSafe(viewer.name)) {
             viewer.sendMessage(plugin.locale.get(Message.MENU_UNSAFE_NAME, "player", name))
             plugin.logger.warning("[Menu] Name '$name' is not safe for menu console commands - click skipped.")

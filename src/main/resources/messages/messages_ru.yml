@@ -1,3 +1,8 @@
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  GuardAC · Русская локализация                                 ║
+# ║  Поддерживаются &-коды и HEX-цвета вида &#22D3EE                ║
+# ╚══════════════════════════════════════════════════════════════╝
+
 prefix: "&#22D3EE▍ &#22D3EEG&#34C2E8u&#46B1E2a&#58A0DCr&#6A8FD6d&#4D86EEA&#3B82F6C &8»&r"
 
 no-permission: "&#FF4D6D✖ &7Недостаточно прав для этой команды."
@@ -7,16 +12,26 @@ reload-success: "&#4ADE80✔ &7Конфигурация перезагружен
 
 alerts-enabled: "&#4ADE80✔ &7Оповещения &#4ADE80включены&7."
 alerts-disabled: "&#FFC857● &7Оповещения &8выключены&7."
+# Алерт на КАЖДЫЙ уверенный удар (порог - alerts.min-hit-confidence в config.yml).
+# Плейсхолдеры: {player} {check} {vl} {verbose} {prob_color} {buffer} {avg} {peak}
+# (тег модели [Def]/[Extreme] намеренно не показывается здесь - он только в /guard monitor)
 alerts-format: "{prefix} &8[&#FF4D6DДЕТЕКТ&8] {prob_color}{player} &7не прошёл проверку &8• {prob_color}{verbose} &8• &7буфер {buffer}"
+# Накопительный алерт: каждые min-hits ударов (×3, ×6, ×9...) с пиком пачки.
+# Плейсхолдеры: {player} {model} {count} {max} {prob_color} {buffer}
 alerts-digest-format: "{prefix} &8[&#FF4D6DДЕТЕКТ&8] {prob_color}{player} &7не прошёл проверку {prob_color}×{count} &8• &7макс {prob_color}{max} &8• &7буфер {buffer}"
 alerts-console-format: "[GuardAC] {player} | {verbose} | buffer {buffer}"
+# Авто-обновление: новая версия скачана и применится после перезапуска. Плейсхолдер: {tag}
 update-downloaded: "{prefix} &#4ADE80Обновление GuardAC &#AEB8C4{tag} &#4ADE80загружено &8- &7применится после перезапуска сервера."
+# Aim Fingerprint: почерк прицела игрока резко изменился. Плейсхолдеры: {player} {base} {now}
 fingerprint-alert: "{prefix} &8[&#A78BFAПОЧЕРК&8] &#FF4D6D&l{player} &7- стиль прицела резко изменился &8(&7{base}% &8→ &c{now}%&8)&7, возможен включённый чит."
+# Раннее предупреждение стаффу. Плейсхолдеры: {player} {buffer} {flag}
 suspicious-alert: "{prefix} &8[&#FFC857НАБЛЮДЕНИЕ&8] &#AEB8C4{player} &7становится подозрительным &8(&#FFC857{buffer} &8/ &7{flag}&8)"
+# Сообщение игроку, когда включается доп. защита в бою (combat-suppression в config.yml).
 suppression-isolate-notice: "&7Соединение нестабильно &8- &7атаки временно не засчитываются."
 
 monitor-enabled: "&#4ADE80✔ &7Монитор &#4ADE80включён&7 &8- показываю каждый результат модели."
 monitor-disabled: "&#FFC857● &7Монитор &8выключен&7."
+# Плейсхолдеры: {player} {model} {color} {detailed} {buffer} {prob} {avg} {avg_color} {vl} {ping} {peak} {high_count} {suppression}
 monitor-hit: "{prefix} &7{model} {color}{player} &8• {color}{detailed} &8• &7буфер {buffer}{suppression}"
 
 profile-header: "&8&m        &r {prefix} &#67E8F9&l{player} &8&m        "
@@ -29,6 +44,7 @@ profile-sensitivity: " &8▏ &7Чувствительность&8: &f{sens_x} &8
 profile-riding: " &8▏ &7В транспорте&8: {riding}"
 profile-brand: " &8▏ &7Клиент&8: &f{brand}"
 profile-avg-prob: " &8▏ &7Средняя вероятность&8: &#67E8F9{avg}% &8(пик&8: &#FF4D6D{peak}%&8)"
+# Плейсхолдеры: {stage} {penalty}
 profile-suppression: " &8▏ &7Suppression&8: {stage} &8(&7атака &8-&#AEB8C4{penalty}%&8)"
 
 suspicious-header: "{prefix} &#67E8F9&lПодозрительные &8(&#AEB8C4{count}&8)"
@@ -48,13 +64,18 @@ debug-mode-status: " &8▏ &7Режим дебага&8: {status}"
 debug-mode-on: "&#4ADE80включён"
 debug-mode-off: "&8выключен"
 debug-idle: " &8▏ &7Idle / всего тиков&8: &f{idle} &8/ &f{total}"
+# Плейсхолдеры: {stage} {penalty} {isolated}
 debug-suppression: " &8▏ &7Suppression&8: {stage} &8(&7атака &8-&f{penalty}%&8, &7isolate&8: {isolated}&8)"
 
+# Живой HUD вероятности (action bar). {bar} - цветная шкала из 10 сегментов.
+# Плейсхолдеры: {player} {bar} {prob} {prob_color} {avg} {avg_color} {peak} {buffer} {vl} {ping} {ping_color}
 prob-started: "&#4ADE80✔ &7Слежу за &#AEB8C4{player}&7 - action bar активен."
 prob-stopped: "&#FFC857● &7Слежение остановлено."
 prob-display: "&#3B82F6◈ &f{player} {bar} {prob_color}{prob}% &8▏ &7средняя {avg_color}{avg}%"
 prob-no-data: "&#FF4D6D✖ &7Нет данных для &#AEB8C4{player}&7."
 
+# Бан, выданный из веб-кабинета и применённый этим сервером.
+# Плейсхолдеры: {player} {staff} {reason} {duration} (∞ = навсегда)
 web-ban-executed: "{prefix} &8[&#FF4D6DВЕБ-БАН&8] &#AEB8C4{player} &7забанен из кабинета модератором &#AEB8C4{staff} &8• &7{reason} &8• &#AEB8C4{duration}"
 web-ban-kick: "&#FF4D6DВы забанены.\n&7Причина: &#AEB8C4{reason}"
 web-unban-executed: "{prefix} &8[&#22D3EEВЕБ-РАЗБАН&8] &#AEB8C4{player} &7разбанен из кабинета модератором &#AEB8C4{staff}"
@@ -73,6 +94,7 @@ punish-success: "&#4ADE80✔ &7Наказание применено к &#AEB8C4
 punish-no-data: "&#FF4D6D✖ &7Данные игрока не найдены."
 unsafe-name-kick: "&cВы были исключены с сервера."
 
+# Deep Scan - углублённая проверка по запросу (/guardac scan <ник>).
 usage-scan: "&7Использование: &#AEB8C4/guardac scan <игрок> [окон]"
 scan-started: "&#22D3EE◈ &7Скан &#AEB8C4{player} &7запущен&8: &7жду &#AEB8C4{windows} &7боевых окон. Отчёт придёт сюда."
 scan-already: "&#FFC857⚠ &7По игроку &#AEB8C4{player} &7уже идёт скан."
@@ -126,6 +148,8 @@ menu-page: "&8Страница &7{page}"
 menu-refresh-lore: "&7Обновить список"
 menu-player-offline: "&cИгрок &#AEB8C4{player} &cуже не в сети."
 menu-unsafe-name: "&#FF4D6D✖ &7Ник &#AEB8C4{player} &7небезопасен для консольных команд - действие пропущено."
+# Игрок из глобальной базы зашёл на сервер. {servers} - сколько серверов сети
+# его отмечали (включая ваши). Плейсхолдеры: {player} {detections} {servers}
 reputation-join-notice: "{prefix} &8[&#FFC857РЕПУТАЦИЯ&8] &f{player} &7уже отмечен сетью GuardAC &8- &#FF4D6D{detections} &7детект(ов) на &#FFC857{servers} &7сервер(ах)."
 alert-click-hint: "&7Клик &8→ &#AEB8C4/guardac profile {player}"
 unit-d: "д"
@@ -184,6 +208,8 @@ history-empty: "&7В истории наказаний пусто."
 usage-history: "&#FFC857● &7Использование&8: &#AEB8C4/guardac history [ник]"
 help-history: " &#22D3EE/guardac history &7[ник] &8- &7когда и за что наказывали (история)"
 
+# Окно /guardac results - история результатов ИИ по игроку.
+# Каждая стекляшка = 10 результатов, цвет = средняя вероятность пачки.
 results-menu-title: "&#22D3EEGuardAC &8• &7История {player}"
 results-empty: "&#22D3EE▍ &7По игроку &#67E8F9{player} &7пока нет результатов ИИ."
 results-head-title: "&#67E8F9{player}"
@@ -192,6 +218,7 @@ results-head-avg: " &8» &7Средняя&8: {color}{avg}"
 results-head-peak: " &8» &7Пик&8: {color}{peak}"
 results-head-span: " &8» &7Период&8: &7{time}"
 results-pane-title: "&7AVG&8: {color}{avg}"
+# Заголовки колонок таблицы (выравнивание плагин считает сам, попиксельно).
 results-col-prob: "Вер."
 results-col-model: "Модель"
 results-col-server: "Сервер"

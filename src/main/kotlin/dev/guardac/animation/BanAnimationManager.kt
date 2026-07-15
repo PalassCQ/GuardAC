@@ -47,9 +47,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
     private val animating: MutableSet<UUID> = ConcurrentHashMap.newKeySet()
     private val anchors = ConcurrentHashMap<UUID, Location>()
     private val pendingCompletions = ConcurrentHashMap<UUID, MutableList<() -> Unit>>()
-    // Original movement abilities of currently-frozen players. Walk/fly speed are
-    // saved into the player's NBT on quit, so a player who leaves (or is banned)
-    // mid-animation would come back permanently frozen - onJoin() unfreezes them.
+
     private val frozen = ConcurrentHashMap<UUID, MovementState>()
 
     fun isAnimating(uuid: UUID): Boolean = uuid in animating
@@ -57,15 +55,13 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
     fun onQuit(uuid: UUID) {
         animating.remove(uuid)
         anchors.remove(uuid)
-        // `frozen` is kept on purpose: the entry is what lets onJoin() restore
-        // movement for a player who disconnected before the animation finished.
+
     }
 
     fun onJoin(player: Player) {
         frozen.remove(player.uniqueId)?.let { applyState(player, it) }
     }
 
-    /** Plugin shutdown mid-animation: give every frozen player their movement back. */
     fun restoreAllFrozen() {
         frozen.keys.toList().forEach { id ->
             val state = frozen.remove(id) ?: return@forEach
@@ -81,8 +77,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
             player.isFlying    = s.flying && s.allowFlight
         }
         runCatching { player.removePotionEffect(PotionEffectType.LEVITATION) }
-        // The player floated a few blocks up during the show; if they survive it
-        // (alert-only tier), let them drift down instead of taking fall damage.
+
         runCatching {
             player.addPotionEffect(PotionEffect(PotionEffectType.SLOW_FALLING, 100, 0, false, false))
         }
@@ -94,10 +89,6 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         val cfg = plugin.configManager
         if (!cfg.animationsEnabled || !player.isOnline) { onComplete(); return }
 
-        // A show is already mid-flight for this player: don't start a second one,
-        // but NEVER swallow the punishment chain behind it - queue it to run the
-        // moment the current animation finishes (an escalated ban that lands
-        // during a 3s animation must still execute).
         if (!animating.add(player.uniqueId)) {
             pendingCompletions.computeIfAbsent(player.uniqueId) {
                 java.util.Collections.synchronizedList(mutableListOf())
@@ -107,10 +98,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
 
         val restore = freeze(player)
         val done = AtomicBoolean(false)
-        // The ONE terminal step, shared by every animation: exactly one explosion
-        // and one inventory drop, no matter how many code paths race to finish
-        // (timer end, player quit, error). Whatever the punishment does next runs
-        // right after via onComplete().
+
         val finishWith: (Location) -> Unit = { loc ->
             if (done.compareAndSet(false, true)) {
                 animating.remove(player.uniqueId)
@@ -138,12 +126,6 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         }
     }
 
-    /**
-     * Locks the player in place for the animation: no walking, no flight, no
-     * flying away to escape the show. Returns a restorer that MUST run when the
-     * animation ends - a player who survives it (alert-only tiers, /guard punish
-     * on a non-ban level) has to get their movement back.
-     */
     private fun freeze(player: Player): () -> Unit {
         anchors[player.uniqueId] = player.location.clone()
         frozen[player.uniqueId] = MovementState(
@@ -155,9 +137,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
             player.walkSpeed = 0f
             player.flySpeed = 0f
         }
-        // The rise is part of the freeze itself: the condemned slowly floats up
-        // while ANY animation plays around them (the anchor clamps only X/Z, so
-        // levitation is free to lift). A small kick starts the ascent instantly.
+
         if (!player.isInsideVehicle) {
             runCatching {
                 player.addPotionEffect(PotionEffect(
@@ -171,20 +151,17 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
             if (player.isOnline) {
                 frozen.remove(player.uniqueId)?.let { applyState(player, it) }
             }
-            // Offline: keep the entry - onJoin() restores movement on their next login.
+
         }
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     fun onPlayerMove(event: PlayerMoveEvent) {
         val anchor = anchors[event.player.uniqueId] ?: return
-        // While riding the animation pig the position is vehicle-driven; a setTo
-        // teleport here would eject the passenger. The pig task re-seats instead.
+
         if (event.player.isInsideVehicle) return
         val to = event.to
-        // Only HORIZONTAL escape is clamped: several animations lift the player
-        // (levitation in "particles", the vortex rise) - snapping Y back would
-        // pin them to the ground and kill the whole effect.
+
         if (anchor.world == to.world && anchor.x == to.x && anchor.z == to.z) return
         event.setTo(to.clone().apply {
             x = anchor.x
@@ -210,9 +187,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         object : BukkitRunnable() {
             var t = 0
             override fun run() {
-                // A throw inside a repeating task kills the task silently - the
-                // animation lock would never release and every later punishment
-                // for this player would queue forever. Fail into finishWith.
+
                 try {
                     if (!player.isOnline || !pig.isValid) {
                         cancel()
@@ -221,8 +196,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
                         finishWith(loc)
                         return
                     }
-                    // Re-seat if the player shift-dismounted, so they ride up and can't
-                    // step off to walk/run away before the explosion.
+
                     anchors[player.uniqueId] = pig.location.clone()
                     if (!pig.passengers.contains(player)) {
                         runCatching { player.teleport(pig.location) }
@@ -234,7 +208,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
                         cancel()
                         val loc = pig.location.clone()
                         cleanupPig(pig, player)
-                        finishWith(loc)   // explosion + resources scatter happen HERE, at the top
+                        finishWith(loc)
                     }
                 } catch (e: Exception) {
                     cancel()
@@ -251,7 +225,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
     }
 
     private fun playExplode(player: Player, finishWith: (Location) -> Unit) {
-        // A short beat so the boom lands a moment before the ban message.
+
         Bukkit.getScheduler().runTaskLater(plugin, Runnable { finishWith(player.location.clone()) }, 6L)
     }
 
@@ -262,7 +236,6 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         val perTick  = cfg.animationParticleCount.coerceAtLeast(1)
         val particle = particle(cfg.animationParticle, "FLAME")
 
-        // Levitation is applied by freeze() for every animation type.
         object : BukkitRunnable() {
             var t = 0
             override fun run() {
@@ -345,10 +318,6 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         }.runTaskTimer(plugin, 0L, 1L)
     }
 
-    /**
-     * A burning comet streaks down from the sky at an angle and detonates on
-     * the frozen player. The impact IS finishWith - one boom, loot scattered.
-     */
     private fun playMeteor(player: Player, finishWith: (Location) -> Unit) {
         val world = player.world
         val duration = plugin.configManager.animationDurationTicks
@@ -385,10 +354,6 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         }.runTaskTimer(plugin, 0L, 1L)
     }
 
-    /**
-     * A glowing cage of particle bars closes in around the player, chiming as
-     * it shrinks, then slams shut into the explosion.
-     */
     private fun playCage(player: Player, finishWith: (Location) -> Unit) {
         val world = player.world
         val duration = plugin.configManager.animationDurationTicks
@@ -412,7 +377,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
                             y += 0.5
                         }
                     }
-                    // Closing ring overhead.
+
                     world.spawnParticle(
                         particle("END_ROD", "CRIT"),
                         base.clone().add(0.0, 2.6, 0.0), 4, radius * 0.4, 0.05, radius * 0.4, 0.0,

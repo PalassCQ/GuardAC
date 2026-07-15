@@ -36,15 +36,6 @@ import java.nio.file.StandardCopyOption
 import java.time.Duration
 import java.util.zip.ZipFile
 
-/**
- * Self-updater. Periodically asks GitHub for the latest official release and,
- * when a new one appears, stages its jar into Bukkit's `plugins/update/` folder
- * under this plugin's own file name - the server swaps it in automatically on
- * the next restart. Nothing is ever hot-swapped at runtime.
- *
- * The repository is a hard-coded constant on purpose: a configurable URL would
- * turn a convenience feature into a remote-code-execution knob.
- */
 class UpdateManager(private val plugin: GuardAC, private val pluginJar: File) {
 
     private val mapper = ObjectMapper().apply {
@@ -83,9 +74,7 @@ class UpdateManager(private val plugin: GuardAC, private val pluginJar: File) {
 
         val known = readState()
         if (known.isEmpty()) {
-            // First run ever: take the current latest release as the baseline
-            // instead of downloading it - the jar that is running was installed
-            // by hand moments or days ago and may already BE this release.
+
             writeState(tag)
             return
         }
@@ -129,8 +118,6 @@ class UpdateManager(private val plugin: GuardAC, private val pluginJar: File) {
         return mapper.readValue(res.body(), ReleaseDto::class.java)
     }
 
-    /** Both release assets are the same jar today; pick by the running JVM so a
-     *  future split by Java target keeps working without a plugin change. */
     private fun pickAsset(assets: List<AssetDto>): AssetDto? {
         val jars = assets.filter { it.name.endsWith(".jar") && it.browser_download_url.startsWith("https://") }
         if (jars.isEmpty()) return null
@@ -152,7 +139,6 @@ class UpdateManager(private val plugin: GuardAC, private val pluginJar: File) {
         return bytes
     }
 
-    /** Sanity check before staging: a real zip that contains OUR plugin.yml. */
     private fun looksLikeOurPlugin(bytes: ByteArray): Boolean {
         if (bytes.size < 4 || bytes[0] != 0x50.toByte() || bytes[1] != 0x4B.toByte()) return false
         val tmp = File.createTempFile("guardac-update", ".jar")
@@ -181,8 +167,7 @@ class UpdateManager(private val plugin: GuardAC, private val pluginJar: File) {
     }
 
     private fun logFailure(cause: Throwable) {
-        // A flaky check is normal (offline server, GitHub hiccup, rate limit) -
-        // don't spam the console every cycle.
+
         val now = System.currentTimeMillis()
         if (now - lastFailureLogMs < FAILURE_LOG_THROTTLE_MS) return
         lastFailureLogMs = now

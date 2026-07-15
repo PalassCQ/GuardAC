@@ -431,7 +431,7 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
         if (sender !is Player) { sender.sendMessage(plugin.locale.get(Message.RUN_AS_PLAYER)); return }
         val name = args.getOrNull(1)
             ?: return sender.sendMessage(plugin.locale.get(Message.USAGE_RESULTS))
-        // History lives in the local database, so offline players work too.
+
         val ourServer = plugin.reputationClient.displayName
         val local = plugin.punishmentHistory.resultsFor(name, ResultsMenu.CAPACITY)
             .map { ResultsMenu.Row(it.uuid, it.playerName, it.model, ourServer, it.probability, it.epochMillis) }
@@ -441,9 +441,6 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
             return
         }
 
-        // Network mode: the backend holds this player's results from EVERY
-        // server of the key. Local rows are this server's source of truth, so
-        // remote rows from our own server name are dropped as duplicates.
         plugin.reputationClient.queryNetworkResults(name, ResultsMenu.CAPACITY)
             .thenAccept { remote ->
                 Bukkit.getScheduler().runTask(plugin, Runnable {

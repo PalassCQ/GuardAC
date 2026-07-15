@@ -60,8 +60,6 @@ data class NetworkResult(
 
 class ReputationClient(private val plugin: GuardAC) {
 
-    // Identifies THIS server inside the key's network for the whole session,
-    // even when two servers share a blank server-name. Random per boot.
     val instanceId: String = UUID.randomUUID().toString()
 
     val displayName: String
@@ -105,15 +103,13 @@ class ReputationClient(private val plugin: GuardAC) {
             "name" to name,
             "probability" to probability,
             "share_reputation" to shareReputation,
-            // Cross-server relay context: which server of this key's network
-            // flagged, so the others can show it to their staff.
+
             "server" to displayName,
             "instance" to instanceId,
             "vl" to vl,
             "verbose" to verbose,
         )
-        // The exact aim window the model judged, so the dashboard can replay why
-        // the flag fired. Sent as N rows of 8 features (same order the model sees).
+
         if (window != null && window.isNotEmpty()) {
             payload["window"] = window.map {
                 listOf(
@@ -163,15 +159,9 @@ class ReputationClient(private val plugin: GuardAC) {
             .exceptionally { null }
     }
 
-    // ------------------------------------------------------------------
-    // Cross-server alert relay: poll the backend for alerts reported by the
-    // key's OTHER servers. No proxy needed - the backend is the bridge.
-    // ------------------------------------------------------------------
     @Volatile private var pollTask: BukkitTask? = null
     @Volatile private var pollSince: Double = 0.0
-    // The timer fires on schedule even if the previous run is still waiting on a
-    // slow request - without this guard two overlapping polls would use the same
-    // `since` cursor and deliver every alert twice.
+
     private val pollInFlight = AtomicBoolean(false)
 
     fun startNetworkAlertPolling() {
@@ -181,8 +171,7 @@ class ReputationClient(private val plugin: GuardAC) {
             if (shuttingDown) return@Runnable
             if (!pollInFlight.compareAndSet(false, true)) return@Runnable
             try {
-                // Result history + web commands work for every customer; only
-                // the staff-chat alert relay is behind cross-server.enabled.
+
                 flushPendingResults()
                 if (plugin.configManager.crossServerEnabled) pollNetworkAlerts()
                 pollWebCommands()
@@ -213,7 +202,7 @@ class ReputationClient(private val plugin: GuardAC) {
             if (resp.statusCode() !in 200..299) return
             val dto = mapper.readValue(resp.body(), NetworkAlertsDto::class.java)
             dto.alerts.orEmpty().forEach { a ->
-                // One malformed alert must not eat the rest of the page.
+
                 runCatching {
                     val server  = sanitize(a.server.ifBlank { "network" }, 24)
                     val player  = sanitize(a.player, 20)
@@ -225,20 +214,13 @@ class ReputationClient(private val plugin: GuardAC) {
                     }
                 }
             }
-            // Advance the cursor only after the page is handled - an exception
-            // above would otherwise skip alerts that were never delivered.
+
             pollSince = dto.now
         } catch (_: Exception) {
-            // Network hiccup: keep the old `since`, the next poll catches up.
+
         }
     }
 
-    // ------------------------------------------------------------------
-    // Cross-server result history: every AI window result is queued here and
-    // flushed to the backend in one small batch per poll interval, so /guard
-    // results on ANY server of the key can show the player's hits from all of
-    // them. Deliberately decoupled from the inference hot path.
-    // ------------------------------------------------------------------
     private data class PendingResult(
         val uuid: String, val name: String, val prob: Double, val model: String, val tsMs: Long,
     )
@@ -247,10 +229,9 @@ class ReputationClient(private val plugin: GuardAC) {
     private val pendingCount = AtomicInteger(0)
 
     fun queueResult(uuid: UUID, name: String, probability: Double, model: String) {
-        // Not gated by cross-server.enabled: this history also powers the
-        // player lookup in the web dashboard, which every customer has.
+
         if (shuttingDown) return
-        // Bounded queue: under a long backend outage the freshest history wins.
+
         while (pendingCount.get() >= MAX_PENDING_RESULTS) {
             if (pendingResults.poll() == null) break
             pendingCount.decrementAndGet()
@@ -295,8 +276,7 @@ class ReputationClient(private val plugin: GuardAC) {
             .timeout(Duration.ofSeconds(cfg.aiTimeoutSeconds))
             .build()
         try {
-            // Best effort: a failed batch is not retried - the local history
-            // database still holds every row, only the network copy is thinner.
+
             http.send(req, HttpResponse.BodyHandlers.discarding())
         } catch (_: Exception) {
         }
@@ -304,8 +284,7 @@ class ReputationClient(private val plugin: GuardAC) {
 
     fun queryNetworkResults(name: String, limit: Int): CompletableFuture<List<NetworkResult>?> {
         val cfg = plugin.configManager
-        // Results are pushed regardless of cross-server.enabled (see queueResult),
-        // so the query side must stay open too or /guard results goes dark.
+
         if (shuttingDown) {
             return CompletableFuture.completedFuture(null)
         }
@@ -341,12 +320,6 @@ class ReputationClient(private val plugin: GuardAC) {
             .exceptionally { null }
     }
 
-    // ------------------------------------------------------------------
-    // Web moderation commands: bans issued from the customer's dashboard.
-    // The backend keeps a command visible for a short TTL so every server
-    // of the key's network applies it; ids are de-duped here in memory
-    // (bans are idempotent, so a re-execution after a restart is harmless).
-    // ------------------------------------------------------------------
     @Volatile private var lastWebCommandsPollMs = 0L
     private val executedWebCommandIds: MutableSet<Long> = ConcurrentHashMap.newKeySet()
 
@@ -371,7 +344,7 @@ class ReputationClient(private val plugin: GuardAC) {
                 runCatching { handleWebCommand(c) }
             }
         } catch (_: Exception) {
-            // Network hiccup - the command stays queued, next poll retries.
+
         }
     }
 
@@ -379,8 +352,7 @@ class ReputationClient(private val plugin: GuardAC) {
         if (c.id <= 0 || !executedWebCommandIds.add(c.id)) return
         if (executedWebCommandIds.size > 1_000) executedWebCommandIds.clear()
         if (c.type != "ban" && c.type != "unban") return
-        // The name ends up in the ban list and staff chat - same strict rule as
-        // console commands. An unsafe name is refused, not "cleaned".
+
         val name = c.player.take(16)
         if (!SafeName.isSafe(name)) {
             plugin.logger.warning("[GuardAC] Web command ${c.id}: unsafe player name, skipped.")
@@ -404,9 +376,7 @@ class ReputationClient(private val plugin: GuardAC) {
         val minutes = c.durationMinutes.coerceIn(0, 527_040)
         val durationLabel = BanBridge.durationLabel(minutes)
         Bukkit.getScheduler().runTask(plugin, Runnable {
-            // Route through the server's real ban system (LiteBans/AdvancedBan/
-            // custom command) so web bans land in its history and sync, not in a
-            // parallel vanilla list nobody looks at.
+
             BanBridge.ban(plugin, name, reason, minutes, "GuardAC Web ($staff)")
             Bukkit.getPlayerExact(name)?.kickPlayer(
                 plugin.locale.get(Message.WEB_BAN_KICK, "reason", reason)
@@ -426,10 +396,6 @@ class ReputationClient(private val plugin: GuardAC) {
         ackWebCommand(c.id)
     }
 
-    // ------------------------------------------------------------------
-    // Network-wide exemptions: nicknames the panel admin excluded from all
-    // checks. Refreshed on a slow cadence - the list is tiny and changes rarely.
-    // ------------------------------------------------------------------
     @Volatile private var lastExemptPollMs = 0L
 
     private fun pollGlobalExempt() {
@@ -451,7 +417,7 @@ class ReputationClient(private val plugin: GuardAC) {
                 dto.names.orEmpty().mapNotNull { n -> sanitize(n, 16).ifBlank { null } }
             )
         } catch (_: Exception) {
-            // Keep the last known list on a hiccup - never fail open to "empty".
+
         }
     }
 
@@ -486,8 +452,7 @@ class ReputationClient(private val plugin: GuardAC) {
         const val COMMANDS_ACK_PATH = "/v1/commands/ack"
         const val EXEMPT_PATH = "/v1/exempt"
         const val EXEMPT_REFRESH_MS = 120_000L
-        // Backend caps a push at 200 results; the queue keeps a little headroom
-        // so a short outage doesn't throw history away immediately.
+
         const val MAX_PUSH_BATCH = 200
         const val MAX_PENDING_RESULTS = 600
     }

@@ -22,13 +22,6 @@ import dev.guardac.GuardAC
 import org.bukkit.entity.Player
 import org.bukkit.plugin.messaging.PluginMessageListener
 
-/**
- * Records what client each player reports itself as (the "minecraft:brand"
- * plugin message the client sends on join): vanilla, fabric, lunar, and so on.
- * Purely informational - shown in /guard profile so staff can spot an odd or
- * spoofed client. Never punishes; works on both Spigot and Paper via the
- * plugin-message channel rather than a Paper-only API.
- */
 class ClientBrandListener(private val plugin: GuardAC) : PluginMessageListener {
 
     override fun onPluginMessageReceived(channel: String, player: Player, message: ByteArray) {
@@ -37,11 +30,6 @@ class ClientBrandListener(private val plugin: GuardAC) : PluginMessageListener {
         plugin.playerDataManager.get(player)?.clientBrand = brand.take(48)
     }
 
-    /**
-     * The brand payload is a Minecraft String: a VarInt length prefix followed
-     * by UTF-8 bytes. Some clients send the raw bytes without a valid prefix, so
-     * fall back to reading the whole buffer if the length looks wrong.
-     */
     private fun decodeBrand(data: ByteArray): String? {
         if (data.isEmpty()) return null
         var index = 0

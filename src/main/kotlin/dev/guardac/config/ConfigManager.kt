@@ -135,13 +135,8 @@ class ConfigManager(private val plugin: GuardAC) {
     val aiTimeoutSeconds: Long get() = cfg.getLong("ai.timeout-seconds", 5)
     val aiContinuous: Boolean  get() = cfg.getBoolean("ai.continuous", false)
 
-    // How much total aim movement (sum of |yaw|+|pitch| over the window) must be
-    // present before the model judges a window. Higher = react only after real
-    // camera work, fewer false reads on near-static aim.
     val aiMinMovement: Double  get() = cfg.getDouble("ai.min-movement", 15.0)
 
-    // Skip analysis when server TPS is below this (0 = off): a lag drop distorts
-    // tick timing and can make a legit player look like a cheat.
     val aiMinTpsAnalyze: Double get() = cfg.getDouble("ai.min-tps-analyze", 15.0)
 
     val aiOnlyAlert: Boolean   get() = cfg.getBoolean("ai.only-alert", false)
@@ -153,10 +148,6 @@ class ConfigManager(private val plugin: GuardAC) {
 
     val alertsToConsole: Boolean get() = cfg.getBoolean("alerts.print-to-console", true)
 
-    // Per-HIT alert gate: staff are pinged for every window at or above this
-    // confidence (MLSAC-style), not only when the buffer finally flags. A fresh
-    // key on purpose - old configs carry min-confidence-percent: 0, which under
-    // per-hit semantics would flood staff chat right after an auto-update.
     val alertMinConfidence: Double get() = cfg.getDouble("alerts.min-hit-confidence", 75.0)
     val alertMinHits: Int          get() = cfg.getInt("alerts.min-hits", 3)
 
@@ -170,9 +161,7 @@ class ConfigManager(private val plugin: GuardAC) {
 
     val crossServerEnabled: Boolean get() = cfg.getBoolean("cross-server.enabled", false)
     val crossServerPollSeconds: Long get() = cfg.getLong("cross-server.poll-seconds", 10L).coerceIn(3L, 300L)
-    // Display name of THIS server, shown in the web dashboard, staff alerts and
-    // cross-server messages. Reads the top-level `server-name` first, then falls
-    // back to the old `cross-server.server-name` so existing configs keep working.
+
     val serverName: String
         get() = cfg.getString("server-name", "")!!.ifBlank {
             cfg.getString("cross-server.server-name", "")!!
@@ -216,8 +205,7 @@ class ConfigManager(private val plugin: GuardAC) {
     val animationPigHeight: Double   get() = cfg.getDouble("animations.pig-height", 10.0).coerceIn(1.0, 60.0)
 
     val animationAutoOnBan: Boolean  get() = cfg.getBoolean("animations.auto-on-ban", true)
-    // An animation is always the show BEFORE a ban. When the matched punishment
-    // tier has no real command of its own, this ban is issued after the show.
+
     val animationFallbackBanTime: String get() =
         cfg.getString("animations.fallback-ban-time", "30d")!!.trim()
     val animationFallbackBanReason: String get() =

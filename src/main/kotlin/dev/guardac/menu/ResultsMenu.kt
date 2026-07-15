@@ -37,12 +37,6 @@ import java.util.UUID
 import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
 
-/**
- * Read-only hit-history window: every AI window result is a cell, ten results
- * per glass pane, the pane dyed by the average probability of its bucket.
- * Hovering a pane lists the individual results (probability / model / age,
- * plus the source server when the history is network-wide).
- */
 class ResultsMenu(
     private val plugin: GuardAC,
     private val viewer: Player,
@@ -51,7 +45,6 @@ class ResultsMenu(
     private val showServer: Boolean = false,
 ) : Listener {
 
-    /** One AI window result, from the local database or the key's network. */
     data class Row(
         val uuid: String,
         val name: String,
@@ -66,7 +59,6 @@ class ResultsMenu(
         Bukkit.createInventory(null, INV_SIZE, title)
     }
 
-    // Newest bucket first, reading order: top-left pane = the latest fight.
     private val buckets = rows.chunked(RESULTS_PER_PANE)
     private var page = 0
 
@@ -93,8 +85,6 @@ class ResultsMenu(
             inventory.setItem(GRID_START + i, buildBucketPane(bucket))
         }
 
-        // Both arrows are always visible (clicking past an edge is a no-op) -
-        // an appearing/disappearing arrow reads as a missing feature.
         val pageInfo = plugin.locale.get(Message.MENU_PAGE, "page", "${page + 1}/${totalPages + 1}")
         inventory.setItem(PREV_SLOT, buildItem(
             Material.ARROW, plugin.locale.get(Message.SUSPECTS_MENU_PREV), listOf(pageInfo),
@@ -153,7 +143,6 @@ class ResultsMenu(
         header.append(SEP).append("&7").append(hTime)
         lore.add(Colors.translate(header.toString()))
 
-        // Thin strikethrough divider sized to the table (spaces are 4px each).
         val totalPx = wProb + wModel + (wServer ?: 0) + pxWidth(hTime) + SEP_PX * (if (wServer != null) 3 else 2)
         lore.add(Colors.translate("&8&m" + " ".repeat((totalPx / 4).coerceIn(8, 44))))
 
@@ -187,14 +176,8 @@ class ResultsMenu(
         else     -> "&c"
     }
 
-    // Dot decimal separator regardless of the server's system locale.
     private fun fmt(p: Double): String = "%.4f".format(Locale.ROOT, p)
 
-    // ------------------------------------------------------------------
-    // Column alignment. Minecraft's font is NOT monospace: most glyphs advance
-    // 6px, but '.'/':'/'i' are 2px and a space is 4px - so columns are padded
-    // to pixel targets, never to character counts.
-    // ------------------------------------------------------------------
     private fun pxWidth(s: String): Int = s.sumOf { c ->
         when (c) {
             '.', ',', ':', ';', 'i', '!', '|', '\'' -> 2
@@ -260,19 +243,16 @@ class ResultsMenu(
         private const val GRID_START       = 9
         private const val HEAD_SLOT        = 4
         private const val RESULTS_PER_PANE = 10
-        // Four middle rows hold panes; the top row (head) and the bottom row
-        // (frame + page arrows) are chrome.
+
         private const val PANES_PER_PAGE   = 36
         private const val PREV_SLOT        = INV_SIZE - 9
         private const val NEXT_SLOT        = INV_SIZE - 1
-        // Breathing room between columns; the "| " separator itself is 6px
-        // ('|' 2px + space 4px, color codes are zero-width).
+
         private const val COLUMN_GAP_PX    = 12
         private const val SEP_PX           = 6
 
         private const val SEP = "&8| "
 
-        /** Max results the window can show: 45 panes of 10 across pages. */
         const val CAPACITY = 450
     }
 }
