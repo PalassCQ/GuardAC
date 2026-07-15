@@ -62,7 +62,7 @@ class HologramConfig(private val plugin: GuardAC) {
         get() = cfg.getString("hologram.hit-format", "&8○ {PROB}")!!
 
     val maxHits: Int
-        get() = cfg.getInt("hologram.max-hits", 4).coerceIn(0, 10)
+        get() = cfg.getInt("hologram.max-hits", 5).coerceIn(0, 10)
 
     val lineHeight: Double
         get() = cfg.getDouble("hologram.line-height", 0.26)

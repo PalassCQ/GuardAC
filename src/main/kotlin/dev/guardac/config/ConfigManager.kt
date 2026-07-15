@@ -180,6 +180,10 @@ class ConfigManager(private val plugin: GuardAC) {
 
     val webCommandsEnabled: Boolean    get() = cfg.getBoolean("web-commands.enabled", true)
     val webCommandsPollSeconds: Long   get() = cfg.getLong("web-commands.poll-seconds", 15L).coerceIn(5L, 300L)
+    val banBridge: String              get() = cfg.getString("web-commands.ban-bridge", "auto")!!.lowercase()
+    val banBridgeBanCommand: String    get() = cfg.getString("web-commands.ban-command", "")!!
+    val banBridgeTempbanCommand: String get() = cfg.getString("web-commands.tempban-command", "")!!
+    val banBridgeUnbanCommand: String  get() = cfg.getString("web-commands.unban-command", "")!!
 
     val debugEnabled: Boolean        get() = cfg.getBoolean("debug.enabled", false)
     val debugLogProbability: Boolean get() = cfg.getBoolean("debug.log-probability", false)

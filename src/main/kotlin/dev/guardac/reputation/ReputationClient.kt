@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import dev.guardac.GuardAC
 import dev.guardac.data.TickData
+import dev.guardac.punishment.BanBridge
 import dev.guardac.util.Message
 import dev.guardac.util.SafeName
 import java.net.URI
@@ -32,10 +33,8 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.net.URLEncoder
 import java.time.Duration
-import java.util.Date
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
-import org.bukkit.BanList
 import org.bukkit.Bukkit
 import org.bukkit.scheduler.BukkitTask
 import java.util.concurrent.ConcurrentHashMap
@@ -391,7 +390,7 @@ class ReputationClient(private val plugin: GuardAC) {
         val staff = sanitize(c.requestedBy, 32).ifBlank { "dashboard" }
         if (c.type == "unban") {
             Bukkit.getScheduler().runTask(plugin, Runnable {
-                Bukkit.getBanList(BanList.Type.NAME).pardon(name)
+                BanBridge.unban(plugin, name)
                 val msg = plugin.locale.get(Message.WEB_UNBAN_EXECUTED, "player", name, "staff", staff)
                 Bukkit.getOnlinePlayers()
                     .filter { it.hasPermission("guardac.alerts") }
@@ -403,15 +402,12 @@ class ReputationClient(private val plugin: GuardAC) {
         }
         val reason  = sanitize(c.reason, 120).ifBlank { "Banned by server staff" }
         val minutes = c.durationMinutes.coerceIn(0, 527_040)
-        val durationLabel = when {
-            minutes <= 0          -> "\u221E"
-            minutes % 1440 == 0   -> "${minutes / 1440}d"
-            minutes % 60 == 0     -> "${minutes / 60}h"
-            else                  -> "${minutes}m"
-        }
+        val durationLabel = BanBridge.durationLabel(minutes)
         Bukkit.getScheduler().runTask(plugin, Runnable {
-            val expires = if (minutes > 0) Date(System.currentTimeMillis() + minutes * 60_000L) else null
-            Bukkit.getBanList(BanList.Type.NAME).addBan(name, reason, expires, "GuardAC Web ($staff)")
+            // Route through the server's real ban system (LiteBans/AdvancedBan/
+            // custom command) so web bans land in its history and sync, not in a
+            // parallel vanilla list nobody looks at.
+            BanBridge.ban(plugin, name, reason, minutes, "GuardAC Web ($staff)")
             Bukkit.getPlayerExact(name)?.kickPlayer(
                 plugin.locale.get(Message.WEB_BAN_KICK, "reason", reason)
             )
