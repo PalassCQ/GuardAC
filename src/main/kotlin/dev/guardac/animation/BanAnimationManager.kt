@@ -25,6 +25,7 @@ import org.bukkit.Material
 import org.bukkit.Particle
 import org.bukkit.Sound
 import org.bukkit.entity.ArmorStand
+import org.bukkit.entity.Entity
 import org.bukkit.entity.Pig
 import org.bukkit.entity.Player
 import org.bukkit.potion.PotionEffect
@@ -49,6 +50,26 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
     private val pendingCompletions = ConcurrentHashMap<UUID, MutableList<() -> Unit>>()
 
     private val frozen = ConcurrentHashMap<UUID, MovementState>()
+
+    // Everything the show spawns is tracked here. Stopping the server mid-show
+    // cancels the tick task, so the cleanup inside it never runs - without this
+    // the pig would be stranded in the air for good, since a plugin-spawned mob
+    // is never despawned by the server on its own.
+    private val spawned: MutableSet<Entity> = ConcurrentHashMap.newKeySet()
+
+    private fun <T : Entity> track(entity: T): T {
+        runCatching { entity.addScoreboardTag(ANIM_TAG) }
+        spawned.add(entity)
+        return entity
+    }
+
+    /** Clears every entity the show spawned; called when the plugin stops. */
+    fun removeAnimationEntities() {
+        spawned.toList().forEach { e ->
+            spawned.remove(e)
+            runCatching { e.remove() }
+        }
+    }
 
     fun isAnimating(uuid: UUID): Boolean = uuid in animating
 
@@ -189,24 +210,28 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         // the pig would just stand there with the player on it. Gravity off plus
         // a velocity rewritten every tick is what actually flies it; the goals it
         // still runs only add a slight wobble, which reads fine in the air.
-        val pig = world.spawn(player.location, Pig::class.java).apply {
+        val pig = track(world.spawn(player.location, Pig::class.java).apply {
             setGravity(false)
             isSilent = false
             isInvulnerable = true
-        }
+            // Last line of defence: should a crash ever strand this pig, the
+            // server despawns it once nobody is around. The rider keeps it well
+            // inside despawn range for the whole show.
+            removeWhenFarAway = true
+        })
 
         // Seat zero decides who drives a mount: with the player there the server
         // hands steering to their client, which would fight the climb. An
         // invisible marker takes seat zero so the pig stays server-driven, and
         // the player rides in seat one and is carried along.
         val seat = runCatching {
-            world.spawn(player.location, ArmorStand::class.java).apply {
+            track(world.spawn(player.location, ArmorStand::class.java).apply {
                 isVisible = false
                 isMarker = true
                 setGravity(false)
                 isInvulnerable = true
                 isSilent = true
-            }
+            })
         }.getOrNull()
         seat?.let { runCatching { pig.addPassenger(it) } }
         runCatching { pig.addPassenger(player) }
@@ -249,7 +274,8 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
 
     private fun cleanupPig(pig: Pig, seat: ArmorStand?, player: Player) {
         runCatching { pig.removePassenger(player) }
-        runCatching { seat?.remove() }
+        seat?.let { spawned.remove(it); runCatching { it.remove() } }
+        spawned.remove(pig)
         runCatching { pig.remove() }
     }
 
@@ -461,6 +487,8 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
 
     private companion object {
         val TYPES = listOf("pig", "explode", "particles", "lightning", "vortex", "meteor", "cage")
+        // Marks show entities, so a leftover can always be found: /kill @e[tag=guardac_anim]
+        const val ANIM_TAG = "guardac_anim"
         const val RISE_SPEED = 0.35
         // Above 1.0 the wither's death song plays faster; the API caps pitch at 2.0.
         const val WITHER_PITCH = 1.8f

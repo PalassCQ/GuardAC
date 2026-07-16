@@ -204,6 +204,7 @@ class GuardAC : JavaPlugin() {
         vlDecayTask?.cancel()
         vlDecayTask = null
         runCatching { banAnimationManager.restoreAllFrozen() }
+        runCatching { banAnimationManager.removeAnimationEntities() }
         runCatching { hologramManager.stop() }
         runCatching { suppressionManager.stop() }
         runCatching { tpsMonitor.stop() }
