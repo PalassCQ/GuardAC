@@ -24,6 +24,7 @@ import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.Particle
 import org.bukkit.Sound
+import org.bukkit.entity.ArmorStand
 import org.bukkit.entity.Pig
 import org.bukkit.entity.Player
 import org.bukkit.potion.PotionEffect
@@ -95,7 +96,8 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
             return
         }
 
-        val restore = freeze(player)
+        val lifted = freeze(player)
+        val restore = lifted.restore
         val done = AtomicBoolean(false)
 
         val finishWith: (Location) -> Unit = { loc ->
@@ -106,6 +108,10 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
                 dropResources(player, loc)
                 explode(loc)
                 onComplete()
+                // The send-off, once the ban has landed: the wither's death song,
+                // sped up. Only for animations that actually carried the player
+                // into the air - it is the payoff for the climb.
+                if (lifted.rose) playSound(loc, "ENTITY_WITHER_DEATH", 1f, WITHER_PITCH)
                 pendingCompletions.remove(player.uniqueId)?.forEach { queued ->
                     runCatching { queued() }
                 }
@@ -125,7 +131,10 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         }
     }
 
-    private fun freeze(player: Player): () -> Unit {
+    /** [Freeze.rose] says whether the player was actually sent upwards. */
+    private class Freeze(val rose: Boolean, val restore: () -> Unit)
+
+    private fun freeze(player: Player): Freeze {
         anchors[player.uniqueId] = player.location.clone()
         frozen[player.uniqueId] = MovementState(
             player.walkSpeed, player.flySpeed, player.allowFlight, player.isFlying,
@@ -137,16 +146,17 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
             player.flySpeed = 0f
         }
 
+        var rose = false
         if (!player.isInsideVehicle) {
-            runCatching {
+            rose = runCatching {
                 player.addPotionEffect(PotionEffect(
                     PotionEffectType.LEVITATION,
                     plugin.configManager.animationDurationTicks + 20, 1, false, false,
                 ))
                 player.velocity = Vector(0.0, 0.3, 0.0)
-            }
+            }.isSuccess
         }
-        return {
+        return Freeze(rose) {
             if (player.isOnline) {
                 frozen.remove(player.uniqueId)?.let { applyState(player, it) }
             }
@@ -174,25 +184,44 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         playSound(player.location, "ENTITY_PIG_AMBIENT", 1f, 1f)
 
         val targetY = player.location.y + plugin.configManager.animationPigHeight
+        // The AI must stay ON. A mob with its AI switched off is never moved by
+        // the server at all, so the velocity below would be silently dropped and
+        // the pig would just stand there with the player on it. Gravity off plus
+        // a velocity rewritten every tick is what actually flies it; the goals it
+        // still runs only add a slight wobble, which reads fine in the air.
         val pig = world.spawn(player.location, Pig::class.java).apply {
             setGravity(false)
-            setAI(false)
             isSilent = false
             isInvulnerable = true
-            addPassenger(player)
         }
+
+        // Seat zero decides who drives a mount: with the player there the server
+        // hands steering to their client, which would fight the climb. An
+        // invisible marker takes seat zero so the pig stays server-driven, and
+        // the player rides in seat one and is carried along.
+        val seat = runCatching {
+            world.spawn(player.location, ArmorStand::class.java).apply {
+                isVisible = false
+                isMarker = true
+                setGravity(false)
+                isInvulnerable = true
+                isSilent = true
+            }
+        }.getOrNull()
+        seat?.let { runCatching { pig.addPassenger(it) } }
+        runCatching { pig.addPassenger(player) }
 
         val duration = plugin.configManager.animationDurationTicks
         var t = 0
         plugin.scheduler.entityTimer(
             player, 1L, 1L,
-            retired = Runnable { cleanupPig(pig, player); finishWith(pig.location.clone()) },
+            retired = Runnable { cleanupPig(pig, seat, player); finishWith(pig.location.clone()) },
         ) { handle ->
             try {
                 if (!player.isOnline || !pig.isValid) {
                     handle.cancel()
                     val loc = if (pig.isValid) pig.location.clone() else player.location.clone()
-                    cleanupPig(pig, player)
+                    cleanupPig(pig, seat, player)
                     finishWith(loc)
                     return@entityTimer
                 }
@@ -207,19 +236,20 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
                 if (++t >= duration) {
                     handle.cancel()
                     val loc = pig.location.clone()
-                    cleanupPig(pig, player)
+                    cleanupPig(pig, seat, player)
                     finishWith(loc)
                 }
             } catch (e: Exception) {
                 handle.cancel()
-                cleanupPig(pig, player)
+                cleanupPig(pig, seat, player)
                 finishWith(player.location.clone())
             }
         }
     }
 
-    private fun cleanupPig(pig: Pig, player: Player) {
+    private fun cleanupPig(pig: Pig, seat: ArmorStand?, player: Player) {
         runCatching { pig.removePassenger(player) }
+        runCatching { seat?.remove() }
         runCatching { pig.remove() }
     }
 
@@ -432,5 +462,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
     private companion object {
         val TYPES = listOf("pig", "explode", "particles", "lightning", "vortex", "meteor", "cage")
         const val RISE_SPEED = 0.35
+        // Above 1.0 the wither's death song plays faster; the API caps pitch at 2.0.
+        const val WITHER_PITCH = 1.8f
     }
 }
