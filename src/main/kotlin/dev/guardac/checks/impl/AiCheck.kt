@@ -116,9 +116,6 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
 
                 plugin.alertManager.recordVerdict(gp, prob, modelTag(result.sources))
 
-                // The verdict arrives on an HTTP thread; hop to the region that
-                // owns this player, because everything below is about them -
-                // the event, the isolate notice and the punishment chain.
                 plugin.scheduler.entity(gp.player, Runnable {
                     if (!gp.player.isOnline) return@Runnable
 

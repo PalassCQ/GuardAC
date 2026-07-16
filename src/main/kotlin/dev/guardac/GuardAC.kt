@@ -179,8 +179,7 @@ class GuardAC : JavaPlugin() {
         vlDecayTask = null
         if (!configManager.vlDecayEnabled) return
         val intervalTicks = configManager.vlDecayIntervalSeconds * 20L
-        // Only touches our own in-memory violation data, so the global region is
-        // the right home for it on Folia.
+
         vlDecayTask = scheduler.globalTimer(intervalTicks, intervalTicks) {
             val decayAmount  = configManager.vlDecayAmount
             val skipInCombat = configManager.vlDecaySkipInCombat

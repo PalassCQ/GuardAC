@@ -32,8 +32,7 @@ class TpsMonitor(private val plugin: GuardAC) {
     fun start() {
         stop()
         lastSampleNanos = System.nanoTime()
-        // On Folia this measures the global region's tick rate: regions tick
-        // independently, so there is no single server-wide TPS to read.
+
         task = plugin.scheduler.globalTimer(SAMPLE_TICKS, SAMPLE_TICKS) {
             val now = System.nanoTime()
             val elapsedMs = (now - lastSampleNanos) / 1_000_000.0

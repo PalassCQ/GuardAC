@@ -51,10 +51,6 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
 
     private val frozen = ConcurrentHashMap<UUID, MovementState>()
 
-    // Everything the show spawns is tracked here. Stopping the server mid-show
-    // cancels the tick task, so the cleanup inside it never runs - without this
-    // the pig would be stranded in the air for good, since a plugin-spawned mob
-    // is never despawned by the server on its own.
     private val spawned: MutableSet<Entity> = ConcurrentHashMap.newKeySet()
 
     private fun <T : Entity> track(entity: T): T {
@@ -63,7 +59,6 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         return entity
     }
 
-    /** Clears every entity the show spawned; called when the plugin stops. */
     fun removeAnimationEntities() {
         spawned.toList().forEach { e ->
             spawned.remove(e)
@@ -129,9 +124,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
                 dropResources(player, loc)
                 explode(loc)
                 onComplete()
-                // The send-off, once the ban has landed: the wither's death song,
-                // sped up. Only for animations that actually carried the player
-                // into the air - it is the payoff for the climb.
+
                 if (lifted.rose) playSound(loc, "ENTITY_WITHER_DEATH", 1f, WITHER_PITCH)
                 pendingCompletions.remove(player.uniqueId)?.forEach { queued ->
                     runCatching { queued() }
@@ -152,7 +145,6 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         }
     }
 
-    /** [Freeze.rose] says whether the player was actually sent upwards. */
     private class Freeze(val rose: Boolean, val restore: () -> Unit)
 
     private fun freeze(player: Player): Freeze {
@@ -205,25 +197,15 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         playSound(player.location, "ENTITY_PIG_AMBIENT", 1f, 1f)
 
         val targetY = player.location.y + plugin.configManager.animationPigHeight
-        // The AI must stay ON. A mob with its AI switched off is never moved by
-        // the server at all, so the velocity below would be silently dropped and
-        // the pig would just stand there with the player on it. Gravity off plus
-        // a velocity rewritten every tick is what actually flies it; the goals it
-        // still runs only add a slight wobble, which reads fine in the air.
+
         val pig = track(world.spawn(player.location, Pig::class.java).apply {
             setGravity(false)
             isSilent = false
             isInvulnerable = true
-            // Last line of defence: should a crash ever strand this pig, the
-            // server despawns it once nobody is around. The rider keeps it well
-            // inside despawn range for the whole show.
+
             removeWhenFarAway = true
         })
 
-        // Seat zero decides who drives a mount: with the player there the server
-        // hands steering to their client, which would fight the climb. An
-        // invisible marker takes seat zero so the pig stays server-driven, and
-        // the player rides in seat one and is carried along.
         val seat = runCatching {
             track(world.spawn(player.location, ArmorStand::class.java).apply {
                 isVisible = false
@@ -487,10 +469,10 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
 
     private companion object {
         val TYPES = listOf("pig", "explode", "particles", "lightning", "vortex", "meteor", "cage")
-        // Marks show entities, so a leftover can always be found: /kill @e[tag=guardac_anim]
+
         const val ANIM_TAG = "guardac_anim"
         const val RISE_SPEED = 0.35
-        // Above 1.0 the wither's death song plays faster; the API caps pitch at 2.0.
+
         const val WITHER_PITCH = 1.8f
     }
 }

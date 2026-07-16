@@ -125,9 +125,6 @@ class PunishmentManager(private val plugin: GuardAC) {
             lastPunishTime[gp.uuid] = now
         }
 
-        // The whole chain is about this player - animation, kick, event - so it
-        // runs on the region that owns them. Console commands inside hop to the
-        // global region themselves, because ban lists are server-wide.
         plugin.scheduler.entity(gp.player, Runnable {
             val event = GuardPunishmentEvent(gp.player, checkGroup, vl, verbose, actions)
             Bukkit.getPluginManager().callEvent(event)
@@ -160,8 +157,6 @@ class PunishmentManager(private val plugin: GuardAC) {
             val willAnimate = plugin.configManager.animationsEnabled &&
                 (autoAnim || forceAnimation || hasExplicitAnim)
 
-            // A forced punish (staff clicked the button) must end in a ban even
-            // when this level only alerts and the show is disabled entirely.
             val chain = if ((willAnimate || forceAnimation) && !hasRealCommand) {
                 actions + fallbackBanAction()
             } else {
@@ -277,10 +272,6 @@ class PunishmentManager(private val plugin: GuardAC) {
                 }
             }
 
-            // [ban] <time> <reason> / [ban] <reason> - goes through the ban
-            // bridge (LiteBans / AdvancedBan / vanilla ban list), so it lands on
-            // every server setup. A raw "tempban ..." console line only works
-            // when a plugin providing that command happens to be installed.
             lower.startsWith("[ban]") ->
                 executeBridgeBan(gp, expanded.trim().substring("[ban]".length).trim())
 
@@ -312,22 +303,19 @@ class PunishmentManager(private val plugin: GuardAC) {
             if (SafeName.isSafe(name)) {
                 BanBridge.ban(plugin, name, reason, mins, "GuardAC")
             } else {
-                // A name unsafe for a console command still gets banned - via
-                // the API, which cannot be injected into.
+
                 runCatching {
                     val expires = if (mins > 0) java.util.Date(System.currentTimeMillis() + mins * 60_000L) else null
                     Bukkit.getBanList(org.bukkit.BanList.Type.NAME).addBan(name, reason, expires, "GuardAC")
                 }
             }
         })
-        // LiteBans/AdvancedBan and vanilla /ban kick on their own; the vanilla
-        // ban LIST does not, so make sure the player is gone either way.
+
         plugin.scheduler.entityDelayed(gp.player, 2L, Runnable {
             if (gp.player.isOnline) runCatching { gp.player.kickPlayer(Colors.translate("&c$reason")) }
         })
     }
 
-    /** "30d" / "12h" / "45m" / plain minutes; -1 when the token is not a duration. */
     private fun parseBanMinutes(token: String): Int {
         val t = token.trim().lowercase(Locale.ROOT)
         if (t.isEmpty()) return -1

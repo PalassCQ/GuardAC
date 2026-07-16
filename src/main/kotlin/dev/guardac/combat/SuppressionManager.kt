@@ -48,8 +48,7 @@ class SuppressionManager(private val plugin: GuardAC) {
         val enabled = plugin.configManager.suppressionEnabled
         plugin.playerDataManager.getAll().forEach { gp ->
             if (!gp.player.isOnline) return@forEach
-            // Attributes belong to the player, so each change has to run on the
-            // region that owns them - the sweep itself only decides who to touch.
+
             plugin.scheduler.entity(gp.player, Runnable {
                 if (!enabled) clearModifier(gp) else syncOne(gp)
             })

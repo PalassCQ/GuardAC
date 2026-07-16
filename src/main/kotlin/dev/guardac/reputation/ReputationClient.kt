@@ -360,8 +360,7 @@ class ReputationClient(private val plugin: GuardAC) {
         }
         val staff = sanitize(c.requestedBy, 32).ifBlank { "dashboard" }
         if (c.type == "unban") {
-            // Ban lists and ban-plugin commands are server-wide state, so this
-            // belongs to the global region on Folia, not to any one player's.
+
             plugin.scheduler.global(Runnable {
                 BanBridge.unban(plugin, name)
                 val msg = plugin.locale.get(Message.WEB_UNBAN_EXECUTED, "player", name, "staff", staff)
@@ -379,8 +378,7 @@ class ReputationClient(private val plugin: GuardAC) {
         plugin.scheduler.global(Runnable {
 
             BanBridge.ban(plugin, name, reason, minutes, "GuardAC Web ($staff)")
-            // Kicking is done to one player, so it has to happen on the region
-            // that owns them rather than wherever the ban itself ran.
+
             Bukkit.getPlayerExact(name)?.let { victim ->
                 plugin.scheduler.entity(victim, Runnable {
                     victim.kickPlayer(plugin.locale.get(Message.WEB_BAN_KICK, "reason", reason))

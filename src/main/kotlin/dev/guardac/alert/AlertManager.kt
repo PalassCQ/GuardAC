@@ -93,14 +93,6 @@ class AlertManager(private val plugin: GuardAC) {
 
     private val digests = ConcurrentHashMap<UUID, HitDigest>()
 
-    /**
-     * Called for EVERY verdict, red or green. The digest counts the player's
-     * actual attacks, not analysis windows: a red verdict claims only the
-     * swings thrown since the previous verdict, so six aimbot hits read as x6.
-     * Overlapping windows that re-score the same moment find no new swings to
-     * claim (no more "x3" off a single flick), and swings a green verdict
-     * already covered are never re-billed to a later red one.
-     */
     fun recordVerdict(gp: GuardPlayer, probability: Double, model: String) {
         val minHits = plugin.configManager.alertMinHits.coerceAtLeast(1)
         val minConfidence = plugin.configManager.alertMinConfidence
@@ -111,8 +103,7 @@ class AlertManager(private val plugin: GuardAC) {
         synchronized(d) {
             val now = System.currentTimeMillis()
             val totalAttacks = gp.combat.totalAttacks
-            // Combat reset zeroes the attack counter; a shrunken total means
-            // the baseline is stale and this fight started fresh.
+
             val delta = if (d.attackBaseline < 0 || totalAttacks < d.attackBaseline) {
                 minOf(totalAttacks, ATTACKS_PER_VERDICT_CAP)
             } else {
@@ -127,7 +118,7 @@ class AlertManager(private val plugin: GuardAC) {
                 d.batchMax = 0.0
             }
             d.lastHitMs = now
-            // Even a re-scored window keeps the peak honest and the episode alive.
+
             if (probability > d.batchMax) d.batchMax = probability
             d.model = model
             if (delta <= 0) return
@@ -314,8 +305,6 @@ class AlertManager(private val plugin: GuardAC) {
         stopProbSession(viewerId)
         probSessions[viewerId] = targetId
 
-        // The HUD is drawn for the viewer, so it rides the viewer's own region;
-        // if they log out mid-session Folia retires the task and we clean up.
         val task = plugin.scheduler.entityTimer(
             viewer, 0L, PROB_UPDATE_TICKS,
             retired = Runnable { stopProbSessionSilent(viewerId) },
@@ -416,9 +405,7 @@ class AlertManager(private val plugin: GuardAC) {
             plugin.logger.warning("Invalid alert sound: $soundName")
             return
         }
-        // A sound is played at the listener's own position, so each one has to be
-        // scheduled on the region that owns that player rather than read from
-        // whichever thread produced the alert.
+
         recipients.forEach { p ->
             if (!p.isOnline) return@forEach
             plugin.scheduler.entity(p, Runnable {
@@ -443,9 +430,7 @@ class AlertManager(private val plugin: GuardAC) {
 
         const val EPISODE_IDLE_MS     = 30_000L
         const val MS_PER_TICK         = 50L
-        // One verdict covers ~half a second of combat; more swings than this in
-        // that span is not human clicking, so anything above it is noise from a
-        // baseline gap (skipped windows), not real evidence.
+
         const val ATTACKS_PER_VERDICT_CAP = 8
 
         const val PROB_UPDATE_TICKS   = 10L

@@ -226,9 +226,6 @@ class GuardPlayer(
         val windowMs = cfg.aiSequence.toLong() * MS_PER_TICK
         val now = System.currentTimeMillis()
 
-        // The hit feed shows moments, not raw windows: verdicts landing inside
-        // the span of the last shown one merge into it (keeping its worst
-        // score), so one flick re-scored by overlapping windows stays one line.
         if (hitProbHistory.isNotEmpty() && now - lastFeedMs < windowMs) {
             val last = hitProbHistory.removeLast()
             hitProbHistory.addLast(max(last, probability))
@@ -240,11 +237,7 @@ class GuardPlayer(
 
         aiBuffer = when {
             probability > CHEAT_THRESHOLD -> {
-                // A window carries ai.sequence ticks but a new one is scored
-                // every ai.step ticks, so consecutive windows mostly re-score
-                // the same movement. Evidence is only banked once the last
-                // banked window has fully scrolled out - one suspicious moment
-                // is one gain, however many overlapping verdicts echo it.
+
                 if (now - lastGainMs >= windowMs) {
                     lastGainMs = now
                     val excess = probability - CHEAT_THRESHOLD

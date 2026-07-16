@@ -52,10 +52,7 @@ class HologramManager(private val plugin: GuardAC) {
 
     fun start() {
         if (!plugin.hologramConfig.enabled) return
-        // Holograms are drawn purely with packets and only ever read positions,
-        // so the global region can render every viewer on Folia. A position read
-        // there may lag a tick behind another region - invisible at 5-tick
-        // refresh, and nothing in this loop mutates world state.
+
         task = plugin.scheduler.globalTimer(
             TASK_DELAY, plugin.hologramConfig.updateIntervalTicks.toLong(),
         ) { tick() }
@@ -102,7 +99,7 @@ class HologramManager(private val plugin: GuardAC) {
         if (staffList.isEmpty()) return
 
         for (viewer in staffList) {
-            // One viewer's bad frame must never kill the shared render task.
+
             runCatching {
                 val state       = viewers.getOrPut(viewer.uniqueId) { ViewerState(viewer.uniqueId) }
                 val viewerLoc   = viewer.location

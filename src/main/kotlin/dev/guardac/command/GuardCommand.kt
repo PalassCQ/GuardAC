@@ -443,7 +443,7 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
 
         plugin.reputationClient.queryNetworkResults(name, ResultsMenu.CAPACITY)
             .thenAccept { remote ->
-                // Opening an inventory belongs to the viewer's own region.
+
                 plugin.scheduler.entity(sender, Runnable {
                     if (!sender.isOnline) return@Runnable
                     val merged = ArrayList<ResultsMenu.Row>(local.size + (remote?.size ?: 0))

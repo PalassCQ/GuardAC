@@ -31,24 +31,6 @@ fun interface TaskHandle {
     fun cancel()
 }
 
-/**
- * One scheduling API for both server families.
- *
- * On a regular server every method delegates to the classic BukkitScheduler with
- * exactly the call it replaced, so behaviour there is unchanged.
- *
- * Folia has no single main thread: work is owned by the region that holds the
- * chunk it touches. Each method below therefore says WHERE it runs, and callers
- * pick by what the work touches:
- *
- *   global  - plugin state, chat messages, console commands, ban lists
- *   entity  - one entity: teleport, potions, attributes, kick, its own location
- *   region  - a place in a world: particles, entity spawning, dropped items
- *   async   - network and database work, never touches world state
- *
- * Folia is reached purely by reflection, so nothing here links against classes a
- * 1.16 server does not have; the Folia branch is simply never taken there.
- */
 class Scheduler(private val plugin: Plugin) {
 
     val folia: Boolean = runCatching {
@@ -122,7 +104,6 @@ class Scheduler(private val plugin: Plugin) {
 
     private fun cls(name: String): Class<*> = Class.forName(name)
 
-    /** Folia rejects a delay or period below one tick; Bukkit accepts zero. */
     private fun ticks(v: Long): Long = if (v < 1L) 1L else v
 
     private fun handleOf(task: Any?): TaskHandle =
@@ -132,8 +113,6 @@ class Scheduler(private val plugin: Plugin) {
 
     private fun consumerOf(body: (TaskHandle) -> Unit): Consumer<Any?> =
         Consumer { st -> body(handleOf(st)) }
-
-    // ---- global ----------------------------------------------------------
 
     fun global(task: Runnable) {
         if (!folia) {
@@ -162,8 +141,6 @@ class Scheduler(private val plugin: Plugin) {
         )
     }
 
-    // ---- async -----------------------------------------------------------
-
     fun async(task: Runnable) {
         if (!folia) {
             Bukkit.getScheduler().runTaskAsynchronously(plugin, task)
@@ -174,7 +151,7 @@ class Scheduler(private val plugin: Plugin) {
 
     fun asyncTimer(delayTicks: Long, periodTicks: Long, task: (TaskHandle) -> Unit): TaskHandle {
         if (!folia) return paperTimer(delayTicks, periodTicks, async = true, body = task)
-        // The async scheduler takes real time, not ticks.
+
         return handleOf(
             mAsyncRate!!.invoke(
                 asyncSched, plugin, consumerOf(task),
@@ -183,9 +160,6 @@ class Scheduler(private val plugin: Plugin) {
         )
     }
 
-    // ---- entity ----------------------------------------------------------
-
-    /** [retired] runs instead of [task] when the entity is gone by execution time. */
     fun entity(entity: Entity, task: Runnable, retired: Runnable? = null) {
         if (!folia) {
             Bukkit.getScheduler().runTask(plugin, task)
@@ -195,8 +169,7 @@ class Scheduler(private val plugin: Plugin) {
         val res = mEntityRun!!.invoke(
             sched, plugin, consumerOf(task), Runnable { retired?.run() },
         )
-        // null => the entity was already removed, so Folia never scheduled it and
-        // never calls the retired hook itself.
+
         if (res == null) retired?.run()
     }
 
@@ -229,8 +202,6 @@ class Scheduler(private val plugin: Plugin) {
         return handleOf(res)
     }
 
-    // ---- region ----------------------------------------------------------
-
     fun region(location: Location, task: Runnable) {
         if (!folia) {
             Bukkit.getScheduler().runTask(plugin, task)
@@ -251,9 +222,6 @@ class Scheduler(private val plugin: Plugin) {
         )
     }
 
-    // ---- misc ------------------------------------------------------------
-
-    /** Folia only moves entities asynchronously; elsewhere this is a plain teleport. */
     fun teleport(entity: Entity, to: Location) {
         val m = mTeleportAsync
         if (folia && m != null) {
@@ -264,8 +232,7 @@ class Scheduler(private val plugin: Plugin) {
     }
 
     private class PaperTimer(private val body: (TaskHandle) -> Unit) : BukkitRunnable() {
-        // Handed to the body so a repeating task can stop itself, exactly like
-        // calling cancel() inside the BukkitRunnable this replaced.
+
         private val self = TaskHandle { runCatching { this@PaperTimer.cancel() } }
         override fun run() = body(self)
     }

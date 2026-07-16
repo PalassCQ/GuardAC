@@ -141,9 +141,6 @@ class ConfigManager(private val plugin: GuardAC) {
 
     val aiOnlyAlert: Boolean   get() = cfg.getBoolean("ai.only-alert", false)
 
-    // Tuned for one banked gain per distinct suspicious moment (~2s of combat):
-    // a fully red moment banks ~10-12, so VL comes after ~3 distinct moments
-    // and a single spike in an otherwise clean fight stays well below the flag.
     val aiBufferFlag: Double        get() = cfg.getDouble("ai.buffer.flag", 30.0)
     val aiBufferResetOnFlag: Double get() = cfg.getDouble("ai.buffer.reset-on-flag", 10.0)
     val aiBufferMultiplier: Double  get() = cfg.getDouble("ai.buffer.multiplier", 100.0)
