@@ -20,27 +20,29 @@ package dev.guardac.util
 
 import dev.guardac.GuardAC
 import org.bukkit.Bukkit
-import org.bukkit.scheduler.BukkitTask
 
 class TpsMonitor(private val plugin: GuardAC) {
 
     @Volatile var tps: Double = 20.0
         private set
 
-    private var task: BukkitTask? = null
+    private var task: TaskHandle? = null
     private var lastSampleNanos = 0L
 
     fun start() {
         stop()
         lastSampleNanos = System.nanoTime()
-        task = Bukkit.getScheduler().runTaskTimer(plugin, Runnable {
+        // On Folia this measures the global region's tick rate: regions tick
+        // independently, so there is no single server-wide TPS to read.
+        task = plugin.scheduler.globalTimer(SAMPLE_TICKS, SAMPLE_TICKS) {
             val now = System.nanoTime()
             val elapsedMs = (now - lastSampleNanos) / 1_000_000.0
             lastSampleNanos = now
-            if (elapsedMs <= 0.0) return@Runnable
-            val measured = (SAMPLE_TICKS * 1000.0 / elapsedMs).coerceIn(0.0, 20.0)
-            tps = tps * (1.0 - EMA_ALPHA) + measured * EMA_ALPHA
-        }, SAMPLE_TICKS, SAMPLE_TICKS)
+            if (elapsedMs > 0.0) {
+                val measured = (SAMPLE_TICKS * 1000.0 / elapsedMs).coerceIn(0.0, 20.0)
+                tps = tps * (1.0 - EMA_ALPHA) + measured * EMA_ALPHA
+            }
+        }
     }
 
     fun stop() {

@@ -24,29 +24,35 @@ import dev.guardac.util.Message
 import org.bukkit.Bukkit
 import org.bukkit.attribute.Attribute
 import org.bukkit.attribute.AttributeModifier
-import org.bukkit.scheduler.BukkitTask
+import dev.guardac.util.TaskHandle
 import java.util.UUID
 
 class SuppressionManager(private val plugin: GuardAC) {
 
-    private var task: BukkitTask? = null
+    private var task: TaskHandle? = null
 
     fun start() {
         stop()
-        task = Bukkit.getScheduler().runTaskTimer(plugin, Runnable { syncAll() }, SYNC_INTERVAL_TICKS, SYNC_INTERVAL_TICKS)
+        task = plugin.scheduler.globalTimer(SYNC_INTERVAL_TICKS, SYNC_INTERVAL_TICKS) { syncAll() }
     }
 
     fun stop() {
         task?.cancel()
         task = null
-        plugin.playerDataManager.getAll().forEach { clearModifier(it) }
+        plugin.playerDataManager.getAll().forEach { gp ->
+            if (gp.player.isOnline) plugin.scheduler.entity(gp.player, Runnable { clearModifier(gp) })
+        }
     }
 
     private fun syncAll() {
         val enabled = plugin.configManager.suppressionEnabled
         plugin.playerDataManager.getAll().forEach { gp ->
             if (!gp.player.isOnline) return@forEach
-            if (!enabled) clearModifier(gp) else syncOne(gp)
+            // Attributes belong to the player, so each change has to run on the
+            // region that owns them - the sweep itself only decides who to touch.
+            plugin.scheduler.entity(gp.player, Runnable {
+                if (!enabled) clearModifier(gp) else syncOne(gp)
+            })
         }
     }
 

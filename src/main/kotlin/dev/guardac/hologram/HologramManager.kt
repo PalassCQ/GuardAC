@@ -37,7 +37,7 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.entity.Player
-import org.bukkit.scheduler.BukkitTask
+import dev.guardac.util.TaskHandle
 import java.util.ArrayList
 import java.util.Optional
 import java.util.UUID
@@ -48,14 +48,17 @@ class HologramManager(private val plugin: GuardAC) {
 
     private val viewers = ConcurrentHashMap<UUID, ViewerState>()
     private val entityIdCounter = AtomicInteger(ENTITY_ID_START)
-    private var task: BukkitTask? = null
+    private var task: TaskHandle? = null
 
     fun start() {
         if (!plugin.hologramConfig.enabled) return
-        task = plugin.server.scheduler.runTaskTimer(
-            plugin, Runnable { tick() },
-            TASK_DELAY, plugin.hologramConfig.updateIntervalTicks.toLong()
-        )
+        // Holograms are drawn purely with packets and only ever read positions,
+        // so the global region can render every viewer on Folia. A position read
+        // there may lag a tick behind another region - invisible at 5-tick
+        // refresh, and nothing in this loop mutates world state.
+        task = plugin.scheduler.globalTimer(
+            TASK_DELAY, plugin.hologramConfig.updateIntervalTicks.toLong(),
+        ) { tick() }
     }
 
     fun stop() {
@@ -99,28 +102,31 @@ class HologramManager(private val plugin: GuardAC) {
         if (staffList.isEmpty()) return
 
         for (viewer in staffList) {
-            val state       = viewers.getOrPut(viewer.uniqueId) { ViewerState(viewer.uniqueId) }
-            val viewerLoc   = viewer.location
-            val viewerWorld = viewerLoc.world?.name ?: continue
-            val alive       = mutableSetOf<UUID>()
+            // One viewer's bad frame must never kill the shared render task.
+            runCatching {
+                val state       = viewers.getOrPut(viewer.uniqueId) { ViewerState(viewer.uniqueId) }
+                val viewerLoc   = viewer.location
+                val viewerWorld = viewerLoc.world?.name ?: return@runCatching
+                val alive       = mutableSetOf<UUID>()
 
-            for (target in online) {
-                if (target == viewer) continue
-                if (target.world?.name != viewerWorld) continue
-                if (target.isDead) continue
-                val gp = plugin.playerDataManager.get(target) ?: continue
-                val targetLoc = target.location
-                if (viewerLoc.distanceSquared(targetLoc) > viewDistSq) continue
+                for (target in online) {
+                    if (target == viewer) continue
+                    if (target.world?.name != viewerWorld) continue
+                    if (target.isDead) continue
+                    val gp = plugin.playerDataManager.get(target) ?: continue
+                    val targetLoc = target.location
+                    if (viewerLoc.distanceSquared(targetLoc) > viewDistSq) continue
 
-                if (gp.getHitProbHistory().isEmpty()) continue
+                    if (gp.getHitProbHistory().isEmpty()) continue
 
-                alive += target.uniqueId
+                    alive += target.uniqueId
 
-                val holoLoc = targetLoc.clone().add(0.0, cfg.yOffset, 0.0)
-                updateTarget(viewer, target.uniqueId, holoLoc, gp, state, cfg)
+                    val holoLoc = targetLoc.clone().add(0.0, cfg.yOffset, 0.0)
+                    updateTarget(viewer, target.uniqueId, holoLoc, gp, state, cfg)
+                }
+
+                state.targets.keys.filter { it !in alive }.forEach { removeTarget(viewer, it, state) }
             }
-
-            state.targets.keys.filter { it !in alive }.forEach { removeTarget(viewer, it, state) }
         }
     }
 

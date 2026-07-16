@@ -120,7 +120,7 @@ class PunishmentHistory(private val plugin: GuardAC) {
     fun record(uuid: UUID, name: String, check: String, vl: Int, probability: Double, action: String) {
         if (connection == null) return
         val ts = Instant.now().toEpochMilli()
-        plugin.server.scheduler.runTaskAsynchronously(plugin, Runnable {
+        plugin.scheduler.async(Runnable {
             try {
                 synchronized(lock) {
                     val conn = connection ?: return@Runnable
@@ -195,7 +195,7 @@ class PunishmentHistory(private val plugin: GuardAC) {
             saveBufferNow(uuid, buffer, vl)
             return
         }
-        plugin.server.scheduler.runTaskAsynchronously(plugin, Runnable {
+        plugin.scheduler.async(Runnable {
             saveBufferNow(uuid, buffer, vl)
         })
     }
@@ -256,7 +256,7 @@ class PunishmentHistory(private val plugin: GuardAC) {
     fun recordResult(uuid: UUID, name: String, model: String, probability: Double) {
         if (connection == null) return
         val ts = Instant.now().toEpochMilli()
-        plugin.server.scheduler.runTaskAsynchronously(plugin, Runnable {
+        plugin.scheduler.async(Runnable {
             try {
                 synchronized(lock) {
                     val conn = connection ?: return@Runnable

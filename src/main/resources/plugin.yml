@@ -2,6 +2,7 @@ name: GuardAC
 version: '${version}'
 main: dev.guardac.GuardAC
 api-version: 1.16
+folia-supported: true
 authors:
   - Palass
 website: https://github.com/PalassCQ/GuardAC

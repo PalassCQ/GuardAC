@@ -36,7 +36,7 @@ import java.time.Duration
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import org.bukkit.Bukkit
-import org.bukkit.scheduler.BukkitTask
+import dev.guardac.util.TaskHandle
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Executors
@@ -159,7 +159,7 @@ class ReputationClient(private val plugin: GuardAC) {
             .exceptionally { null }
     }
 
-    @Volatile private var pollTask: BukkitTask? = null
+    @Volatile private var pollTask: TaskHandle? = null
     @Volatile private var pollSince: Double = 0.0
 
     private val pollInFlight = AtomicBoolean(false)
@@ -167,19 +167,18 @@ class ReputationClient(private val plugin: GuardAC) {
     fun startNetworkAlertPolling() {
         pollTask?.cancel()
         val period = plugin.configManager.crossServerPollSeconds * 20L
-        pollTask = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, Runnable {
-            if (shuttingDown) return@Runnable
-            if (!pollInFlight.compareAndSet(false, true)) return@Runnable
-            try {
-
-                flushPendingResults()
-                if (plugin.configManager.crossServerEnabled) pollNetworkAlerts()
-                pollWebCommands()
-                pollGlobalExempt()
-            } finally {
-                pollInFlight.set(false)
+        pollTask = plugin.scheduler.asyncTimer(period, period) {
+            if (!shuttingDown && pollInFlight.compareAndSet(false, true)) {
+                try {
+                    flushPendingResults()
+                    if (plugin.configManager.crossServerEnabled) pollNetworkAlerts()
+                    pollWebCommands()
+                    pollGlobalExempt()
+                } finally {
+                    pollInFlight.set(false)
+                }
             }
-        }, period, period)
+        }
     }
 
     fun stopNetworkAlertPolling() {
@@ -361,7 +360,9 @@ class ReputationClient(private val plugin: GuardAC) {
         }
         val staff = sanitize(c.requestedBy, 32).ifBlank { "dashboard" }
         if (c.type == "unban") {
-            Bukkit.getScheduler().runTask(plugin, Runnable {
+            // Ban lists and ban-plugin commands are server-wide state, so this
+            // belongs to the global region on Folia, not to any one player's.
+            plugin.scheduler.global(Runnable {
                 BanBridge.unban(plugin, name)
                 val msg = plugin.locale.get(Message.WEB_UNBAN_EXECUTED, "player", name, "staff", staff)
                 Bukkit.getOnlinePlayers()
@@ -375,12 +376,16 @@ class ReputationClient(private val plugin: GuardAC) {
         val reason  = sanitize(c.reason, 120).ifBlank { "Banned by server staff" }
         val minutes = c.durationMinutes.coerceIn(0, 527_040)
         val durationLabel = BanBridge.durationLabel(minutes)
-        Bukkit.getScheduler().runTask(plugin, Runnable {
+        plugin.scheduler.global(Runnable {
 
             BanBridge.ban(plugin, name, reason, minutes, "GuardAC Web ($staff)")
-            Bukkit.getPlayerExact(name)?.kickPlayer(
-                plugin.locale.get(Message.WEB_BAN_KICK, "reason", reason)
-            )
+            // Kicking is done to one player, so it has to happen on the region
+            // that owns them rather than wherever the ban itself ran.
+            Bukkit.getPlayerExact(name)?.let { victim ->
+                plugin.scheduler.entity(victim, Runnable {
+                    victim.kickPlayer(plugin.locale.get(Message.WEB_BAN_KICK, "reason", reason))
+                })
+            }
             val msg = plugin.locale.get(
                 Message.WEB_BAN_EXECUTED,
                 "player",   name,

@@ -174,7 +174,9 @@ class SuspectsMenu(
             val target = Bukkit.getPlayerExact(name)
             if (target != null && target.isOnline) {
                 viewer.gameMode = GameMode.SPECTATOR
-                viewer.teleport(target)
+                // Teleporting to a player in another region has to be async on
+                // Folia; the abstraction keeps it a plain teleport elsewhere.
+                plugin.scheduler.teleport(viewer, target.location)
             } else {
                 viewer.sendMessage(plugin.locale.get(Message.MENU_PLAYER_OFFLINE, "player", name))
             }
@@ -192,7 +194,9 @@ class SuspectsMenu(
                 .replace("<player>", name)
                 .replace("<target>", name)
                 .removePrefix("/")
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd)
+            plugin.scheduler.global(Runnable {
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd)
+            })
         }
     }
 

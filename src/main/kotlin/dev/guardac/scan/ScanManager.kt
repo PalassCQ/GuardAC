@@ -48,10 +48,10 @@ class ScanManager(private val plugin: GuardAC) {
         if (scans.putIfAbsent(target.uniqueId, scan) != null) return false
 
         val timeoutTicks = plugin.configManager.scanTimeoutSeconds * 20L
-        Bukkit.getScheduler().runTaskLater(plugin, Runnable {
+        plugin.scheduler.globalDelayed(timeoutTicks, Runnable {
             val active = scans.remove(target.uniqueId)
             if (active != null && active === scan) report(target.uniqueId, active, timedOut = true)
-        }, timeoutTicks)
+        })
         return true
     }
 
@@ -73,7 +73,7 @@ class ScanManager(private val plugin: GuardAC) {
     private fun report(uuid: UUID, scan: Scan, timedOut: Boolean) {
         val probs = synchronized(scan) { scan.probs.toList() }
         val sources = synchronized(scan) { scan.votedSources.toList() }
-        Bukkit.getScheduler().runTask(plugin, Runnable {
+        plugin.scheduler.global(Runnable {
             val out: CommandSender =
                 scan.initiator?.let { Bukkit.getPlayer(it) } ?: Bukkit.getConsoleSender()
 

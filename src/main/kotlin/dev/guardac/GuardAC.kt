@@ -47,9 +47,10 @@ import dev.guardac.reputation.ReputationClient
 import dev.guardac.scan.ScanManager
 import dev.guardac.stats.DailyStats
 import dev.guardac.update.UpdateManager
+import dev.guardac.util.Scheduler
+import dev.guardac.util.TaskHandle
 import dev.guardac.util.TpsMonitor
 import org.bukkit.plugin.java.JavaPlugin
-import org.bukkit.scheduler.BukkitTask
 import java.util.logging.Level
 
 class GuardAC : JavaPlugin() {
@@ -76,11 +77,13 @@ class GuardAC : JavaPlugin() {
     lateinit var tpsMonitor: TpsMonitor                     private set
     lateinit var updateManager: UpdateManager               private set
 
+    lateinit var scheduler: Scheduler                       private set
+
     var startTime: Long = 0L
         private set
 
     private var runtimeStarted = false
-    private var vlDecayTask: BukkitTask? = null
+    private var vlDecayTask: TaskHandle? = null
 
     override fun onEnable() {
         instance = this
@@ -115,6 +118,7 @@ class GuardAC : JavaPlugin() {
 
         java.security.Security.setProperty("networkaddress.cache.negative.ttl", "0")
         java.security.Security.setProperty("networkaddress.cache.ttl", "300")
+        scheduler             = Scheduler(this)
         configManager         = ConfigManager(this).also { it.load() }
         monitorConfig         = MonitorConfig(this).also { it.load() }
         hologramConfig        = HologramConfig(this).also { it.load() }
@@ -175,7 +179,9 @@ class GuardAC : JavaPlugin() {
         vlDecayTask = null
         if (!configManager.vlDecayEnabled) return
         val intervalTicks = configManager.vlDecayIntervalSeconds * 20L
-        vlDecayTask = server.scheduler.runTaskTimer(this, Runnable {
+        // Only touches our own in-memory violation data, so the global region is
+        // the right home for it on Folia.
+        vlDecayTask = scheduler.globalTimer(intervalTicks, intervalTicks) {
             val decayAmount  = configManager.vlDecayAmount
             val skipInCombat = configManager.vlDecaySkipInCombat
             playerDataManager.getAll().forEach { gp ->
@@ -183,7 +189,7 @@ class GuardAC : JavaPlugin() {
                 if (skipInCombat && gp.combat.isInCombatWindow(configManager.aiSequence)) return@forEach
                 gp.decayVl(decayAmount)
             }
-        }, intervalTicks, intervalTicks)
+        }
     }
 
     private fun handleEnableFailure(cause: Throwable) {

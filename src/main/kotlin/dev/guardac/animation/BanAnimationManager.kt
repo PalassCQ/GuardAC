@@ -32,7 +32,6 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerMoveEvent
-import org.bukkit.scheduler.BukkitRunnable
 import org.bukkit.util.Vector
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -184,39 +183,39 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         }
 
         val duration = plugin.configManager.animationDurationTicks
-        object : BukkitRunnable() {
-            var t = 0
-            override fun run() {
-
-                try {
-                    if (!player.isOnline || !pig.isValid) {
-                        cancel()
-                        val loc = if (pig.isValid) pig.location.clone() else player.location.clone()
-                        cleanupPig(pig, player)
-                        finishWith(loc)
-                        return
-                    }
-
-                    anchors[player.uniqueId] = pig.location.clone()
-                    if (!pig.passengers.contains(player)) {
-                        runCatching { player.teleport(pig.location) }
-                        runCatching { pig.addPassenger(player) }
-                    }
-                    pig.velocity = if (pig.location.y < targetY) Vector(0.0, RISE_SPEED, 0.0) else Vector(0.0, 0.0, 0.0)
-                    if (t % 3 == 0) world.spawnParticle(particle("CLOUD"), pig.location, 6, 0.3, 0.1, 0.3, 0.0)
-                    if (++t >= duration) {
-                        cancel()
-                        val loc = pig.location.clone()
-                        cleanupPig(pig, player)
-                        finishWith(loc)
-                    }
-                } catch (e: Exception) {
-                    cancel()
+        var t = 0
+        plugin.scheduler.entityTimer(
+            player, 1L, 1L,
+            retired = Runnable { cleanupPig(pig, player); finishWith(pig.location.clone()) },
+        ) { handle ->
+            try {
+                if (!player.isOnline || !pig.isValid) {
+                    handle.cancel()
+                    val loc = if (pig.isValid) pig.location.clone() else player.location.clone()
                     cleanupPig(pig, player)
-                    finishWith(player.location.clone())
+                    finishWith(loc)
+                    return@entityTimer
                 }
+
+                anchors[player.uniqueId] = pig.location.clone()
+                if (!pig.passengers.contains(player)) {
+                    plugin.scheduler.teleport(player, pig.location)
+                    runCatching { pig.addPassenger(player) }
+                }
+                pig.velocity = if (pig.location.y < targetY) Vector(0.0, RISE_SPEED, 0.0) else Vector(0.0, 0.0, 0.0)
+                if (t % 3 == 0) world.spawnParticle(particle("CLOUD"), pig.location, 6, 0.3, 0.1, 0.3, 0.0)
+                if (++t >= duration) {
+                    handle.cancel()
+                    val loc = pig.location.clone()
+                    cleanupPig(pig, player)
+                    finishWith(loc)
+                }
+            } catch (e: Exception) {
+                handle.cancel()
+                cleanupPig(pig, player)
+                finishWith(player.location.clone())
             }
-        }.runTaskTimer(plugin, 0L, 1L)
+        }
     }
 
     private fun cleanupPig(pig: Pig, player: Player) {
@@ -226,7 +225,10 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
 
     private fun playExplode(player: Player, finishWith: (Location) -> Unit) {
 
-        Bukkit.getScheduler().runTaskLater(plugin, Runnable { finishWith(player.location.clone()) }, 6L)
+        plugin.scheduler.entityDelayed(
+            player, 6L, Runnable { finishWith(player.location.clone()) },
+            retired = Runnable { finishWith(player.location.clone()) },
+        )
     }
 
     private fun playParticles(player: Player, finishWith: (Location) -> Unit) {
@@ -236,32 +238,33 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         val perTick  = cfg.animationParticleCount.coerceAtLeast(1)
         val particle = particle(cfg.animationParticle, "FLAME")
 
-        object : BukkitRunnable() {
-            var t = 0
-            override fun run() {
-                try {
-                    if (!player.isOnline) { cancel(); finishWith(player.location.clone()); return }
-                    val center = player.location.clone().add(0.0, 1.0, 0.0)
-                    val points = 14
-                    val each = (perTick / points).coerceAtLeast(1)
-                    for (i in 0 until points) {
-                        val ang = t * 0.25 + Math.PI * 2 * i / points
-                        val x = Math.cos(ang) * 1.2
-                        val z = Math.sin(ang) * 1.2
-                        world.spawnParticle(particle, center.clone().add(x, 0.0, z), each, 0.0, 0.0, 0.0, 0.0)
-                    }
-                    if (++t >= duration) {
-                        cancel()
-                        runCatching { player.removePotionEffect(PotionEffectType.LEVITATION) }
-                        finishWith(player.location.clone())
-                    }
-                } catch (e: Exception) {
-                    cancel()
+        var t = 0
+        plugin.scheduler.entityTimer(
+            player, 1L, 1L,
+            retired = Runnable { finishWith(player.location.clone()) },
+        ) { handle ->
+            try {
+                if (!player.isOnline) { handle.cancel(); finishWith(player.location.clone()); return@entityTimer }
+                val center = player.location.clone().add(0.0, 1.0, 0.0)
+                val points = 14
+                val each = (perTick / points).coerceAtLeast(1)
+                for (i in 0 until points) {
+                    val ang = t * 0.25 + Math.PI * 2 * i / points
+                    val x = Math.cos(ang) * 1.2
+                    val z = Math.sin(ang) * 1.2
+                    world.spawnParticle(particle, center.clone().add(x, 0.0, z), each, 0.0, 0.0, 0.0, 0.0)
+                }
+                if (++t >= duration) {
+                    handle.cancel()
                     runCatching { player.removePotionEffect(PotionEffectType.LEVITATION) }
                     finishWith(player.location.clone())
                 }
+            } catch (e: Exception) {
+                handle.cancel()
+                runCatching { player.removePotionEffect(PotionEffectType.LEVITATION) }
+                finishWith(player.location.clone())
             }
-        }.runTaskTimer(plugin, 0L, 1L)
+        }
     }
 
     private fun playLightning(player: Player, finishWith: (Location) -> Unit) {
@@ -269,18 +272,19 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         val gap = (duration / 4).coerceAtLeast(1).toLong()
 
         for (i in 0..2) {
-            Bukkit.getScheduler().runTaskLater(plugin, Runnable {
+            plugin.scheduler.entityDelayed(player, gap * i, Runnable {
                 if (!player.isOnline) return@Runnable
                 runCatching { player.world.strikeLightningEffect(player.location) }
                 player.world.spawnParticle(
                     particle("ELECTRIC_SPARK", "CRIT"),
                     player.location.clone().add(0.0, 1.0, 0.0), 25, 0.5, 0.8, 0.5, 0.05,
                 )
-            }, gap * i)
+            })
         }
-        Bukkit.getScheduler().runTaskLater(plugin, Runnable {
-            finishWith(player.location.clone())
-        }, gap * 3)
+        plugin.scheduler.entityDelayed(
+            player, gap * 3, Runnable { finishWith(player.location.clone()) },
+            retired = Runnable { finishWith(player.location.clone()) },
+        )
     }
 
     private fun playVortex(player: Player, finishWith: (Location) -> Unit) {
@@ -288,34 +292,35 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         val duration = plugin.configManager.animationDurationTicks
         playSound(player.location, "ENTITY_PHANTOM_FLAP", 1f, 0.6f)
 
-        object : BukkitRunnable() {
-            var t = 0
-            override fun run() {
-                try {
-                    if (!player.isOnline) { cancel(); finishWith(player.location.clone()); return }
-                    val base = player.location
-                    for (arm in 0..1) {
-                        val ang = t * 0.5 + arm * Math.PI
-                        val r = 1.6 - (t.toDouble() / duration) * 0.7
-                        val y = (t.toDouble() / duration) * 2.8
-                        world.spawnParticle(
-                            particle("CLOUD"),
-                            base.clone().add(Math.cos(ang) * r, y, Math.sin(ang) * r),
-                            3, 0.05, 0.05, 0.05, 0.0,
-                        )
-                        world.spawnParticle(
-                            particle("END_ROD", "CRIT"),
-                            base.clone().add(Math.cos(ang + 0.7) * r, y * 0.6, Math.sin(ang + 0.7) * r),
-                            1, 0.0, 0.0, 0.0, 0.0,
-                        )
-                    }
-                    if (++t >= duration) { cancel(); finishWith(player.location.clone()) }
-                } catch (e: Exception) {
-                    cancel()
-                    finishWith(player.location.clone())
+        var t = 0
+        plugin.scheduler.entityTimer(
+            player, 1L, 1L,
+            retired = Runnable { finishWith(player.location.clone()) },
+        ) { handle ->
+            try {
+                if (!player.isOnline) { handle.cancel(); finishWith(player.location.clone()); return@entityTimer }
+                val base = player.location
+                for (arm in 0..1) {
+                    val ang = t * 0.5 + arm * Math.PI
+                    val r = 1.6 - (t.toDouble() / duration) * 0.7
+                    val y = (t.toDouble() / duration) * 2.8
+                    world.spawnParticle(
+                        particle("CLOUD"),
+                        base.clone().add(Math.cos(ang) * r, y, Math.sin(ang) * r),
+                        3, 0.05, 0.05, 0.05, 0.0,
+                    )
+                    world.spawnParticle(
+                        particle("END_ROD", "CRIT"),
+                        base.clone().add(Math.cos(ang + 0.7) * r, y * 0.6, Math.sin(ang + 0.7) * r),
+                        1, 0.0, 0.0, 0.0, 0.0,
+                    )
                 }
+                if (++t >= duration) { handle.cancel(); finishWith(player.location.clone()) }
+            } catch (e: Exception) {
+                handle.cancel()
+                finishWith(player.location.clone())
             }
-        }.runTaskTimer(plugin, 0L, 1L)
+        }
     }
 
     private fun playMeteor(player: Player, finishWith: (Location) -> Unit) {
@@ -324,34 +329,35 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         val fall = (duration * 2 / 3).coerceAtLeast(15)
         playSound(player.location, "ENTITY_GHAST_SHOOT", 1f, 0.5f)
 
-        object : BukkitRunnable() {
-            var t = 0
-            override fun run() {
-                try {
-                    if (!player.isOnline) { cancel(); finishWith(player.location.clone()); return }
-                    val remaining = 1.0 - t.toDouble() / fall
-                    val pos = player.location.clone().add(
-                        remaining * 7.0,
-                        remaining * 15.0 + 1.0,
-                        remaining * 5.0,
-                    )
-                    world.spawnParticle(particle("FLAME"), pos, 12, 0.25, 0.25, 0.25, 0.01)
-                    world.spawnParticle(particle("LAVA"), pos, 2, 0.1, 0.1, 0.1, 0.0)
-                    world.spawnParticle(particle("LARGE_SMOKE", "SMOKE_LARGE", "SMOKE"), pos, 5, 0.2, 0.2, 0.2, 0.01)
-                    if (t % 5 == 0) playSound(pos, "BLOCK_FIRE_AMBIENT", 1f, 0.6f)
-                    if (++t >= fall) {
-                        cancel()
-                        val impact = player.location.clone()
-                        world.spawnParticle(particle("FLAME"), impact, 70, 1.4, 0.5, 1.4, 0.08)
-                        world.spawnParticle(particle("LAVA"), impact, 12, 1.0, 0.4, 1.0, 0.0)
-                        finishWith(impact)
-                    }
-                } catch (e: Exception) {
-                    cancel()
-                    finishWith(player.location.clone())
+        var t = 0
+        plugin.scheduler.entityTimer(
+            player, 1L, 1L,
+            retired = Runnable { finishWith(player.location.clone()) },
+        ) { handle ->
+            try {
+                if (!player.isOnline) { handle.cancel(); finishWith(player.location.clone()); return@entityTimer }
+                val remaining = 1.0 - t.toDouble() / fall
+                val pos = player.location.clone().add(
+                    remaining * 7.0,
+                    remaining * 15.0 + 1.0,
+                    remaining * 5.0,
+                )
+                world.spawnParticle(particle("FLAME"), pos, 12, 0.25, 0.25, 0.25, 0.01)
+                world.spawnParticle(particle("LAVA"), pos, 2, 0.1, 0.1, 0.1, 0.0)
+                world.spawnParticle(particle("LARGE_SMOKE", "SMOKE_LARGE", "SMOKE"), pos, 5, 0.2, 0.2, 0.2, 0.01)
+                if (t % 5 == 0) playSound(pos, "BLOCK_FIRE_AMBIENT", 1f, 0.6f)
+                if (++t >= fall) {
+                    handle.cancel()
+                    val impact = player.location.clone()
+                    world.spawnParticle(particle("FLAME"), impact, 70, 1.4, 0.5, 1.4, 0.08)
+                    world.spawnParticle(particle("LAVA"), impact, 12, 1.0, 0.4, 1.0, 0.0)
+                    finishWith(impact)
                 }
+            } catch (e: Exception) {
+                handle.cancel()
+                finishWith(player.location.clone())
             }
-        }.runTaskTimer(plugin, 0L, 1L)
+        }
     }
 
     private fun playCage(player: Player, finishWith: (Location) -> Unit) {
@@ -359,37 +365,38 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         val duration = plugin.configManager.animationDurationTicks
         playSound(player.location, "BLOCK_ANVIL_LAND", 0.6f, 0.5f)
 
-        object : BukkitRunnable() {
-            var t = 0
-            override fun run() {
-                try {
-                    if (!player.isOnline) { cancel(); finishWith(player.location.clone()); return }
-                    val base = player.location
-                    val radius = 2.4 - (t.toDouble() / duration) * 1.7
-                    val bars = 8
-                    for (i in 0 until bars) {
-                        val ang = Math.PI * 2 * i / bars + t * 0.05
-                        val x = Math.cos(ang) * radius
-                        val z = Math.sin(ang) * radius
-                        var y = 0.0
-                        while (y <= 2.4) {
-                            world.spawnParticle(particle("END_ROD", "CRIT"), base.clone().add(x, y, z), 1, 0.0, 0.0, 0.0, 0.0)
-                            y += 0.5
-                        }
+        var t = 0
+        plugin.scheduler.entityTimer(
+            player, 1L, 1L,
+            retired = Runnable { finishWith(player.location.clone()) },
+        ) { handle ->
+            try {
+                if (!player.isOnline) { handle.cancel(); finishWith(player.location.clone()); return@entityTimer }
+                val base = player.location
+                val radius = 2.4 - (t.toDouble() / duration) * 1.7
+                val bars = 8
+                for (i in 0 until bars) {
+                    val ang = Math.PI * 2 * i / bars + t * 0.05
+                    val x = Math.cos(ang) * radius
+                    val z = Math.sin(ang) * radius
+                    var y = 0.0
+                    while (y <= 2.4) {
+                        world.spawnParticle(particle("END_ROD", "CRIT"), base.clone().add(x, y, z), 1, 0.0, 0.0, 0.0, 0.0)
+                        y += 0.5
                     }
-
-                    world.spawnParticle(
-                        particle("END_ROD", "CRIT"),
-                        base.clone().add(0.0, 2.6, 0.0), 4, radius * 0.4, 0.05, radius * 0.4, 0.0,
-                    )
-                    if (t % 12 == 0) playSound(base, "BLOCK_AMETHYST_BLOCK_CHIME", 1f, 0.6f)
-                    if (++t >= duration) { cancel(); finishWith(base.clone()) }
-                } catch (e: Exception) {
-                    cancel()
-                    finishWith(player.location.clone())
                 }
+
+                world.spawnParticle(
+                    particle("END_ROD", "CRIT"),
+                    base.clone().add(0.0, 2.6, 0.0), 4, radius * 0.4, 0.05, radius * 0.4, 0.0,
+                )
+                if (t % 12 == 0) playSound(base, "BLOCK_AMETHYST_BLOCK_CHIME", 1f, 0.6f)
+                if (++t >= duration) { handle.cancel(); finishWith(base.clone()) }
+            } catch (e: Exception) {
+                handle.cancel()
+                finishWith(player.location.clone())
             }
-        }.runTaskTimer(plugin, 0L, 1L)
+        }
     }
 
     private fun dropResources(player: Player, loc: Location) {

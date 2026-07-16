@@ -103,7 +103,7 @@ class DailyStats(private val plugin: GuardAC) {
     }
 
     private fun saveAsync() {
-        plugin.server.scheduler.runTaskAsynchronously(plugin, Runnable {
+        plugin.scheduler.async(Runnable {
             val sql = """
                 INSERT INTO daily_stats (date, detections, requests) VALUES (?, ?, ?)
                 ON CONFLICT(date) DO UPDATE SET

@@ -25,7 +25,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import dev.guardac.GuardAC
 import dev.guardac.util.Message
 import org.bukkit.Bukkit
-import org.bukkit.scheduler.BukkitTask
+import dev.guardac.util.TaskHandle
 import java.io.File
 import java.net.URI
 import java.net.http.HttpClient
@@ -48,16 +48,15 @@ class UpdateManager(private val plugin: GuardAC, private val pluginJar: File) {
         .build()
 
     private val stateFile = File(plugin.dataFolder, ".update-state")
-    private var task: BukkitTask? = null
+    private var task: TaskHandle? = null
     @Volatile private var lastFailureLogMs = 0L
 
     fun start() {
         val intervalTicks = plugin.configManager.autoUpdateIntervalHours
             .coerceIn(1, 168) * 3600L * 20L
-        task = plugin.server.scheduler.runTaskTimerAsynchronously(
-            plugin, Runnable { runCatching(::check).onFailure(::logFailure) },
-            FIRST_CHECK_DELAY_TICKS, intervalTicks,
-        )
+        task = plugin.scheduler.asyncTimer(FIRST_CHECK_DELAY_TICKS, intervalTicks) {
+            runCatching(::check).onFailure(::logFailure)
+        }
     }
 
     fun stop() {
@@ -98,7 +97,7 @@ class UpdateManager(private val plugin: GuardAC, private val pluginJar: File) {
         plugin.logger.info("[GuardAC] Update $tag downloaded (${bytes.size / 1024} KB) - it will be applied on the next server restart.")
         if (plugin.configManager.autoUpdateNotifyStaff) {
             val msg = plugin.locale.get(Message.UPDATE_DOWNLOADED, "tag", tag)
-            Bukkit.getScheduler().runTask(plugin, Runnable {
+            plugin.scheduler.global(Runnable {
                 Bukkit.getOnlinePlayers()
                     .filter { it.hasPermission("guardac.alerts") }
                     .forEach { it.sendMessage(msg) }

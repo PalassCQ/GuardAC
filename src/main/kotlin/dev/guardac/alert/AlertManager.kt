@@ -30,7 +30,7 @@ import net.md_5.bungee.api.chat.hover.content.Text
 import org.bukkit.Bukkit
 import org.bukkit.Sound
 import org.bukkit.entity.Player
-import org.bukkit.scheduler.BukkitTask
+import dev.guardac.util.TaskHandle
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArraySet
@@ -38,7 +38,7 @@ class AlertManager(private val plugin: GuardAC) {
     private val alertsMuted      = CopyOnWriteArraySet<UUID>()
     private val monitorReceivers = CopyOnWriteArraySet<UUID>()
     private val probSessions = ConcurrentHashMap<UUID, UUID>()
-    private val probTasks    = ConcurrentHashMap<UUID, BukkitTask>()
+    private val probTasks    = ConcurrentHashMap<UUID, TaskHandle>()
     private val crossServerEnabled = CopyOnWriteArraySet<UUID>()
     fun reload() {}
     fun toggleAlerts(uuid: UUID): Boolean =
@@ -156,7 +156,7 @@ class AlertManager(private val plugin: GuardAC) {
     private fun detailed(p: Double): String = "%.12f".format(java.util.Locale.ROOT, p)
 
     private fun deliverAlert(msg: String, consoleLine: String, playerName: String, withSound: Boolean) {
-        Bukkit.getScheduler().runTask(plugin, Runnable {
+        plugin.scheduler.global(Runnable {
             if (plugin.configManager.alertsToConsole) {
                 plugin.logger.info(consoleLine)
             }
@@ -184,7 +184,7 @@ class AlertManager(private val plugin: GuardAC) {
             "base",   base,
             "now",    now,
         )
-        Bukkit.getScheduler().runTask(plugin, Runnable {
+        plugin.scheduler.global(Runnable {
             if (!gp.player.isOnline) return@Runnable
             val component = clickableAlert(msg, gp.player.name)
             Bukkit.getOnlinePlayers()
@@ -207,7 +207,7 @@ class AlertManager(private val plugin: GuardAC) {
             "buffer", "%.1f".format(buffer),
             "flag",   "%.0f".format(plugin.configManager.aiBufferFlag),
         )
-        Bukkit.getScheduler().runTask(plugin, Runnable {
+        plugin.scheduler.global(Runnable {
             val component = clickableAlert(msg, gp.player.name)
             Bukkit.getOnlinePlayers()
                 .filter { it.hasPermission("guardac.alerts") && !alertsMuted.contains(it.uniqueId) }
@@ -225,7 +225,7 @@ class AlertManager(private val plugin: GuardAC) {
             "servers", servers.toString(),
             "detections", detections.toString(),
         )
-        Bukkit.getScheduler().runTask(plugin, Runnable {
+        plugin.scheduler.global(Runnable {
             Bukkit.getOnlinePlayers()
                 .filter { it.hasPermission("guardac.alerts") && !alertsMuted.contains(it.uniqueId) }
                 .forEach { it.sendMessage(msg) }
@@ -258,7 +258,7 @@ class AlertManager(private val plugin: GuardAC) {
             "high_count",  gp.highProbCount.toString(),
             "suppression", suppressionTag(gp),
         )
-        Bukkit.getScheduler().runTask(plugin, Runnable {
+        plugin.scheduler.global(Runnable {
             if (!gp.player.isOnline) return@Runnable
             Bukkit.getOnlinePlayers()
                 .filter { it.hasPermission("guardac.alerts") && monitorReceivers.contains(it.uniqueId) }
@@ -274,7 +274,7 @@ class AlertManager(private val plugin: GuardAC) {
             "vl",      vl.toString(),
             "verbose", verbose,
         )
-        Bukkit.getScheduler().runTask(plugin, Runnable {
+        plugin.scheduler.global(Runnable {
             Bukkit.getOnlinePlayers()
                 .filter { it.hasPermission("guardac.alerts") && crossServerEnabled.contains(it.uniqueId) }
                 .forEach { it.sendMessage(msg) }
@@ -290,20 +290,26 @@ class AlertManager(private val plugin: GuardAC) {
         stopProbSession(viewerId)
         probSessions[viewerId] = targetId
 
-        val task = Bukkit.getScheduler().runTaskTimer(plugin, Runnable {
+        // The HUD is drawn for the viewer, so it rides the viewer's own region;
+        // if they log out mid-session Folia retires the task and we clean up.
+        val task = plugin.scheduler.entityTimer(
+            viewer, 0L, PROB_UPDATE_TICKS,
+            retired = Runnable { stopProbSessionSilent(viewerId) },
+        ) { handle ->
             val onlineViewer = Bukkit.getPlayer(viewerId)
 
             if (onlineViewer == null || !onlineViewer.isOnline) {
+                handle.cancel()
                 stopProbSessionSilent(viewerId)
-                return@Runnable
+                return@entityTimer
             }
             val onlineTarget = Bukkit.getPlayer(targetId)
             if (onlineTarget == null || !onlineTarget.isOnline) {
-
+                handle.cancel()
                 stopProbSession(viewerId)
-                return@Runnable
+                return@entityTimer
             }
-            val gp = plugin.playerDataManager.get(onlineTarget) ?: return@Runnable
+            val gp = plugin.playerDataManager.get(onlineTarget) ?: return@entityTimer
 
             val prob    = gp.lastAiProbability * 100
             val avg     = gp.avgProbability * 100
@@ -331,7 +337,7 @@ class AlertManager(private val plugin: GuardAC) {
                 "ping_color", pingColor,
             )
             sendActionBar(onlineViewer, msg)
-        }, 0L, PROB_UPDATE_TICKS)
+        }
         probTasks[viewerId] = task
         return true
     }
@@ -386,8 +392,14 @@ class AlertManager(private val plugin: GuardAC) {
             plugin.logger.warning("Invalid alert sound: $soundName")
             return
         }
+        // A sound is played at the listener's own position, so each one has to be
+        // scheduled on the region that owns that player rather than read from
+        // whichever thread produced the alert.
         recipients.forEach { p ->
-            if (p.isOnline) p.playSound(p.location, sound, volume, pitch)
+            if (!p.isOnline) return@forEach
+            plugin.scheduler.entity(p, Runnable {
+                if (p.isOnline) p.playSound(p.location, sound, volume, pitch)
+            })
         }
     }
     private fun suppressionTag(gp: GuardPlayer): String {

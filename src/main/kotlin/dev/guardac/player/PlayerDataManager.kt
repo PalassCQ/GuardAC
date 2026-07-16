@@ -78,7 +78,7 @@ class PlayerDataManager(private val plugin: GuardAC) : Listener {
         val cfg = plugin.configManager
         if (!cfg.persistBufferEnabled) return
 
-        plugin.server.scheduler.runTaskAsynchronously(plugin, Runnable {
+        plugin.scheduler.async(Runnable {
             val rec = plugin.punishmentHistory.loadBuffer(gp.uuid) ?: return@Runnable
             plugin.punishmentHistory.clearBuffer(gp.uuid)
 

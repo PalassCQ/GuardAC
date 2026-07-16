@@ -125,7 +125,10 @@ class PunishmentManager(private val plugin: GuardAC) {
             lastPunishTime[gp.uuid] = now
         }
 
-        Bukkit.getScheduler().runTask(plugin, Runnable {
+        // The whole chain is about this player - animation, kick, event - so it
+        // runs on the region that owns them. Console commands inside hop to the
+        // global region themselves, because ban lists are server-wide.
+        plugin.scheduler.entity(gp.player, Runnable {
             val event = GuardPunishmentEvent(gp.player, checkGroup, vl, verbose, actions)
             Bukkit.getPluginManager().callEvent(event)
             if (event.isCancelled) return@Runnable
@@ -218,9 +221,9 @@ class PunishmentManager(private val plugin: GuardAC) {
             val arg = command.trim().substring("[wait]".length).trim()
             val ticks = parseDurationTicks(arg)
             if (ticks > 0) {
-                Bukkit.getScheduler().runTaskLater(plugin, Runnable {
+                plugin.scheduler.entityDelayed(gp.player, ticks, Runnable {
                     executeChain(gp, checkGroup, vl, verbose, commands, index + 1)
-                }, ticks)
+                })
                 return
             }
         } else {
@@ -274,7 +277,9 @@ class PunishmentManager(private val plugin: GuardAC) {
                 }
             }
 
-            else -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), expanded.trim())
+            else -> plugin.scheduler.global(Runnable {
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), expanded.trim())
+            })
         }
     }
 
