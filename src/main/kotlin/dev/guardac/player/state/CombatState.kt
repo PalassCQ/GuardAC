@@ -23,7 +23,8 @@ class CombatState {
     var ticksSinceAttack: Int = Int.MAX_VALUE / 2
         private set
 
-    var totalAttacks: Int = 0
+    // Read from the HTTP verdict thread by the alert digest.
+    @Volatile var totalAttacks: Int = 0
         private set
 
     @Volatile var lastAttackMs: Long = 0L

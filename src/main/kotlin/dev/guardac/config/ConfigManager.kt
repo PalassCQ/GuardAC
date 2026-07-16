@@ -141,8 +141,11 @@ class ConfigManager(private val plugin: GuardAC) {
 
     val aiOnlyAlert: Boolean   get() = cfg.getBoolean("ai.only-alert", false)
 
-    val aiBufferFlag: Double        get() = cfg.getDouble("ai.buffer.flag", 50.0)
-    val aiBufferResetOnFlag: Double get() = cfg.getDouble("ai.buffer.reset-on-flag", 25.0)
+    // Tuned for one banked gain per distinct suspicious moment (~2s of combat):
+    // a fully red moment banks ~10-12, so VL comes after ~3 distinct moments
+    // and a single spike in an otherwise clean fight stays well below the flag.
+    val aiBufferFlag: Double        get() = cfg.getDouble("ai.buffer.flag", 30.0)
+    val aiBufferResetOnFlag: Double get() = cfg.getDouble("ai.buffer.reset-on-flag", 10.0)
     val aiBufferMultiplier: Double  get() = cfg.getDouble("ai.buffer.multiplier", 100.0)
     val aiBufferDecrease: Double    get() = cfg.getDouble("ai.buffer.decrease", 0.25)
 
@@ -152,7 +155,7 @@ class ConfigManager(private val plugin: GuardAC) {
     val alertMinHits: Int          get() = cfg.getInt("alerts.min-hits", 3)
 
     val suspiciousAlertsEnabled: Boolean get() = cfg.getBoolean("alerts.suspicious.enabled", true)
-    val suspiciousAlertBuffer: Double   get() = cfg.getDouble("alerts.suspicious.buffer", 25.0)
+    val suspiciousAlertBuffer: Double   get() = cfg.getDouble("alerts.suspicious.buffer", 15.0)
 
     val alertSoundEnabled: Boolean get() = cfg.getBoolean("alerts.sound.enabled", true)
     val alertSoundType: String     get() = cfg.getString("alerts.sound.type", "BLOCK_NOTE_BLOCK_PLING")!!
@@ -232,7 +235,7 @@ class ConfigManager(private val plugin: GuardAC) {
     val persistBufferEnabled: Boolean get() = cfg.getBoolean("persist-buffer.enabled", true)
     val persistBufferGraceMinutes: Double get() = cfg.getDouble("persist-buffer.grace-minutes", 5.0)
     val persistBufferDecayPerHour: Double get() = cfg.getDouble("persist-buffer.decay-per-hour", 5.0)
-    val persistBufferCapOnRestore: Double get() = cfg.getDouble("persist-buffer.cap-on-restore", 40.0)
+    val persistBufferCapOnRestore: Double get() = cfg.getDouble("persist-buffer.cap-on-restore", 20.0)
 
     val persistBufferTtlMinutes: Double get() =
         cfg.getDouble("persist-buffer.ttl-minutes", cfg.getDouble("persist-buffer.expiry-minutes", 1440.0))

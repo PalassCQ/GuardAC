@@ -85,49 +85,60 @@ class AlertManager(private val plugin: GuardAC) {
 
     private class HitDigest {
         var lastHitMs = 0L
-        var lastCountedMs = 0L
         var episodeHits = 0
         var batchMax = 0.0
         var model = "[AI]"
+        var attackBaseline = -1
     }
 
     private val digests = ConcurrentHashMap<UUID, HitDigest>()
 
-    fun sendHitAlert(gp: GuardPlayer, probability: Double, model: String) {
+    /**
+     * Called for EVERY verdict, red or green. The digest counts the player's
+     * actual attacks, not analysis windows: a red verdict claims only the
+     * swings thrown since the previous verdict, so six aimbot hits read as x6.
+     * Overlapping windows that re-score the same moment find no new swings to
+     * claim (no more "x3" off a single flick), and swings a green verdict
+     * already covered are never re-billed to a later red one.
+     */
+    fun recordVerdict(gp: GuardPlayer, probability: Double, model: String) {
         val minHits = plugin.configManager.alertMinHits.coerceAtLeast(1)
-        // A window carries ai.sequence ticks but a new one leaves every ai.step
-        // ticks, so consecutive windows re-score mostly the same movement: one
-        // suspicious moment comes back as several verdicts in a row. Counting
-        // each of them turned a single red spike into "x3". A window only counts
-        // once the last counted one has scrolled out of it, so every hit stands
-        // for a distinct moment. Where windows do not overlap this changes nothing.
-        val windowMs = plugin.configManager.aiSequence.toLong() * MS_PER_TICK
+        val minConfidence = plugin.configManager.alertMinConfidence
         val d = digests.computeIfAbsent(gp.uuid) { HitDigest() }
         var announceCount = 0
         var announceMax = 0.0
         var firstOfEpisode = false
         synchronized(d) {
             val now = System.currentTimeMillis()
-            if (now - d.lastHitMs > EPISODE_IDLE_MS) {
+            val totalAttacks = gp.combat.totalAttacks
+            // Combat reset zeroes the attack counter; a shrunken total means
+            // the baseline is stale and this fight started fresh.
+            val delta = if (d.attackBaseline < 0 || totalAttacks < d.attackBaseline) {
+                minOf(totalAttacks, ATTACKS_PER_VERDICT_CAP)
+            } else {
+                minOf(totalAttacks - d.attackBaseline, ATTACKS_PER_VERDICT_CAP)
+            }
+            d.attackBaseline = totalAttacks
 
+            if (probability * 100.0 < minConfidence) return
+
+            if (now - d.lastHitMs > EPISODE_IDLE_MS) {
                 d.episodeHits = 0
                 d.batchMax = 0.0
-                d.lastCountedMs = 0L
             }
             d.lastHitMs = now
             // Even a re-scored window keeps the peak honest and the episode alive.
             if (probability > d.batchMax) d.batchMax = probability
             d.model = model
-            if (d.lastCountedMs == 0L || now - d.lastCountedMs >= windowMs) {
-                d.lastCountedMs = now
-                d.episodeHits++
-                if (d.episodeHits % minHits == 0) {
-                    announceCount = d.episodeHits
-                    announceMax = d.batchMax
-                    firstOfEpisode = d.episodeHits == minHits
+            if (delta <= 0) return
 
-                    d.batchMax = 0.0
-                }
+            val previous = d.episodeHits
+            d.episodeHits += delta
+            if (d.episodeHits / minHits > previous / minHits) {
+                announceCount = d.episodeHits
+                announceMax = d.batchMax
+                firstOfEpisode = previous < minHits
+                d.batchMax = 0.0
             }
         }
         if (announceCount > 0) {
@@ -432,6 +443,10 @@ class AlertManager(private val plugin: GuardAC) {
 
         const val EPISODE_IDLE_MS     = 30_000L
         const val MS_PER_TICK         = 50L
+        // One verdict covers ~half a second of combat; more swings than this in
+        // that span is not human clicking, so anything above it is noise from a
+        // baseline gap (skipped windows), not real evidence.
+        const val ATTACKS_PER_VERDICT_CAP = 8
 
         const val PROB_UPDATE_TICKS   = 10L
     }

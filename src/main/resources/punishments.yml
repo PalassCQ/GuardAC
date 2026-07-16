@@ -21,6 +21,10 @@
 #   [animation] <type>- visual show BEFORE the next action:
 #                       pig | explode | particles | lightning | vortex | meteor | cage
 #                       (settings in config.yml -> animations)
+#   [ban] <time> <reason> - ban through your ban system (LiteBans / AdvancedBan /
+#                       vanilla, see config.yml -> web-commands.ban-bridge).
+#                       Time like 30d / 12h / 45m; omit it for a permanent ban.
+#                       Works on every server - no tempban plugin required.
 #   <command>         - run as console
 #
 # `actions` are grouped by VL. The nearest level BELOW fires: at VL=4 the
@@ -44,22 +48,22 @@ Punishments:
         - "[alert]"
         - "[log]"
         - "[broadcast] &#22D3EE▍ &#AEB8C4GuardAC &8» &#FF4D6D<player> &7banned for &#AEB8C430 days &8(&7VL:&#AEB8C4<vl>&8)"
-        - "tempban <player> 30d GuardAC Detection (VL:<vl>)"
+        - "[ban] 30d GuardAC Detection (VL:<vl>)"
       5:
         - "[alert]"
         - "[log]"
         - "[broadcast] &#22D3EE▍ &#AEB8C4GuardAC &8» &#FF4D6D<player> &7banned for &#AEB8C430 days &8(&7VL:&#AEB8C4<vl>&8)"
-        - "tempban <player> 30d GuardAC Detection (VL:<vl>)"
+        - "[ban] 30d GuardAC Detection (VL:<vl>)"
       7:
         - "[alert]"
         - "[log]"
         - "[broadcast] &#22D3EE▍ &#AEB8C4GuardAC &8» &#FF4D6D<player> &7banned for &#AEB8C430 days &8(&7VL:&#AEB8C4<vl>&8)"
-        - "tempban <player> 30d GuardAC Detection (VL:<vl>)"
+        - "[ban] 30d GuardAC Detection (VL:<vl>)"
       10:
         - "[alert]"
         - "[log]"
         - "[broadcast] &#22D3EE▍ &#AEB8C4GuardAC &8» &#FF4D6D<player> &cbanned permanently &8(&7VL:&#AEB8C4<vl>&8)"
         # An animation plays automatically before the ban (animations.auto-on-ban).
         # Want a specific one instead of random? Add here: "[animation] pig".
-        - "ban <player> Cheating (GuardAC VL:<vl>)"
+        - "[ban] Cheating (GuardAC VL:<vl>)"
         - "[reset]"

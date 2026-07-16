@@ -136,6 +136,8 @@ class GuardPlayer(
         private set
 
     private val hitProbHistory = ArrayDeque<Double>(HIT_HISTORY_SIZE)
+    private var lastFeedMs = 0L
+    private var lastGainMs = 0L
 
     @Synchronized
     fun getHitProbHistory(): List<Double> = hitProbHistory.toList()
@@ -220,16 +222,37 @@ class GuardPlayer(
 
         if (!lagDistorted) updateFingerprint(probability)
 
-        hitProbHistory.addLast(probability)
+        val cfg = plugin.configManager
+        val windowMs = cfg.aiSequence.toLong() * MS_PER_TICK
+        val now = System.currentTimeMillis()
+
+        // The hit feed shows moments, not raw windows: verdicts landing inside
+        // the span of the last shown one merge into it (keeping its worst
+        // score), so one flick re-scored by overlapping windows stays one line.
+        if (hitProbHistory.isNotEmpty() && now - lastFeedMs < windowMs) {
+            val last = hitProbHistory.removeLast()
+            hitProbHistory.addLast(max(last, probability))
+        } else {
+            hitProbHistory.addLast(probability)
+            lastFeedMs = now
+        }
         while (hitProbHistory.size > HIT_HISTORY_SIZE) hitProbHistory.removeFirst()
 
-        val cfg = plugin.configManager
         aiBuffer = when {
             probability > CHEAT_THRESHOLD -> {
-                val excess = probability - CHEAT_THRESHOLD
-                val gain   = excess * cfg.aiBufferMultiplier * (1.0 + excess * CONFIDENCE_WEIGHT_FACTOR)
-
-                aiBuffer + gain * (if (lagDistorted) LAG_GAIN_SCALE else 1.0)
+                // A window carries ai.sequence ticks but a new one is scored
+                // every ai.step ticks, so consecutive windows mostly re-score
+                // the same movement. Evidence is only banked once the last
+                // banked window has fully scrolled out - one suspicious moment
+                // is one gain, however many overlapping verdicts echo it.
+                if (now - lastGainMs >= windowMs) {
+                    lastGainMs = now
+                    val excess = probability - CHEAT_THRESHOLD
+                    val gain   = excess * cfg.aiBufferMultiplier * (1.0 + excess * CONFIDENCE_WEIGHT_FACTOR)
+                    aiBuffer + gain * (if (lagDistorted) LAG_GAIN_SCALE else 1.0)
+                } else {
+                    aiBuffer
+                }
             }
             probability < LEGIT_THRESHOLD -> max(0.0, aiBuffer - cfg.aiBufferDecrease)
             else                           -> aiBuffer
@@ -248,6 +271,8 @@ class GuardPlayer(
         aiBuffer = 0.0
         probHistory.clear(); probHistorySum = 0.0
         hitProbHistory.clear()
+        lastFeedMs = 0L
+        lastGainMs = 0L
         peakProbability = 0.0
         highProbCount = 0
         attackSpeedPenalty = 0.0
@@ -329,6 +354,8 @@ class GuardPlayer(
         probHistory.clear()
         probHistorySum    = 0.0
         hitProbHistory.clear()
+        lastFeedMs = 0L
+        lastGainMs = 0L
         fpBaseline = 0.0; fpRecent = 0.0; fpHits = 0
         attackSpeedPenalty = 0.0
         isolateUntilMs     = 0L
@@ -371,6 +398,7 @@ class GuardPlayer(
         const val MOVE_RECENT_MS           = 500L
 
         const val UNSTABLE_GAP_MIN_MS      = 15L
+        const val MS_PER_TICK              = 50L
         const val CHEAT_THRESHOLD          = 0.90
         const val LEGIT_THRESHOLD          = 0.10
 

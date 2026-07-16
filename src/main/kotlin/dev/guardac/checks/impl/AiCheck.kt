@@ -114,9 +114,7 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
 
                 plugin.alertManager.dispatchMonitorHit(gp, prob, result.model)
 
-                if (prob * 100.0 >= plugin.configManager.alertMinConfidence) {
-                    plugin.alertManager.sendHitAlert(gp, prob, modelTag(result.sources))
-                }
+                plugin.alertManager.recordVerdict(gp, prob, modelTag(result.sources))
 
                 // The verdict arrives on an HTTP thread; hop to the region that
                 // owns this player, because everything below is about them -
