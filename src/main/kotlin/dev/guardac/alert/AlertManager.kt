@@ -85,6 +85,7 @@ class AlertManager(private val plugin: GuardAC) {
 
     private class HitDigest {
         var lastHitMs = 0L
+        var lastCountedMs = 0L
         var episodeHits = 0
         var batchMax = 0.0
         var model = "[AI]"
@@ -94,6 +95,13 @@ class AlertManager(private val plugin: GuardAC) {
 
     fun sendHitAlert(gp: GuardPlayer, probability: Double, model: String) {
         val minHits = plugin.configManager.alertMinHits.coerceAtLeast(1)
+        // A window carries ai.sequence ticks but a new one leaves every ai.step
+        // ticks, so consecutive windows re-score mostly the same movement: one
+        // suspicious moment comes back as several verdicts in a row. Counting
+        // each of them turned a single red spike into "x3". A window only counts
+        // once the last counted one has scrolled out of it, so every hit stands
+        // for a distinct moment. Where windows do not overlap this changes nothing.
+        val windowMs = plugin.configManager.aiSequence.toLong() * MS_PER_TICK
         val d = digests.computeIfAbsent(gp.uuid) { HitDigest() }
         var announceCount = 0
         var announceMax = 0.0
@@ -104,17 +112,22 @@ class AlertManager(private val plugin: GuardAC) {
 
                 d.episodeHits = 0
                 d.batchMax = 0.0
+                d.lastCountedMs = 0L
             }
             d.lastHitMs = now
-            d.episodeHits++
+            // Even a re-scored window keeps the peak honest and the episode alive.
             if (probability > d.batchMax) d.batchMax = probability
             d.model = model
-            if (d.episodeHits % minHits == 0) {
-                announceCount = d.episodeHits
-                announceMax = d.batchMax
-                firstOfEpisode = d.episodeHits == minHits
+            if (d.lastCountedMs == 0L || now - d.lastCountedMs >= windowMs) {
+                d.lastCountedMs = now
+                d.episodeHits++
+                if (d.episodeHits % minHits == 0) {
+                    announceCount = d.episodeHits
+                    announceMax = d.batchMax
+                    firstOfEpisode = d.episodeHits == minHits
 
-                d.batchMax = 0.0
+                    d.batchMax = 0.0
+                }
             }
         }
         if (announceCount > 0) {
@@ -418,6 +431,7 @@ class AlertManager(private val plugin: GuardAC) {
         const val SUSPICIOUS_THROTTLE_MS = 15_000L
 
         const val EPISODE_IDLE_MS     = 30_000L
+        const val MS_PER_TICK         = 50L
 
         const val PROB_UPDATE_TICKS   = 10L
     }
