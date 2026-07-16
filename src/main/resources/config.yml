@@ -6,7 +6,7 @@
 # below switches everything the plugin SAYS (staff alerts, command output,
 # player messages) between languages.
 
-config-version: 31
+config-version: 32
 
 # Language of all plugin messages: en | ru
 locale: "en"
@@ -24,12 +24,11 @@ ai:
   # Your personal API key from the dashboard at https://guardac.net
   api-key: "PASTE-YOUR-GUARDAC-KEY"
   # How many movement ticks make one analysis window. 40 = ~2 seconds of combat.
+  # DO NOT CHANGE. The neural network is trained on a 40-tick window and any
+  # other value makes its verdicts unreliable.
   sequence: 40
   # Give up on a backend request after this many seconds.
   timeout-seconds: 5
-  # Pause analysis while server TPS is below this (0 = never pause).
-  # Lag distorts movement data and could make honest players look suspicious.
-  min-tps-analyze: 15.0
   # true = staff get alerts but nobody is punished automatically.
   # Recommended while you are still evaluating the detections.
   only-alert: false
@@ -79,12 +78,8 @@ animations:
   # Particle type and density for the "particles" animation.
   particle: FLAME
   particle-count: 30
-  # Scatter the player's inventory at the finale.
-  drop-inventory: true
   # Play sound effects during the show.
   sound: true
-  # How high the pig carries the player in the "pig" animation, in blocks.
-  pig-height: 10
   # An animation always ends with a ban. If the punishment level that fired
   # has no command of its own (only [alert] / [log]), this ban is issued
   # automatically after the show. Time formats: 30d / 12h / 45m; "" = permanent.
@@ -101,20 +96,11 @@ menu:
 # never punishes by itself.
 fingerprint:
   enabled: true
-  # Hits to observe before the profile is trusted.
-  warmup-hits: 30
-  # How far the recent style must drift from the profile to alert.
-  drift-margin: 0.35
-  min-recent: 0.55
 
 geyser:
   # Skip Bedrock (phone/console) players - their aim works differently
   # and must not be judged by a model trained on PC players.
   exempt-bedrock: true
-
-client-brand:
-  # Show which client mod (fabric/forge/lunar...) a player uses in /guard profile.
-  enabled: true
 
 # Automatic plugin updates from the official GuardAC releases.
 auto-update:
@@ -132,43 +118,16 @@ worldguard:
   disabled-regions:
     - "world:spawn"
 
-# Keep a player's suspicion after they disconnect, so relogging does not
-# wipe the progress toward a flag.
-persist-buffer:
-  enabled: true
-  # Reconnect within this many minutes = buffer comes back untouched.
-  grace-minutes: 5
-  # After that, the stored buffer fades by this much per hour offline.
-  decay-per-hour: 5.0
-  # Never restore more than this, no matter how high it was.
-  cap-on-restore: 40.0
-  # Forget stored buffers entirely after this many minutes.
-  ttl-minutes: 1440
-
 # Forget combat state after this long without a fight.
 combat-reset:
   enabled: true
   after-seconds: 60
 
 # Soft, temporary in-combat measures against suspects - not a punishment.
-# Everything here recovers on its own; disabled by default.
+# A suspect's attack speed drops while suspicion is high, and a repeated
+# detection briefly blocks their damage. Everything recovers on its own.
 combat-suppression:
   enabled: false
-  # Gradually reduce a suspect's attack speed while suspicion is high.
-  penalty:
-    # Start applying above this AI probability.
-    start-probability: 0.75
-    # Never slow attacks by more than this percent.
-    max-percent: 40
-    # Return to normal this many seconds after suspicion passes.
-    reset-after-seconds: 10
-  # Short full damage block, only after a REPEATED detection in a short window.
-  isolate:
-    enabled: true
-    repeat-window-seconds: 45
-    duration-seconds: 12
-    # Send the suspect a neutral message while isolated.
-    notify-suspect: true
 
 # /guard scan <player> - on-demand deep check by staff.
 deep-scan:
@@ -214,8 +173,3 @@ reputation:
   check-on-join: true
   # ...but only if they have at least this many.
   alert-threshold: 1
-
-debug:
-  enabled: false
-  # Print every AI probability to console (very noisy, for testing only).
-  log-probability: false
