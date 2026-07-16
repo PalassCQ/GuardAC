@@ -32,12 +32,12 @@ object BanBridge {
             Provider.LITEBANS -> {
 
                 val cmd = if (minutes <= 0) "ban $name $reason"
-                          else "ban $name ${minutes}m $reason"
+                          else "ban $name ${durationLabel(minutes)} $reason"
                 dispatch(plugin, cmd)
             }
             Provider.ADVANCEDBAN -> {
                 val cmd = if (minutes <= 0) "ban $name $reason"
-                          else "tempban $name ${minutes}m $reason"
+                          else "tempban $name ${durationLabel(minutes)} $reason"
                 dispatch(plugin, cmd)
             }
             Provider.COMMAND -> {
