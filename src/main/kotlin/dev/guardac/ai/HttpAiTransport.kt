@@ -193,7 +193,7 @@ class HttpAiTransport(private val plugin: GuardAC) : AiTransport {
         }
         val sources = (dto.sources ?: emptyList()).take(8).map { it.take(24) }
         val model   = (dto.model ?: "Def").take(24)
-        return InferenceResult.Success(p, dto.label?.take(32), sources, model)
+        return InferenceResult.Success(p, dto.label?.take(32), sources, model, dto.deep == true)
     }
 }
 
@@ -204,6 +204,8 @@ private data class InferenceResponseDto @JsonCreator constructor(
     @JsonProperty("sources")     val sources: List<String>? = null,
 
     @JsonProperty("model")       val model: String? = null,
+
+    @JsonProperty("deep")        val deep: Boolean? = null,
 )
 
 private data class BatchInferenceRequest(

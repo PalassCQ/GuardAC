@@ -25,6 +25,7 @@ sealed interface InferenceResult {
         val label: String?,
         val sources: List<String> = emptyList(),
         val model: String = "Def",
+        val deep: Boolean = false,
     ) : InferenceResult
     data object Disabled : InferenceResult
     data class Failure(val cause: Throwable) : InferenceResult

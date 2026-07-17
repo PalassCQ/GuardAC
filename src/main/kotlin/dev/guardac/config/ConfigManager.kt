@@ -143,6 +143,7 @@ class ConfigManager(private val plugin: GuardAC) {
 
     val aiBufferFlag: Double        get() = cfg.getDouble("ai.buffer.flag", 30.0)
     val aiBufferResetOnFlag: Double get() = cfg.getDouble("ai.buffer.reset-on-flag", 10.0)
+    val aiJudgeEnabled: Boolean     get() = cfg.getBoolean("ai.judge", true)
     val aiBufferMultiplier: Double  get() = cfg.getDouble("ai.buffer.multiplier", 100.0)
     val aiBufferDecrease: Double    get() = cfg.getDouble("ai.buffer.decrease", 0.25)
 

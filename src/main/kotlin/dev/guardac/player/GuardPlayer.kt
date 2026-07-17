@@ -46,6 +46,12 @@ class GuardPlayer(
 
     private val sequenceSize get() = plugin.configManager.aiSequence
     private val tickBuffer   = ArrayDeque<TickData>(plugin.configManager.aiSequence * 2)
+
+    private val deepBuffer      = ArrayDeque<TickData>(DEEP_WINDOW_TICKS)
+    private var lastDeepAttacks = 0
+    @Volatile private var judgeProb      = -1.0
+    @Volatile private var judgeAtMs      = 0L
+    @Volatile private var judgeFromModel = false
     private var ticksSinceLastSend = 0
 
     var idleTickCount: Int = 0
@@ -150,12 +156,15 @@ class GuardPlayer(
 
         if (!plugin.configManager.aiContinuous && !recordForAi) {
             if (tickBuffer.isNotEmpty()) tickBuffer.clear()
+            if (deepBuffer.isNotEmpty()) deepBuffer.clear()
             ticksSinceLastSend = 0
             return
         }
 
         tickBuffer.addLast(tick)
         while (tickBuffer.size > sequenceSize * 2) tickBuffer.removeFirst()
+        deepBuffer.addLast(tick)
+        while (deepBuffer.size > DEEP_WINDOW_TICKS) deepBuffer.removeFirst()
         ticksSinceLastSend++
     }
 
@@ -164,6 +173,22 @@ class GuardPlayer(
         if (tickBuffer.size < sequenceSize) return null
         ticksSinceLastSend = 0
         return tickBuffer.takeLast(sequenceSize).toTypedArray()
+    }
+
+    fun pollDeepWindow(): Array<TickData>? {
+        if (!plugin.configManager.aiJudgeEnabled) return null
+        val attacks = combat.totalAttacks
+        if (attacks < lastDeepAttacks) lastDeepAttacks = attacks
+        if (attacks - lastDeepAttacks < DEEP_MIN_HITS) return null
+        if (deepBuffer.size < DEEP_WINDOW_TICKS) return null
+        lastDeepAttacks = attacks
+        return deepBuffer.toTypedArray()
+    }
+
+    fun recordJudgeVerdict(probability: Double) {
+        judgeProb      = probability
+        judgeAtMs      = System.currentTimeMillis()
+        judgeFromModel = true
     }
 
     var aiBuffer: Double = 0.0
@@ -330,11 +355,25 @@ class GuardPlayer(
     fun flagAi(): Boolean {
         val cfg = plugin.configManager
         if (aiBuffer < cfg.aiBufferFlag) return false
+        if (!judgeApproves()) {
+            aiBuffer = cfg.aiBufferFlag
+            return false
+        }
         maybeEscalateToIsolate()
         aiViolationLevel++
         totalAiFlags.incrementAndGet()
         aiBuffer = cfg.aiBufferResetOnFlag
         return true
+    }
+
+    private fun judgeApproves(): Boolean {
+        if (!plugin.configManager.aiJudgeEnabled) return true
+        val now = System.currentTimeMillis()
+        if (judgeFromModel && now - judgeAtMs <= JUDGE_TTL_MS) {
+            return judgeProb >= CHEAT_THRESHOLD
+        }
+        if (hitProbHistory.isEmpty()) return true
+        return hitProbHistory.average() >= CHEAT_THRESHOLD
     }
 
     @Synchronized
@@ -349,6 +388,8 @@ class GuardPlayer(
         hitProbHistory.clear()
         lastFeedMs = 0L
         lastGainMs = 0L
+        judgeProb = -1.0; judgeAtMs = 0L; judgeFromModel = false
+        lastDeepAttacks = 0
         fpBaseline = 0.0; fpRecent = 0.0; fpHits = 0
         attackSpeedPenalty = 0.0
         isolateUntilMs     = 0L
@@ -405,5 +446,9 @@ class GuardPlayer(
         const val FP_FAST                  = 0.25
         const val FP_SLOW                  = 0.03
         const val FP_THROTTLE_MS           = 30_000L
+
+        const val DEEP_WINDOW_TICKS        = 160
+        const val DEEP_MIN_HITS            = 5
+        const val JUDGE_TTL_MS             = 20_000L
     }
 }

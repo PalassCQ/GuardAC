@@ -29,6 +29,8 @@ import kotlin.math.abs
 
 class AiCheck(private val plugin: GuardAC) : SequenceCheck {
 
+    @Volatile private var judgeAvailable = true
+
     override fun onSequence(gp: GuardPlayer, ticks: Array<TickData>) {
         val cfg = plugin.configManager
         if (!cfg.aiEnabled) return
@@ -51,6 +53,28 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
 
         plugin.aiTransport.infer(ticks, scanning)
             .thenAccept { result -> handleResult(gp, result, lagDistorted, ticks) }
+
+        if (judgeAvailable) {
+            gp.pollDeepWindow()?.let { deepTicks ->
+                plugin.aiTransport.infer(deepTicks, false)
+                    .thenAccept { result -> handleDeepResult(gp, result) }
+            }
+        }
+    }
+
+    private fun handleDeepResult(gp: GuardPlayer, result: InferenceResult) {
+        val r = result as? InferenceResult.Success ?: return
+        if (r.deep) {
+            gp.recordJudgeVerdict(r.probability)
+            if (plugin.configManager.debugLogProbability) {
+                plugin.logger.info(
+                    "[AI] ${gp.player.name} | judge=${"%.3f".format(r.probability)}"
+                )
+            }
+        } else if (judgeAvailable) {
+            judgeAvailable = false
+            plugin.logger.info("[AI] Server has no long-window judge for this key; using the local one.")
+        }
     }
 
     private fun isBelowMovementThreshold(ticks: Array<TickData>, minMovement: Double): Boolean {
