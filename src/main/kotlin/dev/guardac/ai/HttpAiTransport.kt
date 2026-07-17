@@ -50,7 +50,7 @@ class HttpAiTransport(private val plugin: GuardAC) : AiTransport {
     override val isEnabled: Boolean
         get() = plugin.configManager.aiEnabled
 
-    override fun infer(ticks: Array<TickData>, priority: Boolean, player: String): CompletableFuture<InferenceResult> {
+    override fun infer(ticks: Array<TickData>, priority: Boolean): CompletableFuture<InferenceResult> {
         if (!isEnabled || shuttingDown) return CompletableFuture.completedFuture(InferenceResult.Disabled)
 
         val cfg  = plugin.configManager
@@ -60,7 +60,6 @@ class HttpAiTransport(private val plugin: GuardAC) : AiTransport {
                     ticks = ticks.map { TickDataDto.from(it) },
                     count = ticks.size,
                     priority = priority,
-                    player = player,
                 )
             )
         } catch (e: Exception) {
@@ -89,7 +88,6 @@ class HttpAiTransport(private val plugin: GuardAC) : AiTransport {
     fun inferBatch(
         items: List<Array<TickData>>,
         priorities: List<Boolean> = emptyList(),
-        players: List<String> = emptyList(),
     ): CompletableFuture<List<InferenceResult>> {
         if (!isEnabled || shuttingDown) {
             return CompletableFuture.completedFuture(items.map { InferenceResult.Disabled })
@@ -103,7 +101,6 @@ class HttpAiTransport(private val plugin: GuardAC) : AiTransport {
                             ticks = arr.map { TickDataDto.from(it) },
                             count = arr.size,
                             priority = priorities.getOrElse(i) { false },
-                            player = players.getOrElse(i) { "" },
                         )
                     }
                 )

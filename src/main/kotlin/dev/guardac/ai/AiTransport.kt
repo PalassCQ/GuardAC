@@ -24,11 +24,7 @@ import java.util.concurrent.CompletableFuture
 interface AiTransport {
     val isEnabled: Boolean
 
-    fun infer(
-        ticks: Array<TickData>,
-        priority: Boolean = false,
-        player: String = "",
-    ): CompletableFuture<InferenceResult>
+    fun infer(ticks: Array<TickData>, priority: Boolean = false): CompletableFuture<InferenceResult>
 
     fun reload()
     fun shutdown()
