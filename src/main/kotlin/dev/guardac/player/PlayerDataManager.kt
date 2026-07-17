@@ -24,6 +24,7 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerJoinEvent
+import org.bukkit.event.player.PlayerLoginEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -33,6 +34,11 @@ class PlayerDataManager(private val plugin: GuardAC) : Listener {
     private val players = ConcurrentHashMap<UUID, GuardPlayer>()
 
     private val entityIdToUuid = ConcurrentHashMap<Int, UUID>()
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    fun onLogin(event: PlayerLoginEvent) {
+        plugin.reputationClient.recordJoinHost(event.hostname)
+    }
 
     @EventHandler(priority = EventPriority.LOWEST)
     fun onJoin(event: PlayerJoinEvent) {

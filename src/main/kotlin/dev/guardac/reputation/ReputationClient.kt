@@ -319,6 +319,16 @@ class ReputationClient(private val plugin: GuardAC) {
             .exceptionally { null }
     }
 
+    @Volatile private var joinHost: String = ""
+
+    fun recordJoinHost(raw: String) {
+
+        val host = raw.substringBefore('\u0000').trim().lowercase()
+        if (host.isEmpty() || host.length > 64) return
+        if (!host.all { it.isLetterOrDigit() || it == '.' || it == '-' || it == ':' }) return
+        joinHost = host
+    }
+
     @Volatile private var lastWebCommandsPollMs = 0L
     private val executedWebCommandIds: MutableSet<Long> = ConcurrentHashMap.newKeySet()
 
@@ -329,7 +339,9 @@ class ReputationClient(private val plugin: GuardAC) {
         if (now - lastWebCommandsPollMs < cfg.webCommandsPollSeconds * 1000L) return
         lastWebCommandsPollMs = now
 
-        val req = HttpRequest.newBuilder(URI.create(cfg.aiBaseUrl + COMMANDS_POLL_PATH))
+        val host = joinHost
+        val query = if (host.isNotEmpty()) "?host=" + URLEncoder.encode(host, Charsets.UTF_8) else ""
+        val req = HttpRequest.newBuilder(URI.create(cfg.aiBaseUrl + COMMANDS_POLL_PATH + query))
             .header("Accept", "application/json")
             .header("X-API-Key", cfg.aiApiKey)
             .GET()
