@@ -49,7 +49,7 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
         val minTps = cfg.aiMinTpsAnalyze
         if (!scanning && minTps > 0.0 && plugin.tpsMonitor.tps < minTps) return
 
-        plugin.aiTransport.infer(ticks, scanning)
+        plugin.aiTransport.infer(ticks, scanning, gp.player.name)
             .thenAccept { result -> handleResult(gp, result, lagDistorted, ticks) }
     }
 

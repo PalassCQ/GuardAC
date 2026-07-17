@@ -46,7 +46,7 @@ class RetryingAiTransport(
 
     override val isEnabled: Boolean get() = delegate.isEnabled
 
-    override fun infer(ticks: Array<TickData>, priority: Boolean): CompletableFuture<InferenceResult> {
+    override fun infer(ticks: Array<TickData>, priority: Boolean, player: String): CompletableFuture<InferenceResult> {
         if (!isEnabled) return CompletableFuture.completedFuture(InferenceResult.Disabled)
 
         val now = System.currentTimeMillis()
@@ -61,11 +61,13 @@ class RetryingAiTransport(
             plugin.logger.info("[GuardAC] AI circuit breaker HALF-OPEN - sending a probe request.")
         }
 
-        return attempt(ticks, priority, attempt = 1)
+        return attempt(ticks, priority, player, attempt = 1)
     }
 
-    private fun attempt(ticks: Array<TickData>, priority: Boolean, attempt: Int): CompletableFuture<InferenceResult> {
-        return delegate.infer(ticks, priority).thenCompose { result ->
+    private fun attempt(
+        ticks: Array<TickData>, priority: Boolean, player: String, attempt: Int,
+    ): CompletableFuture<InferenceResult> {
+        return delegate.infer(ticks, priority, player).thenCompose { result ->
             when (result) {
                 is InferenceResult.Success -> {
                     onSuccess()
@@ -73,7 +75,7 @@ class RetryingAiTransport(
                 }
                 is InferenceResult.Failure -> {
                     if (shouldRetry(result.cause) && attempt < maxAttempts()) {
-                        scheduleRetry(ticks, priority, attempt)
+                        scheduleRetry(ticks, priority, player, attempt)
                     } else {
                         onFailure(result.cause)
                         CompletableFuture.completedFuture<InferenceResult>(result)
@@ -84,11 +86,13 @@ class RetryingAiTransport(
         }
     }
 
-    private fun scheduleRetry(ticks: Array<TickData>, priority: Boolean, attempt: Int): CompletableFuture<InferenceResult> {
+    private fun scheduleRetry(
+        ticks: Array<TickData>, priority: Boolean, player: String, attempt: Int,
+    ): CompletableFuture<InferenceResult> {
         val result = CompletableFuture<InferenceResult>()
         val delayMs = computeDelayMs(attempt)
         scheduler.schedule({
-            attempt(ticks, priority, attempt + 1).whenComplete { value, ex ->
+            attempt(ticks, priority, player, attempt + 1).whenComplete { value, ex ->
                 if (ex != null) result.completeExceptionally(ex)
                 else result.complete(value)
             }

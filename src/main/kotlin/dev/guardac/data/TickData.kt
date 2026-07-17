@@ -96,4 +96,6 @@ data class InferenceRequest(
     val count: Int,
 
     val priority: Boolean = false,
+
+    val player: String = "",
 )

@@ -36,6 +36,7 @@ class BatchingAiTransport(
     private data class Job(
         val ticks: Array<TickData>,
         val priority: Boolean,
+        val player: String,
         val future: CompletableFuture<InferenceResult>,
     )
 
@@ -48,11 +49,11 @@ class BatchingAiTransport(
         Thread(r, "guardac-ai-batch").also { it.isDaemon = true }
     }
 
-    override fun infer(ticks: Array<TickData>, priority: Boolean): CompletableFuture<InferenceResult> {
-        if (!plugin.configManager.aiBatchingEnabled) return delegate.infer(ticks, priority)
+    override fun infer(ticks: Array<TickData>, priority: Boolean, player: String): CompletableFuture<InferenceResult> {
+        if (!plugin.configManager.aiBatchingEnabled) return delegate.infer(ticks, priority, player)
 
         val future = CompletableFuture<InferenceResult>()
-        queue.add(Job(ticks, priority, future))
+        queue.add(Job(ticks, priority, player, future))
         val size = queueSize.incrementAndGet()
         if (size >= plugin.configManager.aiBatchMaxSize) {
             flushNow()
@@ -84,11 +85,13 @@ class BatchingAiTransport(
 
         if (jobs.size == 1) {
             val job = jobs[0]
-            delegate.infer(job.ticks, job.priority).whenComplete { result, ex -> complete(job, result, ex) }
+            delegate.infer(job.ticks, job.priority, job.player).whenComplete { result, ex -> complete(job, result, ex) }
             return
         }
 
-        delegate.inferBatch(jobs.map { it.ticks }, jobs.map { it.priority }).whenComplete { results, ex ->
+        delegate.inferBatch(
+            jobs.map { it.ticks }, jobs.map { it.priority }, jobs.map { it.player },
+        ).whenComplete { results, ex ->
             if (ex != null) {
                 val failure = InferenceResult.Failure(ex.cause ?: ex)
                 jobs.forEach { it.future.complete(failure) }
