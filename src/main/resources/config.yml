@@ -1,151 +1,77 @@
-# ── GuardAC ──────────────────────────────────────────────────────────────────
-# Quick start: paste your key into ai.api-key below, then run /guard reload.
-# Get a key: https://guardac.net
-#
-# Note: these comments are fixed text and stay in English. The `locale` option
-# below switches everything the plugin SAYS (staff alerts, command output,
-# player messages) between languages.
-
 config-version: 35
 
-# Language of all plugin messages: en | ru
 locale: "en"
 
-# Name of this server, shown in your web dashboard, in staff alerts and in
-# cross-server messages. Give each of your servers its own name (e.g. "survival",
-# "bedwars-1"). Leave empty to auto-name it srv-<port>.
 server-name: ""
 
 ai:
-  # Master switch for the AI detection.
   enabled: true
-  # GuardAC backend address. Domain only - the API path is added automatically.
   server: "https://guardac.net"
-  # Your personal API key from the dashboard at https://guardac.net
   api-key: "PASTE-YOUR-GUARDAC-KEY"
-  # true = staff get alerts but nobody is punished automatically.
-  # Recommended while you are still evaluating the detections.
   only-alert: false
 
 alerts:
-  # Show a hit to staff when the AI is at least this confident (0-100).
   min-hit-confidence: 75
-  # One alert per this many suspicious hits: x3, then x6, x9 and so on.
-  # A lone random spike below the bar stays silent.
   min-hits: 3
-  # Also print alerts to the server console.
   print-to-console: true
-  # Sound played to staff on an alert. A soft, pleasant note-block chime by
-  # default; any Bukkit Sound name works (e.g. ENTITY_EXPERIENCE_ORB_PICKUP).
   sound:
     enabled: true
     type: "BLOCK_NOTE_BLOCK_PLING"
     volume: 0.8
     pitch: 1.5
 
-# Violation levels slowly expire so an old flag does not haunt a player forever.
 vl-decay:
   enabled: true
-  # Check every N seconds...
   interval-seconds: 60
-  # ...and remove this many VL from everyone.
   amount: 1
-  # Do not decay while the player is actively fighting.
   skip-in-combat: true
 
 animations:
-  # Visual show played on the cheater (see punishments.yml). Add an "[animation]"
-  # line to a punishment level to play one there: a bare "[animation]" picks a
-  # random type, "[animation] pig" forces a specific one. Remove the line and the
-  # level has no animation. Types: pig | explode | particles | lightning | vortex
-  # | meteor | cage.
   enabled: true
-  # Optional: force a random animation before EVERY level automatically, even the
-  # ones without an [animation] line. Off by default - normally you place the
-  # [animation] lines yourself in punishments.yml.
   auto-on-ban: false
-  # Length of the show, in ticks (20 = 1 second).
   duration-ticks: 60
-  # Particle type and density for the "particles" animation.
   particle: FLAME
   particle-count: 30
-  # Play sound effects during the show.
   sound: true
-  # Used only by /guard punish and forced animations: if that level has no ban
-  # command of its own, this ban is issued after the show. 30d / 12h / 45m; "" = permanent.
   fallback-ban-time: "30d"
   fallback-ban-reason: "Cheating software detected (GuardAC)"
 
-# Commands run when staff click a player in /guard menu.
-# Placeholders: <admin>, <target>. Empty list = spectator mode + teleport.
 menu:
   click-commands: []
 
-# Learns each player's personal aim style and alerts when it suddenly changes
-# mid-session (cheat toggled on, or someone else on the account). Alert only,
-# never punishes by itself.
 fingerprint:
   enabled: true
 
 geyser:
-  # Skip Bedrock (phone/console) players - their aim works differently
-  # and must not be judged by a model trained on PC players.
   exempt-bedrock: true
 
-# Automatic plugin updates from the official GuardAC releases.
 auto-update:
-  # When a new version is published, download it in the background and stage it
-  # so the server applies it on the next restart. No files to copy by hand.
   enabled: true
-  # Tell online staff (guardac.alerts permission) when an update was downloaded.
   notify-staff: true
 
-# WorldGuard regions where detection is disabled (arenas with special rules etc).
 worldguard:
   enabled: false
   disabled-regions:
     - "world:spawn"
 
-# Forget combat state after a while without a fight.
 combat-reset:
   enabled: true
 
-# Soft, temporary in-combat measures against suspects - not a punishment.
-# A suspect's attack speed drops while suspicion is high, and a repeated
-# detection briefly blocks their damage. Everything recovers on its own.
 combat-suppression:
   enabled: false
 
-# Share detection alerts between all servers using this API key - no proxy
-# needed, the GuardAC backend relays them. A flag on one server shows up for
-# staff on every other one (staff toggle it with /guard crossserver).
 cross-server:
   enabled: false
 
-# Moderation from the web dashboard (guardac.net): a ban issued on the site is
-# picked up by every server using this API key and applied locally.
 web-commands:
   enabled: true
-  # Which ban system executes web bans:
-  #   auto        - use LiteBans if installed, else AdvancedBan, else vanilla /ban
-  #   vanilla     - always use the built-in Minecraft ban list
-  #   litebans    - always use LiteBans
-  #   advancedban - always use AdvancedBan
-  #   command     - run the custom commands below
   ban-bridge: "auto"
-  # Custom commands for ban-bridge: "command". Placeholders:
-  # {player} {reason} {minutes} {duration} (duration like "30d").
   ban-command: ""
   tempban-command: ""
   unban-command: ""
 
-# GuardAC global reputation network: detections on other servers using GuardAC
-# are visible to you, and yours help everyone else.
 reputation:
   enabled: true
-  # Report confirmed detections to the network.
   report: true
-  # Warn staff when a joining player has detections elsewhere.
   check-on-join: true
-  # ...but only if they have at least this many.
   alert-threshold: 1

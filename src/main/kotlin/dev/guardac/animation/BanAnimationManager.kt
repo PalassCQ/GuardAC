@@ -124,9 +124,8 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
                 restore()
                 if (dropLoot) dropResources(player, loc)
                 explode(loc)
+                playKillSound(player, loc)
                 onComplete()
-
-                playSound(loc, "ENTITY_WITHER_DEATH", 1f, WITHER_PITCH)
                 pendingCompletions.remove(player.uniqueId)?.forEach { queued ->
                     runCatching { queued() }
                 }
@@ -460,6 +459,13 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         if (!plugin.configManager.animationSound) return
         val sound = Compat.sound(name) ?: return
         loc.world?.playSound(loc, sound, volume, pitch)
+    }
+
+    private fun playKillSound(player: Player, loc: Location) {
+        if (!plugin.configManager.animationSound) return
+        val sound = Compat.sound("ENTITY_WITHER_DEATH") ?: return
+        runCatching { player.playSound(player.location, sound, 1f, WITHER_PITCH) }
+        loc.world?.playSound(loc, sound, 4f, WITHER_PITCH)
     }
 
     private fun particle(vararg names: String): Particle = Compat.particle(*names)

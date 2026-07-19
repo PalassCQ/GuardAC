@@ -162,8 +162,6 @@ class PunishmentManager(private val plugin: GuardAC) {
             } else {
                 actions
             }
-            // The dramatic send-off (inventory drop) only makes sense when a ban
-            // actually follows - a kick or alert level animates without wiping loot.
             val dropLoot = chain.any { it.trim().lowercase(Locale.ROOT).startsWith("[ban]") }
             if (willAnimate && !hasExplicitAnim) {
                 plugin.banAnimationManager.playRandom(gp.player, dropLoot) {

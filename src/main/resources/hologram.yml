@@ -2,29 +2,16 @@ hologram:
   enabled: true
   update-interval-ticks: 5
   view-distance: 40.0
-  # Height of the lowest feed line above the player's feet. The feed grows
-  # upwards, so it never overlaps the regular nickname.
   y-offset: 2.6
 
-  # Bottom line (closest to the nickname). Placeholder {AVG} = average
-  # probability in % (colored).
   header: "&7AVG {AVG}"
 
-  # Feed of recent hits ABOVE the AVG line, newest on top.
-  # Placeholder {PROB} = hit probability in 0.9999 format (colored).
   hit-format: "&8○ {PROB}"
 
-  # How many recent hits to show (0 = only the AVG line).
   max-hits: 5
 
-  # Distance between lines in blocks.
   line-height: 0.26
 
-  # Number colors depending on the probability %:
-  #   0-35%   -> green (&a)
-  #   35-50%  -> light green (&2)
-  #   50-80%  -> orange (&6)
-  #   80-100% -> red (&c)
   colors:
     low: "&a"           # 0-35%
     medium: "&2"        # 35-50%
