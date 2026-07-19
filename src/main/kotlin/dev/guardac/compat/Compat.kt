@@ -23,22 +23,29 @@ import org.bukkit.NamespacedKey
 import org.bukkit.Particle
 import org.bukkit.Sound
 import org.bukkit.attribute.Attribute
+import org.bukkit.potion.PotionEffectType
 import java.util.concurrent.ConcurrentHashMap
 
 object Compat {
 
-    data class Version(val minor: Int, val patch: Int) {
+    data class Version(val major: Int, val minor: Int, val patch: Int) {
 
-        fun atLeast(minor: Int, patch: Int = 0): Boolean =
-            this.minor > minor || (this.minor == minor && this.patch >= patch)
+        fun atLeast(major: Int, minor: Int = 0, patch: Int = 0): Boolean {
+            if (this.major != major) return this.major > major
+            if (this.minor != minor) return this.minor > minor
+            return this.patch >= patch
+        }
     }
 
     val version: Version by lazy {
         runCatching {
-            val raw = Bukkit.getBukkitVersion().substringBefore('-')
-            val parts = raw.split('.')
-            Version(parts.getOrNull(1)?.toIntOrNull() ?: 0, parts.getOrNull(2)?.toIntOrNull() ?: 0)
-        }.getOrDefault(Version(0, 0))
+            val parts = Bukkit.getBukkitVersion().substringBefore('-').split('.')
+            Version(
+                parts.getOrNull(0)?.toIntOrNull() ?: 0,
+                parts.getOrNull(1)?.toIntOrNull() ?: 0,
+                parts.getOrNull(2)?.toIntOrNull() ?: 0,
+            )
+        }.getOrDefault(Version(0, 0, 0))
     }
 
     private val PARTICLE_ALIASES: Map<String, String> = mapOf(
@@ -95,6 +102,30 @@ object Compat {
     private fun registrySound(enumName: String): Sound? = runCatching {
         val key = NamespacedKey.minecraft(enumName.lowercase().replace('_', '.'))
         registryGet("SOUNDS", key) as? Sound
+    }.getOrNull()
+
+    private val potionCache = ConcurrentHashMap<String, PotionEffectType>()
+
+    fun potion(vararg names: String): PotionEffectType? {
+        for (n in names) resolvePotion(n)?.let { return it }
+        return null
+    }
+
+    private fun resolvePotion(name: String): PotionEffectType? {
+        potionCache[name]?.let { return it }
+        val resolved = registryPotion(name) ?: legacyPotion(name)
+        if (resolved != null) potionCache[name] = resolved
+        return resolved
+    }
+
+    private fun registryPotion(name: String): PotionEffectType? = runCatching {
+        val key = NamespacedKey.minecraft(name.lowercase())
+        (registryGet("EFFECT", key) ?: registryGet("POTION_EFFECT_TYPE", key)) as? PotionEffectType
+    }.getOrNull()
+
+    private fun legacyPotion(name: String): PotionEffectType? = runCatching {
+        val m = PotionEffectType::class.java.getMethod("getByName", String::class.java)
+        m.invoke(null, name) as? PotionEffectType
     }.getOrNull()
 
     private val attackSpeed: Attribute? by lazy { resolveAttackSpeed() }

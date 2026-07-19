@@ -29,7 +29,6 @@ import org.bukkit.entity.Entity
 import org.bukkit.entity.Pig
 import org.bukkit.entity.Player
 import org.bukkit.potion.PotionEffect
-import org.bukkit.potion.PotionEffectType
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
@@ -92,10 +91,12 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
             player.allowFlight = s.allowFlight
             player.isFlying    = s.flying && s.allowFlight
         }
-        runCatching { player.removePotionEffect(PotionEffectType.LEVITATION) }
+        runCatching { Compat.potion("LEVITATION")?.let { player.removePotionEffect(it) } }
 
         runCatching {
-            player.addPotionEffect(PotionEffect(PotionEffectType.SLOW_FALLING, 100, 0, false, false))
+            Compat.potion("SLOW_FALLING")?.let {
+                player.addPotionEffect(PotionEffect(it, 100, 0, false, false))
+            }
         }
     }
 
@@ -161,10 +162,12 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
 
         if (!player.isInsideVehicle) {
             runCatching {
-                player.addPotionEffect(PotionEffect(
-                    PotionEffectType.LEVITATION,
-                    plugin.configManager.animationDurationTicks + 20, 1, false, false,
-                ))
+                Compat.potion("LEVITATION")?.let {
+                    player.addPotionEffect(PotionEffect(
+                        it,
+                        plugin.configManager.animationDurationTicks + 20, 1, false, false,
+                    ))
+                }
                 player.velocity = Vector(0.0, 0.3, 0.0)
             }
         }
@@ -293,12 +296,12 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
                 }
                 if (++t >= duration) {
                     handle.cancel()
-                    runCatching { player.removePotionEffect(PotionEffectType.LEVITATION) }
+                    runCatching { Compat.potion("LEVITATION")?.let { player.removePotionEffect(it) } }
                     finishWith(player.location.clone())
                 }
             } catch (e: Exception) {
                 handle.cancel()
-                runCatching { player.removePotionEffect(PotionEffectType.LEVITATION) }
+                runCatching { Compat.potion("LEVITATION")?.let { player.removePotionEffect(it) } }
                 finishWith(player.location.clone())
             }
         }
