@@ -99,9 +99,10 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         }
     }
 
-    fun playRandom(player: Player, onComplete: () -> Unit) = play(player, TYPES.random(), onComplete)
+    fun playRandom(player: Player, dropLoot: Boolean, onComplete: () -> Unit) =
+        play(player, TYPES.random(), dropLoot, onComplete)
 
-    fun play(player: Player, type: String?, onComplete: () -> Unit) {
+    fun play(player: Player, type: String?, dropLoot: Boolean, onComplete: () -> Unit) {
         val cfg = plugin.configManager
         if (!cfg.animationsEnabled || !player.isOnline) { onComplete(); return }
 
@@ -121,7 +122,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
                 animating.remove(player.uniqueId)
                 anchors.remove(player.uniqueId)
                 restore()
-                dropResources(player, loc)
+                if (dropLoot) dropResources(player, loc)
                 explode(loc)
                 onComplete()
 
@@ -132,7 +133,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
             }
         }
 
-        val resolved = (type?.trim()?.lowercase()?.ifBlank { null }) ?: cfg.animationDefault
+        val resolved = (type?.trim()?.lowercase()?.ifBlank { null }) ?: TYPES.random()
         when (resolved) {
             "pig"       -> playPig(player, finishWith)
             "explode"   -> playExplode(player, finishWith)

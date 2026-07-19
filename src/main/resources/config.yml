@@ -6,7 +6,7 @@
 # below switches everything the plugin SAYS (staff alerts, command output,
 # player messages) between languages.
 
-config-version: 34
+config-version: 35
 
 # Language of all plugin messages: en | ru
 locale: "en"
@@ -54,16 +54,16 @@ vl-decay:
   skip-in-combat: true
 
 animations:
-  # Visual show played on the cheater right before a ban (see punishments.yml).
+  # Visual show played on the cheater (see punishments.yml). Add an "[animation]"
+  # line to a punishment level to play one there: a bare "[animation]" picks a
+  # random type, "[animation] pig" forces a specific one. Remove the line and the
+  # level has no animation. Types: pig | explode | particles | lightning | vortex
+  # | meteor | cage.
   enabled: true
-  # Play a random animation on EVERY detection level automatically (from VL1 up) -
-  # even alert-only levels, with no [animation] step needed. Each show ends with
-  # the sped-up wither "kill" sound. Want a fixed type on a level? Add
-  # "[animation] pig" to it in punishments.yml.
-  auto-on-ban: true
-  # Animation used when a type is not specified explicitly:
-  # pig | explode | particles | lightning | vortex | meteor | cage
-  default: particles
+  # Optional: force a random animation before EVERY level automatically, even the
+  # ones without an [animation] line. Off by default - normally you place the
+  # [animation] lines yourself in punishments.yml.
+  auto-on-ban: false
   # Length of the show, in ticks (20 = 1 second).
   duration-ticks: 60
   # Particle type and density for the "particles" animation.
@@ -71,9 +71,8 @@ animations:
   particle-count: 30
   # Play sound effects during the show.
   sound: true
-  # An animation always ends with a ban. If the punishment level that fired
-  # has no command of its own (only [alert] / [log]), this ban is issued
-  # automatically after the show. Time formats: 30d / 12h / 45m; "" = permanent.
+  # Used only by /guard punish and forced animations: if that level has no ban
+  # command of its own, this ban is issued after the show. 30d / 12h / 45m; "" = permanent.
   fallback-ban-time: "30d"
   fallback-ban-reason: "Cheating software detected (GuardAC)"
 

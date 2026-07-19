@@ -18,19 +18,23 @@
 #   [reset]           - reset the group's VL
 #   [wait] <time>     - pause the chain (2s, 40t, 500ms)
 #   [broadcast] <msg> - message to all players
-#   [animation] <type>- visual show BEFORE the next action:
+#   [animation] <type>- visual show BEFORE the next action. Bare "[animation]" =
+#                       a random type; "[animation] pig" = a specific one:
 #                       pig | explode | particles | lightning | vortex | meteor | cage
-#                       (settings in config.yml -> animations)
+#                       (settings in config.yml -> animations). Delete the line and
+#                       that level has no animation.
+#   [kick] <reason>   - kick the player off the server (any name, no ban plugin needed).
 #   [ban] <time> <reason> - ban through your ban system (LiteBans / AdvancedBan /
 #                       vanilla, see config.yml -> web-commands.ban-bridge).
 #                       Time like 30d / 12h / 45m; omit it for a permanent ban.
 #                       Works on every server - no tempban plugin required.
 #   <command>         - run as console
 #
-# `actions` are grouped by VL. The nearest level BELOW fires: at VL=4 the
-# block "3" runs. A random animation plays automatically on EVERY level - even
-# an alert-only VL1 (config.yml -> animations.auto-on-ban), no [animation] line
-# needed. Each show ends with a sped-up wither "kill" sound.
+# `actions` are grouped by VL. The nearest level BELOW fires: at VL=4 the block
+# "3" runs. In the default ladder VL1 only warns staff, VL2 kicks with a random
+# animation, and VL3+ ban. The animation is just the "[animation]" line - delete
+# it and that level plays no show. Each show ends with a sped-up wither "kill"
+# sound; the inventory only drops when a ban actually follows (not on a kick).
 #
 # This file is only about commands on specific violation levels. Early staff
 # warnings and soft in-combat measures live in config.yml instead - they have
@@ -42,29 +46,40 @@ Punishments:
     checks:
       - "AI"
     actions:
+      # VL1 - only warn staff, no action on the player.
       1:
         - "[alert]"
         - "[log]"
+      # VL2 - random animation, then a kick (a warning, not a ban). Delete the
+      # "[animation]" line if you don't want the show here.
+      2:
+        - "[alert]"
+        - "[log]"
+        - "[animation]"
+        - "[kick] &#AEB8C4GuardAC &8» &#FF4D6DSuspicious activity detected"
+      # VL3+ - random animation, then a ban through your ban system.
       3:
         - "[alert]"
         - "[log]"
+        - "[animation]"
         - "[broadcast] &#22D3EE▍ &#AEB8C4GuardAC &8» &#FF4D6D<player> &7banned for &#AEB8C430 days &8(&7VL:&#AEB8C4<vl>&8)"
         - "[ban] 30d GuardAC Detection (VL:<vl>)"
       5:
         - "[alert]"
         - "[log]"
+        - "[animation]"
         - "[broadcast] &#22D3EE▍ &#AEB8C4GuardAC &8» &#FF4D6D<player> &7banned for &#AEB8C430 days &8(&7VL:&#AEB8C4<vl>&8)"
         - "[ban] 30d GuardAC Detection (VL:<vl>)"
       7:
         - "[alert]"
         - "[log]"
+        - "[animation]"
         - "[broadcast] &#22D3EE▍ &#AEB8C4GuardAC &8» &#FF4D6D<player> &7banned for &#AEB8C430 days &8(&7VL:&#AEB8C4<vl>&8)"
         - "[ban] 30d GuardAC Detection (VL:<vl>)"
       10:
         - "[alert]"
         - "[log]"
+        - "[animation]"
         - "[broadcast] &#22D3EE▍ &#AEB8C4GuardAC &8» &#FF4D6D<player> &cbanned permanently &8(&7VL:&#AEB8C4<vl>&8)"
-        # An animation plays automatically before the ban (animations.auto-on-ban).
-        # Want a specific one instead of random? Add here: "[animation] pig".
         - "[ban] Cheating (GuardAC VL:<vl>)"
         - "[reset]"

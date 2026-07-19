@@ -199,7 +199,6 @@ class ConfigManager(private val plugin: GuardAC) {
     val punishMinTps: Double get() = cfg.getDouble("punishment.min-tps", 16.0)
 
     val animationsEnabled: Boolean   get() = cfg.getBoolean("animations.enabled", true)
-    val animationDefault: String     get() = cfg.getString("animations.default", "particles")!!.trim().lowercase()
     val animationDurationTicks: Int  get() = cfg.getInt("animations.duration-ticks", 60).coerceIn(1, 600)
     val animationParticle: String    get() = cfg.getString("animations.particle", "FLAME")!!
     val animationParticleCount: Int  get() = cfg.getInt("animations.particle-count", 30).coerceIn(1, 500)
@@ -207,7 +206,7 @@ class ConfigManager(private val plugin: GuardAC) {
     val animationSound: Boolean      get() = cfg.getBoolean("animations.sound", true)
     val animationPigHeight: Double   get() = cfg.getDouble("animations.pig-height", 10.0).coerceIn(1.0, 60.0)
 
-    val animationAutoOnBan: Boolean  get() = cfg.getBoolean("animations.auto-on-ban", true)
+    val animationAutoOnBan: Boolean  get() = cfg.getBoolean("animations.auto-on-ban", false)
 
     val animationFallbackBanTime: String get() =
         cfg.getString("animations.fallback-ban-time", "30d")!!.trim()

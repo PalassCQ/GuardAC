@@ -162,8 +162,11 @@ class PunishmentManager(private val plugin: GuardAC) {
             } else {
                 actions
             }
+            // The dramatic send-off (inventory drop) only makes sense when a ban
+            // actually follows - a kick or alert level animates without wiping loot.
+            val dropLoot = chain.any { it.trim().lowercase(Locale.ROOT).startsWith("[ban]") }
             if (willAnimate && !hasExplicitAnim) {
-                plugin.banAnimationManager.playRandom(gp.player) {
+                plugin.banAnimationManager.playRandom(gp.player, dropLoot) {
                     executeChain(gp, checkGroup, vl, verbose, chain, 0)
                 }
             } else {
@@ -194,8 +197,12 @@ class PunishmentManager(private val plugin: GuardAC) {
         val real = actions.map { it.trim() }.filter { isPunishmentCommand(it) }
         if (real.isEmpty()) return "alert"
         return real.joinToString("; ") {
-            if (it.lowercase(Locale.ROOT).startsWith("[ban]")) "ban"
-            else it.substringBefore(' ').ifEmpty { it }
+            val l = it.lowercase(Locale.ROOT)
+            when {
+                l.startsWith("[ban]")  -> "ban"
+                l.startsWith("[kick]") -> "kick"
+                else -> it.substringBefore(' ').ifEmpty { it }
+            }
         }
     }
 
@@ -213,10 +220,13 @@ class PunishmentManager(private val plugin: GuardAC) {
         val lower = command.trim().lowercase(Locale.ROOT)
 
         if (lower.startsWith("[animation]")) {
-
-            val type = command.trim().substring("[animation]".length).trim().ifBlank { null }
-            plugin.banAnimationManager.play(gp.player, type) {
-                executeChain(gp, checkGroup, vl, verbose, commands, index + 1)
+            val type = command.trim().substring("[animation]".length).trim().lowercase(Locale.ROOT)
+            val dropLoot = commands.any { it.trim().lowercase(Locale.ROOT).startsWith("[ban]") }
+            val cont = { executeChain(gp, checkGroup, vl, verbose, commands, index + 1) }
+            if (type.isEmpty() || type == "random") {
+                plugin.banAnimationManager.playRandom(gp.player, dropLoot, cont)
+            } else {
+                plugin.banAnimationManager.play(gp.player, type, dropLoot, cont)
             }
             return
         }
@@ -274,6 +284,15 @@ class PunishmentManager(private val plugin: GuardAC) {
 
             lower.startsWith("[ban]") ->
                 executeBridgeBan(gp, expanded.trim().substring("[ban]".length).trim())
+
+            lower.startsWith("[kick]") -> {
+                val reason = Colors.translate(
+                    expanded.trim().substring("[kick]".length).trim()
+                ).ifBlank { "GuardAC" }
+                plugin.scheduler.entity(gp.player, Runnable {
+                    if (gp.player.isOnline) runCatching { gp.player.kickPlayer(reason) }
+                })
+            }
 
             touchesPlayer && !SafeName.isSafe(name) -> {
                 plugin.logger.warning(
