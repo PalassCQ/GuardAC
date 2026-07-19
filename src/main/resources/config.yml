@@ -6,7 +6,7 @@
 # below switches everything the plugin SAYS (staff alerts, command output,
 # player messages) between languages.
 
-config-version: 32
+config-version: 34
 
 # Language of all plugin messages: en | ru
 locale: "en"
@@ -23,12 +23,6 @@ ai:
   server: "https://guardac.net"
   # Your personal API key from the dashboard at https://guardac.net
   api-key: "PASTE-YOUR-GUARDAC-KEY"
-  # How many movement ticks make one analysis window. 40 = ~2 seconds of combat.
-  # DO NOT CHANGE. The neural network is trained on a 40-tick window and any
-  # other value makes its verdicts unreliable.
-  sequence: 40
-  # Give up on a backend request after this many seconds.
-  timeout-seconds: 5
   # true = staff get alerts but nobody is punished automatically.
   # Recommended while you are still evaluating the detections.
   only-alert: false
@@ -59,16 +53,13 @@ vl-decay:
   # Do not decay while the player is actively fighting.
   skip-in-combat: true
 
-punishment:
-  # Ignore repeat punishments for the same player within this window (ms).
-  # Protects against a burst of flags stacking several bans in one fight.
-  cooldown-ms: 5000
-
 animations:
   # Visual show played on the cheater right before a ban (see punishments.yml).
   enabled: true
-  # Play a random animation before any real punishment command automatically,
-  # even when no [animation] step is configured for that level.
+  # Play a random animation on EVERY detection level automatically (from VL1 up) -
+  # even alert-only levels, with no [animation] step needed. Each show ends with
+  # the sped-up wither "kill" sound. Want a fixed type on a level? Add
+  # "[animation] pig" to it in punishments.yml.
   auto-on-ban: true
   # Animation used when a type is not specified explicitly:
   # pig | explode | particles | lightning | vortex | meteor | cage
@@ -107,8 +98,6 @@ auto-update:
   # When a new version is published, download it in the background and stage it
   # so the server applies it on the next restart. No files to copy by hand.
   enabled: true
-  # How often to look for a new version, in hours.
-  check-interval-hours: 6
   # Tell online staff (guardac.alerts permission) when an update was downloaded.
   notify-staff: true
 
@@ -118,10 +107,9 @@ worldguard:
   disabled-regions:
     - "world:spawn"
 
-# Forget combat state after this long without a fight.
+# Forget combat state after a while without a fight.
 combat-reset:
   enabled: true
-  after-seconds: 60
 
 # Soft, temporary in-combat measures against suspects - not a punishment.
 # A suspect's attack speed drops while suspicion is high, and a repeated
@@ -129,27 +117,16 @@ combat-reset:
 combat-suppression:
   enabled: false
 
-# /guard scan <player> - on-demand deep check by staff.
-deep-scan:
-  # How many combat windows to collect for the verdict.
-  windows: 8
-  # Give up if the player stops fighting for this long.
-  timeout-seconds: 120
-
 # Share detection alerts between all servers using this API key - no proxy
 # needed, the GuardAC backend relays them. A flag on one server shows up for
 # staff on every other one (staff toggle it with /guard crossserver).
 cross-server:
   enabled: false
-  # How often to ask the backend for new alerts, in seconds.
-  poll-seconds: 10
 
 # Moderation from the web dashboard (guardac.net): a ban issued on the site is
 # picked up by every server using this API key and applied locally.
 web-commands:
   enabled: true
-  # How often to check for new commands, in seconds.
-  poll-seconds: 15
   # Which ban system executes web bans:
   #   auto        - use LiteBans if installed, else AdvancedBan, else vanilla /ban
   #   vanilla     - always use the built-in Minecraft ban list

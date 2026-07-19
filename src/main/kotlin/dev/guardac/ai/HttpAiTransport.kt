@@ -30,6 +30,8 @@ import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.time.Duration
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
@@ -54,25 +56,31 @@ class HttpAiTransport(private val plugin: GuardAC) : AiTransport {
         if (!isEnabled || shuttingDown) return CompletableFuture.completedFuture(InferenceResult.Disabled)
 
         val cfg  = plugin.configManager
-        val body = try {
-            mapper.writeValueAsString(
-                InferenceRequest(
-                    ticks = ticks.map { TickDataDto.from(it) },
-                    count = ticks.size,
-                    priority = priority,
+        val binary = cfg.aiBinaryWire
+        val (publisher, contentType) = try {
+            if (binary) {
+                HttpRequest.BodyPublishers.ofByteArray(encodeSingle(ticks, priority)) to WIRE_BINARY
+            } else {
+                val json = mapper.writeValueAsString(
+                    InferenceRequest(
+                        ticks = ticks.map { TickDataDto.from(it) },
+                        count = ticks.size,
+                        priority = priority,
+                    )
                 )
-            )
+                HttpRequest.BodyPublishers.ofString(json) to WIRE_JSON
+            }
         } catch (e: Exception) {
             plugin.logger.warning("[AI] Failed to serialize request: ${e.message}")
             return CompletableFuture.completedFuture(InferenceResult.Failure(e))
         }
 
         val request = HttpRequest.newBuilder(URI.create(cfg.aiInferUrl))
-            .header("Content-Type", "application/json")
+            .header("Content-Type", contentType)
             .header("Accept",       "application/json")
             .header("X-API-Key",    cfg.aiApiKey)
             .header("User-Agent",   "GuardAC/${plugin.description.version}")
-            .POST(HttpRequest.BodyPublishers.ofString(body))
+            .POST(publisher)
             .timeout(Duration.ofSeconds(cfg.aiTimeoutSeconds))
             .build()
 
@@ -93,29 +101,35 @@ class HttpAiTransport(private val plugin: GuardAC) : AiTransport {
             return CompletableFuture.completedFuture(items.map { InferenceResult.Disabled })
         }
         val cfg = plugin.configManager
-        val body = try {
-            mapper.writeValueAsString(
-                BatchInferenceRequest(
-                    windows = items.mapIndexed { i, arr ->
-                        InferenceRequest(
-                            ticks = arr.map { TickDataDto.from(it) },
-                            count = arr.size,
-                            priority = priorities.getOrElse(i) { false },
-                        )
-                    }
+        val binary = cfg.aiBinaryWire
+        val (publisher, contentType) = try {
+            if (binary) {
+                HttpRequest.BodyPublishers.ofByteArray(encodeBatch(items, priorities)) to WIRE_BINARY
+            } else {
+                val json = mapper.writeValueAsString(
+                    BatchInferenceRequest(
+                        windows = items.mapIndexed { i, arr ->
+                            InferenceRequest(
+                                ticks = arr.map { TickDataDto.from(it) },
+                                count = arr.size,
+                                priority = priorities.getOrElse(i) { false },
+                            )
+                        }
+                    )
                 )
-            )
+                HttpRequest.BodyPublishers.ofString(json) to WIRE_JSON
+            }
         } catch (e: Exception) {
             plugin.logger.warning("[AI] Failed to serialize batch request: ${e.message}")
             return CompletableFuture.completedFuture(items.map { InferenceResult.Failure(e) })
         }
 
         val request = HttpRequest.newBuilder(URI.create(cfg.aiInferBatchUrl))
-            .header("Content-Type", "application/json")
+            .header("Content-Type", contentType)
             .header("Accept",       "application/json")
             .header("X-API-Key",    cfg.aiApiKey)
             .header("User-Agent",   "GuardAC/${plugin.description.version}")
-            .POST(HttpRequest.BodyPublishers.ofString(body))
+            .POST(publisher)
             .timeout(Duration.ofSeconds(cfg.aiTimeoutSeconds))
             .build()
 
@@ -194,6 +208,45 @@ class HttpAiTransport(private val plugin: GuardAC) : AiTransport {
         val sources = (dto.sources ?: emptyList()).take(8).map { it.take(24) }
         val model   = (dto.model ?: "Def").take(24)
         return InferenceResult.Success(p, dto.label?.take(32), sources, model, dto.deep == true)
+    }
+
+    private fun encodeSingle(ticks: Array<TickData>, priority: Boolean): ByteArray {
+        val t = ticks.size
+        val buf = ByteBuffer.allocate(6 + t * FEATURES * 4).order(ByteOrder.LITTLE_ENDIAN)
+        buf.put(BIN_MAGIC).put(BIN_VERSION)
+            .put(if (priority) 1.toByte() else 0.toByte()).put(FEATURES.toByte())
+        buf.putShort(t.toShort())
+        for (tk in ticks) putTick(buf, tk)
+        return buf.array()
+    }
+
+    private fun encodeBatch(items: List<Array<TickData>>, priorities: List<Boolean>): ByteArray {
+        var size = 6
+        for (arr in items) size += 3 + arr.size * FEATURES * 4
+        val buf = ByteBuffer.allocate(size).order(ByteOrder.LITTLE_ENDIAN)
+        buf.put(BIN_MAGIC).put(BIN_VERSION).put(0.toByte()).put(FEATURES.toByte())
+        buf.putShort(items.size.toShort())
+        items.forEachIndexed { i, arr ->
+            buf.put(if (priorities.getOrElse(i) { false }) 1.toByte() else 0.toByte())
+            buf.putShort(arr.size.toShort())
+            for (tk in arr) putTick(buf, tk)
+        }
+        return buf.array()
+    }
+
+    private fun putTick(buf: ByteBuffer, tk: TickData) {
+        buf.putFloat(tk.deltaYaw);    buf.putFloat(tk.deltaPitch)
+        buf.putFloat(tk.accelYaw);    buf.putFloat(tk.accelPitch)
+        buf.putFloat(tk.jerkYaw);     buf.putFloat(tk.jerkPitch)
+        buf.putFloat(tk.gcdErrorYaw); buf.putFloat(tk.gcdErrorPitch)
+    }
+
+    private companion object {
+        const val WIRE_JSON = "application/json"
+        const val WIRE_BINARY = "application/octet-stream"
+        const val FEATURES = 8
+        const val BIN_MAGIC: Byte = 0x47
+        const val BIN_VERSION: Byte = 1
     }
 }
 

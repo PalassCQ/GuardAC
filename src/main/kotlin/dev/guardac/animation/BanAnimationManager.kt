@@ -19,11 +19,11 @@
 package dev.guardac.animation
 
 import dev.guardac.GuardAC
+import dev.guardac.compat.Compat
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.Particle
-import org.bukkit.Sound
 import org.bukkit.entity.ArmorStand
 import org.bukkit.entity.Entity
 import org.bukkit.entity.Pig
@@ -125,7 +125,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
                 explode(loc)
                 onComplete()
 
-                if (lifted.rose) playSound(loc, "ENTITY_WITHER_DEATH", 1f, WITHER_PITCH)
+                playSound(loc, "ENTITY_WITHER_DEATH", 1f, WITHER_PITCH)
                 pendingCompletions.remove(player.uniqueId)?.forEach { queued ->
                     runCatching { queued() }
                 }
@@ -145,7 +145,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         }
     }
 
-    private class Freeze(val rose: Boolean, val restore: () -> Unit)
+    private class Freeze(val restore: () -> Unit)
 
     private fun freeze(player: Player): Freeze {
         anchors[player.uniqueId] = player.location.clone()
@@ -159,17 +159,16 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
             player.flySpeed = 0f
         }
 
-        var rose = false
         if (!player.isInsideVehicle) {
-            rose = runCatching {
+            runCatching {
                 player.addPotionEffect(PotionEffect(
                     PotionEffectType.LEVITATION,
                     plugin.configManager.animationDurationTicks + 20, 1, false, false,
                 ))
                 player.velocity = Vector(0.0, 0.3, 0.0)
-            }.isSuccess
+            }
         }
-        return Freeze(rose) {
+        return Freeze {
             if (player.isOnline) {
                 frozen.remove(player.uniqueId)?.let { applyState(player, it) }
             }
@@ -458,14 +457,11 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
 
     private fun playSound(loc: Location, name: String, volume: Float, pitch: Float) {
         if (!plugin.configManager.animationSound) return
-        val sound = runCatching { Sound.valueOf(name) }.getOrNull() ?: return
+        val sound = Compat.sound(name) ?: return
         loc.world?.playSound(loc, sound, volume, pitch)
     }
 
-    private fun particle(vararg names: String): Particle {
-        for (n in names) runCatching { return Particle.valueOf(n) }
-        return Particle.FLAME
-    }
+    private fun particle(vararg names: String): Particle = Compat.particle(*names)
 
     private companion object {
         val TYPES = listOf("pig", "explode", "particles", "lightning", "vortex", "meteor", "cage")

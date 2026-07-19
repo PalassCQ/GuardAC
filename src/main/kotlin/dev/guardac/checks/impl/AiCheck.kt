@@ -66,9 +66,11 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
         val r = result as? InferenceResult.Success ?: return
         if (r.deep) {
             gp.recordJudgeVerdict(r.probability)
+
+            plugin.alertManager.dispatchMonitorHit(gp, r.probability, r.model, bypassThrottle = true)
             if (plugin.configManager.debugLogProbability) {
                 plugin.logger.info(
-                    "[AI] ${gp.player.name} | judge=${"%.3f".format(r.probability)}"
+                    "[AI] ${gp.player.name} | ${r.model}=${"%.3f".format(r.probability)}"
                 )
             }
         } else if (judgeAvailable) {

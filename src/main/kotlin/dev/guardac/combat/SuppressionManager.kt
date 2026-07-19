@@ -19,10 +19,10 @@
 package dev.guardac.combat
 
 import dev.guardac.GuardAC
+import dev.guardac.compat.Compat
 import dev.guardac.player.GuardPlayer
 import dev.guardac.util.Message
 import org.bukkit.Bukkit
-import org.bukkit.attribute.Attribute
 import org.bukkit.attribute.AttributeModifier
 import dev.guardac.util.TaskHandle
 import java.util.UUID
@@ -56,7 +56,7 @@ class SuppressionManager(private val plugin: GuardAC) {
     }
 
     private fun syncOne(gp: GuardPlayer) {
-        val attr = gp.player.getAttribute(Attribute.GENERIC_ATTACK_SPEED) ?: return
+        val attr = Compat.attackSpeedAttribute()?.let { gp.player.getAttribute(it) } ?: return
         attr.modifiers.filter { it.uniqueId == MODIFIER_ID }.forEach { attr.removeModifier(it) }
         val penalty = gp.currentAttackSpeedPenalty()
         if (penalty > 0.0 && !gp.isExempt) {
@@ -66,7 +66,7 @@ class SuppressionManager(private val plugin: GuardAC) {
 
     private fun clearModifier(gp: GuardPlayer) {
         if (!gp.player.isOnline) return
-        val attr = gp.player.getAttribute(Attribute.GENERIC_ATTACK_SPEED) ?: return
+        val attr = Compat.attackSpeedAttribute()?.let { gp.player.getAttribute(it) } ?: return
         attr.modifiers.filter { it.uniqueId == MODIFIER_ID }.forEach { attr.removeModifier(it) }
     }
 

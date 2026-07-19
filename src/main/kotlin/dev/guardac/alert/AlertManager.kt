@@ -28,7 +28,7 @@ import net.md_5.bungee.api.chat.HoverEvent
 import net.md_5.bungee.api.chat.TextComponent
 import net.md_5.bungee.api.chat.hover.content.Text
 import org.bukkit.Bukkit
-import org.bukkit.Sound
+import dev.guardac.compat.Compat
 import org.bukkit.entity.Player
 import dev.guardac.util.TaskHandle
 import java.util.UUID
@@ -247,12 +247,16 @@ class AlertManager(private val plugin: GuardAC) {
         })
     }
 
-    fun dispatchMonitorHit(gp: GuardPlayer, probability: Double, model: String = "Def") {
+    fun dispatchMonitorHit(
+        gp: GuardPlayer, probability: Double, model: String = "Def", bypassThrottle: Boolean = false,
+    ) {
         if (monitorReceivers.isEmpty()) return
-        val now = System.currentTimeMillis()
-        val last = gp.lastMonitorHitMs.get()
-        if (now - last < MONITOR_THROTTLE_MS) return
-        if (!gp.lastMonitorHitMs.compareAndSet(last, now)) return
+        if (!bypassThrottle) {
+            val now = System.currentTimeMillis()
+            val last = gp.lastMonitorHitMs.get()
+            if (now - last < MONITOR_THROTTLE_MS) return
+            if (!gp.lastMonitorHitMs.compareAndSet(last, now)) return
+        }
         val pct   = probability * 100.0
         val avg   = gp.avgProbability * 100.0
         val color = plugin.monitorConfig.colorForProbability(pct)
@@ -399,9 +403,7 @@ class AlertManager(private val plugin: GuardAC) {
         val soundName = plugin.configManager.alertSoundType
         val volume    = plugin.configManager.alertSoundVolume
         val pitch     = plugin.configManager.alertSoundPitch
-        val sound = try {
-            Sound.valueOf(soundName)
-        } catch (_: IllegalArgumentException) {
+        val sound = Compat.sound(soundName) ?: run {
             plugin.logger.warning("Invalid alert sound: $soundName")
             return
         }

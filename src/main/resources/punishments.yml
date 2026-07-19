@@ -28,8 +28,9 @@
 #   <command>         - run as console
 #
 # `actions` are grouped by VL. The nearest level BELOW fires: at VL=4 the
-# block "3" runs. A random animation plays automatically before any real
-# command (config.yml -> animations.auto-on-ban), no [animation] line needed.
+# block "3" runs. A random animation plays automatically on EVERY level - even
+# an alert-only VL1 (config.yml -> animations.auto-on-ban), no [animation] line
+# needed. Each show ends with a sped-up wither "kill" sound.
 #
 # This file is only about commands on specific violation levels. Early staff
 # warnings and soft in-combat measures live in config.yml instead - they have

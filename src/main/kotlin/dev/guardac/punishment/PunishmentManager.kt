@@ -153,11 +153,11 @@ class PunishmentManager(private val plugin: GuardAC) {
             val hasRealCommand   = actions.any { isPunishmentCommand(it) }
             val hasExplicitAnim  = actions.any { it.trim().lowercase(Locale.ROOT).startsWith("[animation]") }
 
-            val autoAnim = plugin.configManager.animationAutoOnBan && hasRealCommand
+            val autoAnim = plugin.configManager.animationAutoOnBan
             val willAnimate = plugin.configManager.animationsEnabled &&
                 (autoAnim || forceAnimation || hasExplicitAnim)
 
-            val chain = if ((willAnimate || forceAnimation) && !hasRealCommand) {
+            val chain = if (forceAnimation && !hasRealCommand) {
                 actions + fallbackBanAction()
             } else {
                 actions

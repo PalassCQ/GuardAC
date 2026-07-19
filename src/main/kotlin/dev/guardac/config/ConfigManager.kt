@@ -135,6 +135,8 @@ class ConfigManager(private val plugin: GuardAC) {
     val aiTimeoutSeconds: Long get() = cfg.getLong("ai.timeout-seconds", 5)
     val aiContinuous: Boolean  get() = cfg.getBoolean("ai.continuous", false)
 
+    val aiBinaryWire: Boolean  get() = cfg.getBoolean("ai.binary-wire", true)
+
     val aiMinMovement: Double  get() = cfg.getDouble("ai.min-movement", 15.0)
 
     val aiMinTpsAnalyze: Double get() = cfg.getDouble("ai.min-tps-analyze", 15.0)
