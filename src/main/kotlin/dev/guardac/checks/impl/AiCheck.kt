@@ -161,10 +161,11 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
                     if (flagged && !event.isCancelled) {
                         plugin.dailyStats.recordDetection()
 
-                        val verbose = buildVerbose(prob)
+                        val confidence = gp.flagConfidence()
+                        val verbose = buildVerbose(confidence)
 
                         plugin.reputationClient.report(
-                            gp.uuid, gp.player.name, prob, gp.aiViolationLevel, verbose, ticks,
+                            gp.uuid, gp.player.name, confidence, gp.aiViolationLevel, verbose, ticks,
                         )
 
                         val tps = plugin.tpsMonitor.tps

@@ -376,6 +376,14 @@ class GuardPlayer(
     }
 
     @Synchronized
+    fun flagConfidence(): Double {
+        val now = System.currentTimeMillis()
+        if (judgeFromModel && now - judgeAtMs <= JUDGE_TTL_MS) return judgeProb
+        if (hitProbHistory.isNotEmpty()) return hitProbHistory.average()
+        return lastAiProbability
+    }
+
+    @Synchronized
     fun resetAi() {
         aiBuffer          = 0.0
         aiViolationLevel  = 0
