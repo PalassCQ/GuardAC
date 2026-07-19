@@ -51,6 +51,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
     private val frozen = ConcurrentHashMap<UUID, MovementState>()
 
     private val spawned: MutableSet<Entity> = ConcurrentHashMap.newKeySet()
+    private val missingWarned: MutableSet<String> = ConcurrentHashMap.newKeySet()
 
     private fun <T : Entity> track(entity: T): T {
         runCatching { entity.addScoreboardTag(ANIM_TAG) }
@@ -162,9 +163,12 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
 
         if (!player.isInsideVehicle) {
             runCatching {
-                Compat.potion("LEVITATION")?.let {
+                val levitation = Compat.potion("LEVITATION")
+                if (levitation == null) {
+                    warnUnavailable("effect", "LEVITATION")
+                } else {
                     player.addPotionEffect(PotionEffect(
-                        it,
+                        levitation,
                         plugin.configManager.animationDurationTicks + 20, 1, false, false,
                     ))
                 }
@@ -466,9 +470,21 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
 
     private fun playKillSound(player: Player, loc: Location) {
         if (!plugin.configManager.animationSound) return
-        val sound = Compat.sound("ENTITY_WITHER_DEATH") ?: return
+        val sound = Compat.sound("ENTITY_WITHER_DEATH")
+        if (sound == null) {
+            warnUnavailable("sound", "ENTITY_WITHER_DEATH")
+            return
+        }
         runCatching { player.playSound(player.location, sound, 1f, WITHER_PITCH) }
         loc.world?.playSound(loc, sound, 4f, WITHER_PITCH)
+    }
+
+    private fun warnUnavailable(kind: String, name: String) {
+        if (missingWarned.add(name)) {
+            plugin.logger.warning(
+                "[Animation] $kind \"$name\" is not available on this server version - that part of the show is skipped."
+            )
+        }
     }
 
     private fun particle(vararg names: String): Particle = Compat.particle(*names)

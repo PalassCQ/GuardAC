@@ -1,9 +1,12 @@
+# Colors used by /guard monitor and the /guard prob HUD.
+# A probability below "low" is green, below "medium" yellow, and so on.
 monitor:
   colors:
     low: "&a"
     medium: "&e"
     high: "&6"
     critical: "&c"
+  # Thresholds in % where each color starts.
   thresholds:
     low: 35
     medium: 55

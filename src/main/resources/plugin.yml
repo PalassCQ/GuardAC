@@ -26,6 +26,9 @@ commands:
     aliases: [gdc]
 
 permissions:
+  # Master permission - grants every sub-command permission below. Give this to
+  # a full admin; grant individual guardac.command.* nodes for limited staff
+  # (e.g. a helper who may ONLY use /guard monitor and /guard suspicious).
   guardac.admin:
     description: Full access to all GuardAC administration commands
     default: op
