@@ -50,6 +50,8 @@ class RetryingAiTransport(
 
     override val isEnabled: Boolean get() = delegate.isEnabled
 
+    override val circuitOpen: Boolean get() = circuitOpenUntil > System.currentTimeMillis()
+
     override fun infer(ticks: Array<AimSample>, priority: Boolean): CompletableFuture<InferenceResult> {
         if (!isEnabled) return CompletableFuture.completedFuture(InferenceResult.Disabled)
 

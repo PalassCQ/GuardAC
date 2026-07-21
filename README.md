@@ -71,7 +71,6 @@ specific WorldGuard regions can be excluded via the configuration.
 | `/guard monitor <player>` | Follow a player's live check output |
 | `/guard profile <player>` | Show a player's current profile |
 | `/guard suspicious` | List currently suspicious players |
-| `/guard scan <player> [windows]` | Run an on-demand deep scan |
 | `/guard punish <player>` | Apply the top punishment manually |
 | `/guard history <player> [page]` | Show a player's violation history |
 | `/guard log [page]` | Show recent violations |

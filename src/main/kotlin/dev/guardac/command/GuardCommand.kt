@@ -65,8 +65,8 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
             "exempt"      -> handleExempt(sender, args)
             "reset"       -> handleReset(sender, args)
             "punish"      -> handlePunish(sender, args)
-            "scan"        -> handleScan(sender, args)
             "stats"       -> handleStats(sender, args)
+            "health"      -> handleHealth(sender)
             "crossserver" -> handleCrossServer(sender)
             "log"         -> handleLog(sender, args)
             "history"     -> handleHistory(sender, args)
@@ -86,7 +86,7 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
                 .filter { sender.hasPermission("guardac.command.$it") }
                 .filter { it.startsWith(args[0].lowercase()) }
             2 -> when (args[0].lowercase()) {
-                "profile", "debug", "prob", "reset", "punish", "scan", "log", "history", "results"
+                "profile", "debug", "prob", "reset", "punish", "log", "history", "results"
                     -> online.filter { it.startsWith(args[1], ignoreCase = true) }
                 "exempt"
                     -> (listOf("remove", "status") + online).filter { it.startsWith(args[1], ignoreCase = true) }
@@ -186,23 +186,6 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
                 "penalty", "%.0f".format(gp.currentAttackSpeedPenalty() * 100.0),
             ))
         }
-    }
-
-    private fun handleScan(sender: CommandSender, args: Array<out String>) {
-        val name = args.getOrNull(1)
-            ?: return sender.sendMessage(plugin.locale.get(Message.USAGE_SCAN))
-        val target = Bukkit.getPlayerExact(name)
-            ?: return sender.sendMessage(plugin.locale.get(Message.PLAYER_NOT_FOUND, "player", name))
-        val windows = args.getOrNull(2)?.toIntOrNull() ?: plugin.configManager.scanWindowsDefault
-        if (!plugin.scanManager.start(target, sender, windows)) {
-            sender.sendMessage(plugin.locale.get(Message.SCAN_ALREADY, "player", target.name))
-            return
-        }
-        sender.sendMessage(plugin.locale.get(
-            Message.SCAN_STARTED,
-            "player", target.name,
-            "windows", windows.coerceIn(1, dev.guardac.scan.ScanManager.MAX_WINDOWS).toString(),
-        ))
     }
 
     private fun suppressionStageTag(stage: SuppressionStage): String = when (stage) {
@@ -388,6 +371,45 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
         sender.sendMessage(plugin.locale.get(Message.STATS_DETECTIONS, "detections", todayDetections.toString(), "requests", todayRequests.toString()))
     }
 
+    private fun handleHealth(sender: CommandSender) {
+        val cfg = plugin.configManager
+        val key = cfg.aiApiKey
+        val keySet = key.isNotBlank() && key != "PASTE-YOUR-GUARDAC-KEY" && key != "changeme"
+
+        val ok       = plugin.locale.get(Message.HEALTH_OK)
+        val off      = plugin.locale.get(Message.HEALTH_OFF)
+        val backend  = when {
+            !cfg.aiEnabled              -> off
+            plugin.aiTransport.circuitOpen -> plugin.locale.get(Message.HEALTH_DEGRADED)
+            else                        -> ok
+        }
+        val mode     = plugin.locale.get(
+            if (cfg.aiOnlyAlert) Message.HEALTH_ALERT_ONLY else Message.HEALTH_ENFORCING
+        )
+        val keyLine  = if (keySet) ok else plugin.locale.get(Message.HEALTH_MISSING)
+
+        val all        = plugin.playerDataManager.getAll()
+        val suspicious = all.count { it.aiBuffer > SUSPICIOUS_BUFFER_THRESHOLD }
+
+        sender.sendMessage(plugin.locale.get(Message.HEALTH_HEADER, "version", plugin.description.version))
+        sender.sendMessage(plugin.locale.get(Message.HEALTH_BACKEND, "status", backend, "server", cfg.aiServer))
+        sender.sendMessage(plugin.locale.get(Message.HEALTH_MODE, "mode", mode))
+        sender.sendMessage(plugin.locale.get(Message.HEALTH_KEY, "status", keyLine))
+        sender.sendMessage(plugin.locale.get(Message.HEALTH_TPS, "tps", "%.1f".format(plugin.tpsMonitor.tps)))
+        sender.sendMessage(plugin.locale.get(
+            Message.HEALTH_TRACKED, "tracked", all.size.toString(), "suspicious", suspicious.toString()
+        ))
+        sender.sendMessage(plugin.locale.get(
+            Message.HEALTH_MODULES,
+            "crossserver", onOff(cfg.crossServerEnabled),
+            "holograms",   onOff(plugin.hologramConfig.enabled),
+            "sound",       onOff(cfg.alertSoundEnabled),
+        ))
+    }
+
+    private fun onOff(value: Boolean): String =
+        plugin.locale.get(if (value) Message.COMMON_ON else Message.COMMON_OFF)
+
     private fun handleLog(sender: CommandSender, args: Array<out String>) {
         val log = plugin.punishmentManager.violationLog
         val entries = if (args.size >= 2) {
@@ -482,8 +504,8 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
         sender.sendMessage(plugin.locale.get(Message.HELP_EXEMPT))
         sender.sendMessage(plugin.locale.get(Message.HELP_RESET))
         sender.sendMessage(plugin.locale.get(Message.HELP_PUNISH))
-        sender.sendMessage(plugin.locale.get(Message.HELP_SCAN))
         sender.sendMessage(plugin.locale.get(Message.HELP_STATS))
+        sender.sendMessage(plugin.locale.get(Message.HELP_HEALTH))
         sender.sendMessage(plugin.locale.get(Message.HELP_LOG))
         sender.sendMessage(plugin.locale.get(Message.HELP_HISTORY))
         sender.sendMessage(plugin.locale.get(Message.HELP_RESULTS))
@@ -513,7 +535,7 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
 
         val SUBCOMMANDS = listOf(
             "help", "reload", "alerts", "monitor", "profile", "suspicious", "menu",
-            "debug", "prob", "exempt", "reset", "punish", "scan", "stats",
+            "debug", "prob", "exempt", "reset", "punish", "stats", "health",
             "crossserver", "log", "history", "results",
         )
     }

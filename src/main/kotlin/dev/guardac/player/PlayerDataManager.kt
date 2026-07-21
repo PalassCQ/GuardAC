@@ -74,7 +74,6 @@ class PlayerDataManager(private val plugin: GuardAC) : Listener {
             }
             plugin.suppressionManager.onQuit(gp)
         }
-        plugin.scanManager.onQuit(uuid)
         plugin.hologramManager.onQuit(player)
         plugin.alertManager.removeProbSession(uuid)
         plugin.alertManager.onPlayerQuit(uuid)

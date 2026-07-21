@@ -255,9 +255,6 @@ class ConfigManager(private val plugin: GuardAC) {
     val suppressionIsolateDurationMs: Long       get() = cfg.getLong("combat-suppression.isolate.duration-seconds", 12) * 1000L
     val suppressionIsolateNotify: Boolean        get() = cfg.getBoolean("combat-suppression.isolate.notify-suspect", true)
 
-    val scanWindowsDefault: Int  get() = cfg.getInt("deep-scan.windows", 8)
-    val scanTimeoutSeconds: Int  get() = cfg.getInt("deep-scan.timeout-seconds", 120)
-
     val reputationEnabled: Boolean     get() = cfg.getBoolean("reputation.enabled", true)
     val reputationReport: Boolean      get() = cfg.getBoolean("reputation.report", true)
     val reputationCheckOnJoin: Boolean get() = cfg.getBoolean("reputation.check-on-join", true)

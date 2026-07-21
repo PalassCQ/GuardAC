@@ -48,7 +48,6 @@ import dev.guardac.player.ExemptManager
 import dev.guardac.player.PlayerDataManager
 import dev.guardac.punishment.PunishmentManager
 import dev.guardac.reputation.ReputationClient
-import dev.guardac.scan.ScanManager
 import dev.guardac.stats.DailyStats
 import dev.guardac.update.UpdateManager
 import dev.guardac.util.Scheduler
@@ -77,7 +76,6 @@ class GuardAC : JavaPlugin() {
     lateinit var punishmentHistory: PunishmentHistory       private set
     lateinit var worldGuardCompat: WorldGuardCompat         private set
     lateinit var suppressionManager: SuppressionManager     private set
-    lateinit var scanManager: ScanManager                   private set
     lateinit var tpsMonitor: TpsMonitor                     private set
     lateinit var updateManager: UpdateManager               private set
 
@@ -138,7 +136,6 @@ class GuardAC : JavaPlugin() {
         punishmentHistory     = PunishmentHistory(this).also { it.initialize() }
         worldGuardCompat      = WorldGuardCompat(logger, configManager.worldGuardEnabled, configManager.worldGuardDisabledRegions)
         suppressionManager    = SuppressionManager(this).also { it.start() }
-        scanManager           = ScanManager(this)
         tpsMonitor            = TpsMonitor(this).also { it.start() }
         updateManager         = UpdateManager(this, file).also { it.start() }
         val httpTransport     = HttpAiTransport(this)

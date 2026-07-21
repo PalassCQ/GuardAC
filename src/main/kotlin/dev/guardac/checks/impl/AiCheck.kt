@@ -44,18 +44,15 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
 
         if (plugin.worldGuardCompat.shouldBypass(gp.player)) return
 
-        val scanning = plugin.scanManager.isScanning(gp.uuid)
-
         val unstable = gp.consumeUnstableTicks()
-        val lagDistorted = !scanning &&
-            unstable >= UNSTABLE_TICKS_MIN && gp.player.ping >= UNSTABLE_PING_MIN
+        val lagDistorted = unstable >= UNSTABLE_TICKS_MIN && gp.player.ping >= UNSTABLE_PING_MIN
 
         if (isBelowMovementThreshold(ticks, cfg.aiMinMovement)) return
 
         val minTps = cfg.aiMinTpsAnalyze
-        if (!scanning && minTps > 0.0 && plugin.tpsMonitor.tps < minTps) return
+        if (minTps > 0.0 && plugin.tpsMonitor.tps < minTps) return
 
-        plugin.aiTransport.infer(ticks, scanning)
+        plugin.aiTransport.infer(ticks, false)
             .thenAccept { result -> handleResult(gp, result, lagDistorted, ticks) }
 
         if (judgeAvailable) {
@@ -125,8 +122,6 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
                 val isolatedBefore = gp.isIsolated
                 gp.addAiProbability(prob, lagDistorted)
                 val bufferAfter  = gp.aiBuffer
-
-                plugin.scanManager.onResult(gp.uuid, prob, result.sources)
 
                 if (gp.checkFingerprintDrift()) {
                     plugin.alertManager.sendFingerprintAlert(gp)

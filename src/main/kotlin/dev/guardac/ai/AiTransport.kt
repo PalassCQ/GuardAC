@@ -28,6 +28,13 @@ import java.util.concurrent.CompletableFuture
 interface AiTransport {
     val isEnabled: Boolean
 
+    /**
+     * True when the connection to the backend is currently in a failed state and
+     * requests are being short-circuited (circuit breaker open). Transports with
+     * no breaker report false. Used only for operator diagnostics (/guard health).
+     */
+    val circuitOpen: Boolean get() = false
+
     fun infer(ticks: Array<AimSample>, priority: Boolean = false): CompletableFuture<InferenceResult>
 
     fun reload()

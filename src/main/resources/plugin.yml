@@ -17,7 +17,7 @@ softdepend:
 commands:
   guard:
     description: GuardAC main administration command
-    usage: /guard <help|alerts|monitor|profile|reload|suspicious|menu|debug|prob|exempt|reset|punish|scan|stats|log|history|results|crossserver>
+    usage: /guard <help|alerts|monitor|profile|reload|suspicious|menu|debug|prob|exempt|reset|punish|stats|health|log|history|results|crossserver>
     aliases: [gac, guardac]
   guarddc:
     description: GuardAC dataset collection for AI training
@@ -45,8 +45,8 @@ permissions:
       guardac.command.exempt: true
       guardac.command.reset: true
       guardac.command.punish: true
-      guardac.command.scan: true
       guardac.command.stats: true
+      guardac.command.health: true
       guardac.command.crossserver: true
       guardac.command.log: true
       guardac.command.history: true
@@ -63,8 +63,8 @@ permissions:
   guardac.command.exempt:      { description: Exempt players from checks,  default: op }
   guardac.command.reset:       { description: Reset a player's VL,         default: op }
   guardac.command.punish:      { description: Manually punish a player,    default: op }
-  guardac.command.scan:        { description: Deep-scan a player,          default: op }
   guardac.command.stats:       { description: View server AC stats,        default: op }
+  guardac.command.health:      { description: Anticheat self-diagnostic,   default: op }
   guardac.command.crossserver: { description: Toggle cross-server alerts,  default: op }
   guardac.command.log:         { description: View the violation log,      default: op }
   guardac.command.history:     { description: View punishment history,     default: op }
