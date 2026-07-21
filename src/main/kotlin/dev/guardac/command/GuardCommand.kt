@@ -16,6 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * This file contains code derived from:
  *   - SlothAC (© 2025 KaelusMC, https://github.com/KaelusMC/SlothAC)
+ *   - Grim (© 2025 GrimAnticheat, https://github.com/GrimAnticheat/Grim)
  * All derived code is licensed under GPL-3.0.
  */
 
