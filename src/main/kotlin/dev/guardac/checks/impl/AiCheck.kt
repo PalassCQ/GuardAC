@@ -47,7 +47,7 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
         val unstable = gp.consumeUnstableTicks()
         val lagDistorted = unstable >= UNSTABLE_TICKS_MIN && gp.player.ping >= UNSTABLE_PING_MIN
 
-        if (isBelowMovementThreshold(ticks, cfg.aiMinMovement)) return
+        if (isDeadWindow(ticks, cfg.aiDeadZone, cfg.aiMinActiveTicks)) return
 
         val minTps = cfg.aiMinTpsAnalyze
         if (minTps > 0.0 && plugin.tpsMonitor.tps < minTps) return
@@ -80,11 +80,13 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
         }
     }
 
-    private fun isBelowMovementThreshold(ticks: Array<AimSample>, minMovement: Double): Boolean {
-        var sum = 0.0
+    private fun isDeadWindow(ticks: Array<AimSample>, deadZone: Double, minActive: Int): Boolean {
+        var active = 0
         for (t in ticks) {
-            sum += abs(t.deltaYaw) + abs(t.deltaPitch)
-            if (sum >= minMovement) return false
+            if (abs(t.deltaYaw) + abs(t.deltaPitch) >= deadZone) {
+                active++
+                if (active >= minActive) return false
+            }
         }
         return true
     }

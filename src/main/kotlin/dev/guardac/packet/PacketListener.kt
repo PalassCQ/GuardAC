@@ -62,11 +62,7 @@ class PacketListener(private val plugin: GuardAC) :
                 val w = WrapperPlayClientPlayerRotation(event)
                 handleRotation(gp, w.yaw, w.pitch)
             }
-            PacketType.Play.Client.PLAYER_POSITION -> {
-                gp.noteMovement()
-            }
             PacketType.Play.Client.PLAYER_POSITION_AND_ROTATION -> {
-                gp.noteMovement()
                 val w = WrapperPlayClientPlayerPositionAndRotation(event)
                 handleRotation(gp, w.yaw, w.pitch)
             }
@@ -92,7 +88,6 @@ class PacketListener(private val plugin: GuardAC) :
         val dyaw   = gp.rotation.deltaYaw
         val dpitch = gp.rotation.deltaPitch
 
-        gp.noteAimActivity(dyaw, dpitch)
         if (dyaw == 0f && dpitch == 0f) return
 
         plugin.checkRegistry.rotationChecks.forEach { it.onRotation(gp) }
@@ -113,20 +108,9 @@ class PacketListener(private val plugin: GuardAC) :
     }
 
     private fun handleAttack(gp: GuardPlayer, entityId: Int, player: Player) {
-
         val targetUuid = plugin.playerDataManager.uuidByEntityId(entityId) ?: return
         if (targetUuid == player.uniqueId) return
-
-        val minRotation = if (gp.isMovingRecently) MIN_HIT_ROTATION_MOVING else MIN_HIT_ROTATION_STILL
-        if (gp.recentAimSum() < minRotation) return
-
         gp.combat.recordAttack()
-    }
-
-    private companion object {
-
-        const val MIN_HIT_ROTATION_STILL  = 8.0
-        const val MIN_HIT_ROTATION_MOVING = 16.0
     }
 
     private fun buildTick(gp: GuardPlayer) = AimSample(

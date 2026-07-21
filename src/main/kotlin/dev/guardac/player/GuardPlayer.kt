@@ -88,29 +88,6 @@ class GuardPlayer(
         TeleportPhase.JUST_CONFIRMED -> { teleportPhase = TeleportPhase.NONE; true }
     }
 
-    private val recentAim = FloatArray(AIM_ACTIVITY_WINDOW)
-    private var recentAimIdx = 0
-
-    fun noteAimActivity(deltaYaw: Float, deltaPitch: Float) {
-        recentAim[recentAimIdx] = abs(deltaYaw) + abs(deltaPitch)
-        recentAimIdx = (recentAimIdx + 1) % recentAim.size
-    }
-
-    fun recentAimSum(): Double {
-        var sum = 0.0
-        for (v in recentAim) sum += v
-        return sum
-    }
-
-    @Volatile private var lastMoveMs: Long = 0L
-
-    fun noteMovement() {
-        lastMoveMs = System.currentTimeMillis()
-    }
-
-    val isMovingRecently: Boolean
-        get() = System.currentTimeMillis() - lastMoveMs < MOVE_RECENT_MS
-
     @Volatile private var lastRotationNanos: Long = 0L
     @Volatile private var unstableTicks: Int = 0
 
@@ -439,9 +416,6 @@ class GuardPlayer(
             || plugin.exemptManager.isGloballyExempt(player.name)
 
     private companion object {
-        const val AIM_ACTIVITY_WINDOW      = 10
-        const val MOVE_RECENT_MS           = 500L
-
         const val UNSTABLE_GAP_MIN_MS      = 15L
         const val MS_PER_TICK              = 50L
         const val CHEAT_THRESHOLD          = 0.90
