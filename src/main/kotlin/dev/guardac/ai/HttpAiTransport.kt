@@ -27,9 +27,9 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import dev.guardac.GuardAC
-import dev.guardac.data.InferenceRequest
-import dev.guardac.data.TickData
-import dev.guardac.data.TickDataDto
+import dev.guardac.sample.InferenceRequest
+import dev.guardac.sample.AimSample
+import dev.guardac.sample.AimSampleDto
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
@@ -56,7 +56,7 @@ class HttpAiTransport(private val plugin: GuardAC) : AiTransport {
     override val isEnabled: Boolean
         get() = plugin.configManager.aiEnabled
 
-    override fun infer(ticks: Array<TickData>, priority: Boolean): CompletableFuture<InferenceResult> {
+    override fun infer(ticks: Array<AimSample>, priority: Boolean): CompletableFuture<InferenceResult> {
         if (!isEnabled || shuttingDown) return CompletableFuture.completedFuture(InferenceResult.Disabled)
 
         val cfg  = plugin.configManager
@@ -67,7 +67,7 @@ class HttpAiTransport(private val plugin: GuardAC) : AiTransport {
             } else {
                 val json = mapper.writeValueAsString(
                     InferenceRequest(
-                        ticks = ticks.map { TickDataDto.from(it) },
+                        ticks = ticks.map { AimSampleDto.from(it) },
                         count = ticks.size,
                         priority = priority,
                     )
@@ -98,7 +98,7 @@ class HttpAiTransport(private val plugin: GuardAC) : AiTransport {
     }
 
     fun inferBatch(
-        items: List<Array<TickData>>,
+        items: List<Array<AimSample>>,
         priorities: List<Boolean> = emptyList(),
     ): CompletableFuture<List<InferenceResult>> {
         if (!isEnabled || shuttingDown) {
@@ -114,7 +114,7 @@ class HttpAiTransport(private val plugin: GuardAC) : AiTransport {
                     BatchInferenceRequest(
                         windows = items.mapIndexed { i, arr ->
                             InferenceRequest(
-                                ticks = arr.map { TickDataDto.from(it) },
+                                ticks = arr.map { AimSampleDto.from(it) },
                                 count = arr.size,
                                 priority = priorities.getOrElse(i) { false },
                             )
@@ -214,7 +214,7 @@ class HttpAiTransport(private val plugin: GuardAC) : AiTransport {
         return InferenceResult.Success(p, dto.label?.take(32), sources, model, dto.deep == true)
     }
 
-    private fun encodeSingle(ticks: Array<TickData>, priority: Boolean): ByteArray {
+    private fun encodeSingle(ticks: Array<AimSample>, priority: Boolean): ByteArray {
         val t = ticks.size
         val buf = ByteBuffer.allocate(6 + t * FEATURES * 4).order(ByteOrder.LITTLE_ENDIAN)
         buf.put(BIN_MAGIC).put(BIN_VERSION)
@@ -224,7 +224,7 @@ class HttpAiTransport(private val plugin: GuardAC) : AiTransport {
         return buf.array()
     }
 
-    private fun encodeBatch(items: List<Array<TickData>>, priorities: List<Boolean>): ByteArray {
+    private fun encodeBatch(items: List<Array<AimSample>>, priorities: List<Boolean>): ByteArray {
         var size = 6
         for (arr in items) size += 3 + arr.size * FEATURES * 4
         val buf = ByteBuffer.allocate(size).order(ByteOrder.LITTLE_ENDIAN)
@@ -238,7 +238,7 @@ class HttpAiTransport(private val plugin: GuardAC) : AiTransport {
         return buf.array()
     }
 
-    private fun putTick(buf: ByteBuffer, tk: TickData) {
+    private fun putTick(buf: ByteBuffer, tk: AimSample) {
         buf.putFloat(tk.deltaYaw);    buf.putFloat(tk.deltaPitch)
         buf.putFloat(tk.accelYaw);    buf.putFloat(tk.accelPitch)
         buf.putFloat(tk.jerkYaw);     buf.putFloat(tk.jerkPitch)

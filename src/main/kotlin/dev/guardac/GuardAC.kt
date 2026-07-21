@@ -39,7 +39,7 @@ import dev.guardac.command.GuardCommand
 import dev.guardac.config.ConfigManager
 import dev.guardac.config.LocaleManager
 import dev.guardac.config.MonitorConfig
-import dev.guardac.dataset.DataCollectorManager
+import dev.guardac.dataset.RecorderService
 import dev.guardac.history.PunishmentHistory
 import dev.guardac.hologram.HologramConfig
 import dev.guardac.hologram.HologramManager
@@ -71,7 +71,7 @@ class GuardAC : JavaPlugin() {
     lateinit var aiTransport: AiTransport                   private set
     lateinit var reputationClient: ReputationClient         private set
     lateinit var checkRegistry: CheckRegistry               private set
-    lateinit var dataCollectorManager: DataCollectorManager private set
+    lateinit var recorder: RecorderService private set
     lateinit var exemptManager: ExemptManager               private set
     lateinit var dailyStats: DailyStats                     private set
     lateinit var punishmentHistory: PunishmentHistory       private set
@@ -132,7 +132,7 @@ class GuardAC : JavaPlugin() {
         punishmentManager     = PunishmentManager(this)
         banAnimationManager   = BanAnimationManager(this)
         exemptManager         = ExemptManager()
-        dataCollectorManager  = DataCollectorManager(this)
+        recorder              = RecorderService(this)
         hologramManager       = HologramManager(this)
         dailyStats            = DailyStats(this).also { it.initialize() }
         punishmentHistory     = PunishmentHistory(this).also { it.initialize() }
@@ -212,7 +212,7 @@ class GuardAC : JavaPlugin() {
         runCatching { suppressionManager.stop() }
         runCatching { tpsMonitor.stop() }
         runCatching { updateManager.stop() }
-        runCatching { dataCollectorManager.flushAll() }
+        runCatching { recorder.drainAndShutdown() }
         runCatching { dailyStats.shutdown() }
 
         runCatching {

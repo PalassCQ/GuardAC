@@ -23,7 +23,7 @@
 package dev.guardac.ai
 
 import dev.guardac.GuardAC
-import dev.guardac.data.TickData
+import dev.guardac.sample.AimSample
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Executors
@@ -38,7 +38,7 @@ class BatchingAiTransport(
 ) : AiTransport by delegate {
 
     private data class Job(
-        val ticks: Array<TickData>,
+        val ticks: Array<AimSample>,
         val priority: Boolean,
         val future: CompletableFuture<InferenceResult>,
     )
@@ -52,7 +52,7 @@ class BatchingAiTransport(
         Thread(r, "guardac-ai-batch").also { it.isDaemon = true }
     }
 
-    override fun infer(ticks: Array<TickData>, priority: Boolean): CompletableFuture<InferenceResult> {
+    override fun infer(ticks: Array<AimSample>, priority: Boolean): CompletableFuture<InferenceResult> {
         if (!plugin.configManager.aiBatchingEnabled) return delegate.infer(ticks, priority)
 
         val future = CompletableFuture<InferenceResult>()

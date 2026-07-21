@@ -370,7 +370,7 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
         val online     = all.size
         val suspicious = all.count { it.aiBuffer > SUSPICIOUS_BUFFER_THRESHOLD }
         val totalFlags = all.sumOf { it.totalAiFlags.get() }
-        val dcSessions = plugin.dataCollectorManager.activeSessions.size
+        val dcSessions = plugin.recorder.captures.size
         val aiEnabled  = plugin.configManager.aiEnabled
         val uptime     = System.currentTimeMillis() - plugin.startTime
         val flagsPerHour = if (periodHours > 0) "%.1f".format(totalFlags.toDouble() / periodHours) else "0"

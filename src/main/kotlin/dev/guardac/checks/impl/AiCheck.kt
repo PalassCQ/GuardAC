@@ -25,7 +25,7 @@ package dev.guardac.checks.impl
 import dev.guardac.GuardAC
 import dev.guardac.ai.InferenceResult
 import dev.guardac.checks.type.SequenceCheck
-import dev.guardac.data.TickData
+import dev.guardac.sample.AimSample
 import dev.guardac.event.GuardAiPredictionEvent
 import dev.guardac.player.GuardPlayer
 import org.bukkit.Bukkit
@@ -35,7 +35,7 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
 
     @Volatile private var judgeAvailable = true
 
-    override fun onSequence(gp: GuardPlayer, ticks: Array<TickData>) {
+    override fun onSequence(gp: GuardPlayer, ticks: Array<AimSample>) {
         val cfg = plugin.configManager
         if (!cfg.aiEnabled) return
         if (gp.isRiding) return
@@ -83,7 +83,7 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
         }
     }
 
-    private fun isBelowMovementThreshold(ticks: Array<TickData>, minMovement: Double): Boolean {
+    private fun isBelowMovementThreshold(ticks: Array<AimSample>, minMovement: Double): Boolean {
         var sum = 0.0
         for (t in ticks) {
             sum += abs(t.deltaYaw) + abs(t.deltaPitch)
@@ -93,7 +93,7 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
     }
 
     private fun handleResult(
-        gp: GuardPlayer, result: InferenceResult, lagDistorted: Boolean, ticks: Array<TickData>,
+        gp: GuardPlayer, result: InferenceResult, lagDistorted: Boolean, ticks: Array<AimSample>,
     ) {
         when (result) {
             is InferenceResult.Disabled -> return

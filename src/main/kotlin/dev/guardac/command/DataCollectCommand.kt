@@ -23,7 +23,7 @@
 package dev.guardac.command
 
 import dev.guardac.GuardAC
-import dev.guardac.data.DataSession
+import dev.guardac.sample.RecordingSession
 import dev.guardac.util.Message
 import org.bukkit.Bukkit
 import org.bukkit.command.Command
@@ -58,7 +58,7 @@ class DataCollectCommand(private val plugin: GuardAC) : CommandExecutor, TabComp
     ): List<String> {
         if (!sender.hasPermission("guardac.datacollect")) return emptyList()
         val online = Bukkit.getOnlinePlayers().map { it.name }
-        val sessionNames = plugin.dataCollectorManager.activeSessions.values.map { it.player }
+        val sessionNames = plugin.recorder.captures.values.map { it.player }
         return when (args.size) {
             1 -> listOf("start", "stop", "cancel", "status", "help")
                 .filter { it.startsWith(args[0].lowercase()) }
@@ -92,8 +92,8 @@ class DataCollectCommand(private val plugin: GuardAC) : CommandExecutor, TabComp
             ?: return sender.sendMessage(plugin.locale.get(Message.PLAYER_NOT_FOUND, "player", playerName))
 
         val status   = "$type $details"
-        val existing = plugin.dataCollectorManager.getSession(target.uniqueId)
-        val isNew    = plugin.dataCollectorManager.startCollecting(target.uniqueId, target.name, status)
+        val existing = plugin.recorder.captureOf(target.uniqueId)
+        val isNew    = plugin.recorder.beginCapture(target.uniqueId, target.name, status)
 
         val msgKey = if (isNew && existing == null) Message.DATACOLLECT_START_SUCCESS
                      else Message.DATACOLLECT_START_RESTARTED
@@ -107,11 +107,11 @@ class DataCollectCommand(private val plugin: GuardAC) : CommandExecutor, TabComp
         val uuid = resolveSessionUuid(playerName)
             ?: return sender.sendMessage(plugin.locale.get(Message.DATACOLLECT_STOP_FAIL, "player", playerName))
 
-        val session = plugin.dataCollectorManager.getSession(uuid)
-        val ticks   = session?.recordedTicks?.size ?: 0
+        val session = plugin.recorder.captureOf(uuid)
+        val ticks   = session?.size ?: 0
         val name    = session?.player ?: playerName
 
-        if (plugin.dataCollectorManager.stopCollecting(uuid)) {
+        if (plugin.recorder.finishCapture(uuid)) {
             sender.sendMessage(plugin.locale.get(
                 Message.DATACOLLECT_STOP_SUCCESS,
                 "player", name,
@@ -129,8 +129,8 @@ class DataCollectCommand(private val plugin: GuardAC) : CommandExecutor, TabComp
         val uuid = resolveSessionUuid(playerName)
             ?: return sender.sendMessage(plugin.locale.get(Message.DATACOLLECT_STOP_FAIL, "player", playerName))
 
-        val name = plugin.dataCollectorManager.getSession(uuid)?.player ?: playerName
-        if (plugin.dataCollectorManager.cancelCollecting(uuid)) {
+        val name = plugin.recorder.captureOf(uuid)?.player ?: playerName
+        if (plugin.recorder.discardCapture(uuid)) {
             sender.sendMessage(plugin.locale.get(Message.DATACOLLECT_CANCEL_SUCCESS, "player", name))
         } else {
             sender.sendMessage(plugin.locale.get(Message.DATACOLLECT_STOP_FAIL, "player", playerName))
@@ -141,7 +141,7 @@ class DataCollectCommand(private val plugin: GuardAC) : CommandExecutor, TabComp
         val playerName = args.getOrNull(1)
         if (playerName != null) {
             val uuid = resolveSessionUuid(playerName)
-            val session = uuid?.let { plugin.dataCollectorManager.getSession(it) }
+            val session = uuid?.let { plugin.recorder.captureOf(it) }
                 ?: return sender.sendMessage(
                     plugin.locale.get(Message.DATACOLLECT_STATUS_NO_SESSION, "player", playerName)
                 )
@@ -149,7 +149,7 @@ class DataCollectCommand(private val plugin: GuardAC) : CommandExecutor, TabComp
             return
         }
         sender.sendMessage(plugin.locale.get(Message.DATACOLLECT_STATUS_HEADER))
-        val sessions = plugin.dataCollectorManager.activeSessions
+        val sessions = plugin.recorder.captures
         if (sessions.isEmpty()) {
             sender.sendMessage(plugin.locale.get(Message.DATACOLLECT_STATUS_EMPTY))
             return
@@ -160,21 +160,21 @@ class DataCollectCommand(private val plugin: GuardAC) : CommandExecutor, TabComp
     private fun resolveSessionUuid(playerName: String): java.util.UUID? {
         val online = Bukkit.getPlayerExact(playerName)
         if (online != null) {
-            return if (plugin.dataCollectorManager.getSession(online.uniqueId) != null) online.uniqueId else null
+            return if (plugin.recorder.captureOf(online.uniqueId) != null) online.uniqueId else null
         }
-        return plugin.dataCollectorManager.activeSessions.entries
+        return plugin.recorder.captures.entries
             .firstOrNull { it.value.player.equals(playerName, ignoreCase = true) }
             ?.key
     }
 
-    private fun formatSession(session: DataSession): String {
+    private fun formatSession(session: RecordingSession): String {
         val seconds = Duration.between(session.startTime, Instant.now()).toSeconds()
         return plugin.locale.get(
             Message.DATACOLLECT_STATUS_ENTRY,
             "player", session.player,
             "status", session.status,
             "time",   seconds.toString(),
-            "ticks",  session.recordedTicks.size.toString(),
+            "ticks",  session.size.toString(),
         )
     }
 

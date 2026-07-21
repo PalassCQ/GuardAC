@@ -22,13 +22,13 @@
 
 package dev.guardac.ai
 
-import dev.guardac.data.TickData
+import dev.guardac.sample.AimSample
 import java.util.concurrent.CompletableFuture
 
 interface AiTransport {
     val isEnabled: Boolean
 
-    fun infer(ticks: Array<TickData>, priority: Boolean = false): CompletableFuture<InferenceResult>
+    fun infer(ticks: Array<AimSample>, priority: Boolean = false): CompletableFuture<InferenceResult>
 
     fun reload()
     fun shutdown()

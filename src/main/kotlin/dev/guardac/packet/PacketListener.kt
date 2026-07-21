@@ -33,7 +33,7 @@ import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientPl
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientTeleportConfirm
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerPlayerPositionAndLook
 import dev.guardac.GuardAC
-import dev.guardac.data.TickData
+import dev.guardac.sample.AimSample
 import dev.guardac.player.GuardPlayer
 import org.bukkit.entity.Player
 
@@ -104,7 +104,7 @@ class PacketListener(private val plugin: GuardAC) :
         gp.onTick(tick, recordForAi)
 
         if (recordForAi) {
-            plugin.dataCollectorManager.addTick(gp.uuid, tick)
+            plugin.recorder.offer(gp.uuid, tick)
         }
 
         gp.pollSequence()?.let { seq ->
@@ -129,7 +129,7 @@ class PacketListener(private val plugin: GuardAC) :
         const val MIN_HIT_ROTATION_MOVING = 16.0
     }
 
-    private fun buildTick(gp: GuardPlayer) = TickData(
+    private fun buildTick(gp: GuardPlayer) = AimSample(
         deltaYaw      = gp.rotation.deltaYaw,
         deltaPitch    = gp.rotation.deltaPitch,
         accelYaw      = gp.rotation.accelYaw,

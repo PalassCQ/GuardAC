@@ -23,7 +23,7 @@
 package dev.guardac.ai
 
 import dev.guardac.GuardAC
-import dev.guardac.data.TickData
+import dev.guardac.sample.AimSample
 import java.io.IOException
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
@@ -50,7 +50,7 @@ class RetryingAiTransport(
 
     override val isEnabled: Boolean get() = delegate.isEnabled
 
-    override fun infer(ticks: Array<TickData>, priority: Boolean): CompletableFuture<InferenceResult> {
+    override fun infer(ticks: Array<AimSample>, priority: Boolean): CompletableFuture<InferenceResult> {
         if (!isEnabled) return CompletableFuture.completedFuture(InferenceResult.Disabled)
 
         val now = System.currentTimeMillis()
@@ -68,7 +68,7 @@ class RetryingAiTransport(
         return attempt(ticks, priority, attempt = 1)
     }
 
-    private fun attempt(ticks: Array<TickData>, priority: Boolean, attempt: Int): CompletableFuture<InferenceResult> {
+    private fun attempt(ticks: Array<AimSample>, priority: Boolean, attempt: Int): CompletableFuture<InferenceResult> {
         return delegate.infer(ticks, priority).thenCompose { result ->
             when (result) {
                 is InferenceResult.Success -> {
@@ -88,7 +88,7 @@ class RetryingAiTransport(
         }
     }
 
-    private fun scheduleRetry(ticks: Array<TickData>, priority: Boolean, attempt: Int): CompletableFuture<InferenceResult> {
+    private fun scheduleRetry(ticks: Array<AimSample>, priority: Boolean, attempt: Int): CompletableFuture<InferenceResult> {
         val result = CompletableFuture<InferenceResult>()
         val delayMs = computeDelayMs(attempt)
         scheduler.schedule({

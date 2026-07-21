@@ -27,7 +27,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import dev.guardac.GuardAC
-import dev.guardac.data.TickData
+import dev.guardac.sample.AimSample
 import dev.guardac.punishment.BanBridge
 import dev.guardac.util.Message
 import dev.guardac.util.SafeName
@@ -96,7 +96,7 @@ class ReputationClient(private val plugin: GuardAC) {
 
     fun report(
         uuid: UUID, name: String, probability: Double, vl: Int = 0,
-        verbose: String = "", window: Array<TickData>? = null,
+        verbose: String = "", window: Array<AimSample>? = null,
     ) {
         val cfg = plugin.configManager
         if (shuttingDown) return

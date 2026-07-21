@@ -21,11 +21,11 @@
  */
 package dev.guardac.checks.type
 
-import dev.guardac.data.TickData
+import dev.guardac.sample.AimSample
 import dev.guardac.player.GuardPlayer
 
 interface SequenceCheck {
-    fun onSequence(gp: GuardPlayer, ticks: Array<TickData>)
+    fun onSequence(gp: GuardPlayer, ticks: Array<AimSample>)
 }
 
 interface RotationCheck {

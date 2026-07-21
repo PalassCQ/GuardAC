@@ -249,7 +249,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
                     runCatching { pig.addPassenger(player) }
                 }
                 pig.velocity = if (pig.location.y < targetY) Vector(0.0, RISE_SPEED, 0.0) else Vector(0.0, 0.0, 0.0)
-                if (t % 3 == 0) world.spawnParticle(particle("CLOUD"), pig.location, 6, 0.3, 0.1, 0.3, 0.0)
+                if (t % 3 == 0) burst(world, particle("CLOUD"), pig.location, 6, 0.3, 0.1, 0.3)
                 if (++t >= duration) {
                     handle.cancel()
                     val loc = pig.location.clone()
@@ -300,7 +300,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
                     val ang = t * 0.25 + Math.PI * 2 * i / points
                     val x = Math.cos(ang) * 1.2
                     val z = Math.sin(ang) * 1.2
-                    world.spawnParticle(particle, center.clone().add(x, 0.0, z), each, 0.0, 0.0, 0.0, 0.0)
+                    burst(world, particle, center.clone().add(x, 0.0, z), each)
                 }
                 if (++t >= duration) {
                     handle.cancel()
@@ -323,8 +323,8 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
             plugin.scheduler.entityDelayed(player, gap * i, Runnable {
                 if (!player.isOnline) return@Runnable
                 runCatching { player.world.strikeLightningEffect(player.location) }
-                player.world.spawnParticle(
-                    particle("ELECTRIC_SPARK", "CRIT"),
+                burst(
+                    player.world, particle("ELECTRIC_SPARK", "CRIT"),
                     player.location.clone().add(0.0, 1.0, 0.0), 25, 0.5, 0.8, 0.5, 0.05,
                 )
             })
@@ -352,15 +352,15 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
                     val ang = t * 0.5 + arm * Math.PI
                     val r = 1.6 - (t.toDouble() / duration) * 0.7
                     val y = (t.toDouble() / duration) * 2.8
-                    world.spawnParticle(
-                        particle("CLOUD"),
+                    burst(
+                        world, particle("CLOUD"),
                         base.clone().add(Math.cos(ang) * r, y, Math.sin(ang) * r),
-                        3, 0.05, 0.05, 0.05, 0.0,
+                        3, 0.05, 0.05, 0.05,
                     )
-                    world.spawnParticle(
-                        particle("END_ROD", "CRIT"),
+                    burst(
+                        world, particle("END_ROD", "CRIT"),
                         base.clone().add(Math.cos(ang + 0.7) * r, y * 0.6, Math.sin(ang + 0.7) * r),
-                        1, 0.0, 0.0, 0.0, 0.0,
+                        1,
                     )
                 }
                 if (++t >= duration) { handle.cancel(); finishWith(player.location.clone()) }
@@ -390,15 +390,15 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
                     remaining * 15.0 + 1.0,
                     remaining * 5.0,
                 )
-                world.spawnParticle(particle("FLAME"), pos, 12, 0.25, 0.25, 0.25, 0.01)
-                world.spawnParticle(particle("LAVA"), pos, 2, 0.1, 0.1, 0.1, 0.0)
-                world.spawnParticle(particle("LARGE_SMOKE", "SMOKE_LARGE", "SMOKE"), pos, 5, 0.2, 0.2, 0.2, 0.01)
+                burst(world, particle("FLAME"), pos, 12, 0.25, 0.25, 0.25, 0.01)
+                burst(world, particle("LAVA"), pos, 2, 0.1, 0.1, 0.1)
+                burst(world, particle("LARGE_SMOKE", "SMOKE_LARGE", "SMOKE"), pos, 5, 0.2, 0.2, 0.2, 0.01)
                 if (t % 5 == 0) playSound(pos, "BLOCK_FIRE_AMBIENT", 1f, 0.6f)
                 if (++t >= fall) {
                     handle.cancel()
                     val impact = player.location.clone()
-                    world.spawnParticle(particle("FLAME"), impact, 70, 1.4, 0.5, 1.4, 0.08)
-                    world.spawnParticle(particle("LAVA"), impact, 12, 1.0, 0.4, 1.0, 0.0)
+                    burst(world, particle("FLAME"), impact, 70, 1.4, 0.5, 1.4, 0.08)
+                    burst(world, particle("LAVA"), impact, 12, 1.0, 0.4, 1.0)
                     finishWith(impact)
                 }
             } catch (e: Exception) {
@@ -429,14 +429,14 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
                     val z = Math.sin(ang) * radius
                     var y = 0.0
                     while (y <= 2.4) {
-                        world.spawnParticle(particle("END_ROD", "CRIT"), base.clone().add(x, y, z), 1, 0.0, 0.0, 0.0, 0.0)
+                        burst(world, particle("END_ROD", "CRIT"), base.clone().add(x, y, z), 1)
                         y += 0.5
                     }
                 }
 
-                world.spawnParticle(
-                    particle("END_ROD", "CRIT"),
-                    base.clone().add(0.0, 2.6, 0.0), 4, radius * 0.4, 0.05, radius * 0.4, 0.0,
+                burst(
+                    world, particle("END_ROD", "CRIT"),
+                    base.clone().add(0.0, 2.6, 0.0), 4, radius * 0.4, 0.05, radius * 0.4,
                 )
                 if (t % 12 == 0) playSound(base, "BLOCK_AMETHYST_BLOCK_CHIME", 1f, 0.6f)
                 if (++t >= duration) { handle.cancel(); finishWith(base.clone()) }
@@ -462,7 +462,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
 
     private fun explode(loc: Location) {
         val w = loc.world ?: return
-        w.spawnParticle(particle("EXPLOSION_EMITTER", "EXPLOSION_HUGE", "EXPLOSION"), loc, 1)
+        burst(w, particle("EXPLOSION_EMITTER", "EXPLOSION_HUGE", "EXPLOSION"), loc, 1)
         playSound(loc, "ENTITY_GENERIC_EXPLODE", 1f, 1f)
     }
 
@@ -492,6 +492,14 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
     }
 
     private fun particle(vararg names: String): Particle = Compat.particle(*names)
+
+    private fun burst(
+        world: org.bukkit.World, particle: Particle, loc: Location,
+        count: Int, dx: Double = 0.0, dy: Double = 0.0, dz: Double = 0.0, speed: Double = 0.0,
+    ) {
+        runCatching { world.spawnParticle(particle, loc, count, dx, dy, dz, speed, null, true) }
+            .onFailure { world.spawnParticle(particle, loc, count, dx, dy, dz, speed) }
+    }
 
     private companion object {
         val TYPES = listOf("pig", "explode", "particles", "lightning", "vortex", "meteor", "cage")

@@ -89,10 +89,10 @@ class AlertManager(private val plugin: GuardAC) {
 
     private class HitDigest {
         var lastHitMs = 0L
+        var lastCountedMs = 0L
         var episodeHits = 0
         var batchMax = 0.0
         var model = "[AI]"
-        var attackBaseline = -1
     }
 
     private val digests = ConcurrentHashMap<UUID, HitDigest>()
@@ -105,30 +105,23 @@ class AlertManager(private val plugin: GuardAC) {
         var announceMax = 0.0
         var firstOfEpisode = false
         synchronized(d) {
-            val now = System.currentTimeMillis()
-            val totalAttacks = gp.combat.totalAttacks
-
-            val delta = if (d.attackBaseline < 0 || totalAttacks < d.attackBaseline) {
-                minOf(totalAttacks, ATTACKS_PER_VERDICT_CAP)
-            } else {
-                minOf(totalAttacks - d.attackBaseline, ATTACKS_PER_VERDICT_CAP)
-            }
-            d.attackBaseline = totalAttacks
-
             if (probability * 100.0 < minConfidence) return
+            val now = System.currentTimeMillis()
 
             if (now - d.lastHitMs > EPISODE_IDLE_MS) {
                 d.episodeHits = 0
                 d.batchMax = 0.0
+                d.lastCountedMs = 0L
             }
             d.lastHitMs = now
 
             if (probability > d.batchMax) d.batchMax = probability
             d.model = model
-            if (delta <= 0) return
+            if (now - d.lastCountedMs < MONITOR_THROTTLE_MS) return
+            d.lastCountedMs = now
 
             val previous = d.episodeHits
-            d.episodeHits += delta
+            d.episodeHits += 1
             if (d.episodeHits / minHits > previous / minHits) {
                 announceCount = d.episodeHits
                 announceMax = d.batchMax
@@ -435,9 +428,6 @@ class AlertManager(private val plugin: GuardAC) {
         const val SUSPICIOUS_THROTTLE_MS = 15_000L
 
         const val EPISODE_IDLE_MS     = 30_000L
-        const val MS_PER_TICK         = 50L
-
-        const val ATTACKS_PER_VERDICT_CAP = 8
 
         const val PROB_UPDATE_TICKS   = 10L
     }

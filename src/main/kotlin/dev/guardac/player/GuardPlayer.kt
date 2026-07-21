@@ -24,7 +24,7 @@ package dev.guardac.player
 
 import dev.guardac.GuardAC
 import dev.guardac.combat.SuppressionStage
-import dev.guardac.data.TickData
+import dev.guardac.sample.AimSample
 import dev.guardac.player.state.CombatState
 import dev.guardac.player.state.RotationState
 import dev.guardac.util.GeyserUtil
@@ -49,9 +49,9 @@ class GuardPlayer(
     @Volatile var clientBrand: String? = null
 
     private val sequenceSize get() = plugin.configManager.aiSequence
-    private val tickBuffer   = ArrayDeque<TickData>(plugin.configManager.aiSequence * 2)
+    private val tickBuffer   = ArrayDeque<AimSample>(plugin.configManager.aiSequence * 2)
 
-    private val deepBuffer          = ArrayDeque<TickData>(DEEP_WINDOW_TICKS)
+    private val deepBuffer          = ArrayDeque<AimSample>(DEEP_WINDOW_TICKS)
     private var defWindowsSinceDeep = 0
     @Volatile private var judgeProb      = -1.0
     @Volatile private var judgeAtMs      = 0L
@@ -152,7 +152,7 @@ class GuardPlayer(
     @Synchronized
     fun getHitProbHistory(): List<Double> = hitProbHistory.toList()
 
-    fun onTick(tick: TickData, recordForAi: Boolean) {
+    fun onTick(tick: AimSample, recordForAi: Boolean) {
         totalTickCount++
         if (abs(tick.deltaYaw) < IDLE_DELTA_THRESHOLD && abs(tick.deltaPitch) < IDLE_DELTA_THRESHOLD) {
             idleTickCount++
@@ -172,14 +172,14 @@ class GuardPlayer(
         ticksSinceLastSend++
     }
 
-    fun pollSequence(): Array<TickData>? {
+    fun pollSequence(): Array<AimSample>? {
         if (ticksSinceLastSend < plugin.configManager.aiStep) return null
         if (tickBuffer.size < sequenceSize) return null
         ticksSinceLastSend = 0
         return tickBuffer.takeLast(sequenceSize).toTypedArray()
     }
 
-    fun pollDeepWindow(): Array<TickData>? {
+    fun pollDeepWindow(): Array<AimSample>? {
         if (!plugin.configManager.aiJudgeEnabled) return null
         defWindowsSinceDeep++
         if (defWindowsSinceDeep < DEEP_MIN_DEF_RESULTS) return null
