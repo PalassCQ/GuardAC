@@ -141,7 +141,7 @@ class ConfigManager(private val plugin: GuardAC) {
 
     val aiBinaryWire: Boolean  get() = cfg.getBoolean("ai.binary-wire", true)
 
-    val aiMinMovement: Double  get() = cfg.getDouble("ai.min-movement", 15.0)
+    val aiMinMovement: Double  get() = cfg.getDouble("ai.min-movement", 60.0)
 
     val aiMinTpsAnalyze: Double get() = cfg.getDouble("ai.min-tps-analyze", 15.0)
 
