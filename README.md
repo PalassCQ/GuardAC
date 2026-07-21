@@ -2,7 +2,7 @@
 
 <h1>GuardAC</h1>
 
-**ML anti-cheat for Minecraft servers.**
+**ML anti-cheat for Minecraft servers**
 
 [![Discord](https://img.shields.io/badge/discord-join%20server-5865F2.svg)](https://discord.gg/pee2vTCpK)
 [![Issues](https://img.shields.io/badge/bugs-report-critical.svg)](https://github.com/PalassCQ/GuardAC/issues)
