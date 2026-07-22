@@ -6,7 +6,7 @@
 # below switches everything the plugin SAYS (staff alerts, command output,
 # player messages) between languages.
 
-config-version: 37
+config-version: 38
 
 # Language of all plugin messages: en | ru
 locale: "en"
@@ -29,9 +29,7 @@ ai:
 
 alerts:
   # Show a hit to staff when the AI is at least this confident (0-100).
-  # Keep this high: an honest player's aim does briefly reach the 70s during a
-  # fight, so a lower bar buries staff in alerts on legitimate play.
-  min-hit-confidence: 95
+  min-hit-confidence: 75
   # One alert per this many suspicious hits: x3, then x6, x9 and so on.
   # A lone random spike below the bar stays silent.
   min-hits: 3
