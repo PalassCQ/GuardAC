@@ -69,7 +69,11 @@ class PlayerDataManager(private val plugin: GuardAC) : Listener {
         val uuid = player.uniqueId
 
         get(uuid)?.let { gp ->
-            if (plugin.configManager.persistBufferEnabled && gp.aiBuffer > 0.0) {
+            // VL считается по ударам и живёт отдельно от буфера, поэтому сохраняем
+            // и когда буфер уже стёк в ноль - иначе выход после чистой игры обнулял VL.
+            if (plugin.configManager.persistBufferEnabled &&
+                (gp.aiBuffer > 0.0 || gp.aiViolationLevel > 0)
+            ) {
                 plugin.punishmentHistory.saveBuffer(uuid, gp.aiBuffer, gp.aiViolationLevel)
             }
             plugin.suppressionManager.onQuit(gp)
@@ -92,19 +96,22 @@ class PlayerDataManager(private val plugin: GuardAC) : Listener {
             plugin.punishmentHistory.clearBuffer(gp.uuid)
 
             val ageMinutes = (System.currentTimeMillis() - rec.epochMillis) / 60000.0
-            if (ageMinutes > cfg.persistBufferTtlMinutes || rec.buffer <= 0.0) return@Runnable
+            if (ageMinutes > cfg.persistBufferTtlMinutes) return@Runnable
 
-            val decayedBuffer = if (ageMinutes <= cfg.persistBufferGraceMinutes) {
-                rec.buffer
-            } else {
-                val hoursBeyondGrace = (ageMinutes - cfg.persistBufferGraceMinutes) / 60.0
+            // Первые grace-минут ничего не теряется - это обычный реконнект.
+            val hoursBeyondGrace =
+                ((ageMinutes - cfg.persistBufferGraceMinutes) / 60.0).coerceAtLeast(0.0)
+
+            val decayedBuffer =
                 (rec.buffer - hoursBeyondGrace * cfg.persistBufferDecayPerHour).coerceAtLeast(0.0)
-            }
-            if (decayedBuffer <= 0.0) return@Runnable
-
             val cappedBuffer = decayedBuffer.coerceAtMost(cfg.persistBufferCapOnRestore)
-            val retainedFraction = cappedBuffer / rec.buffer
-            val decayedVl = (rec.vl * retainedFraction).toInt()
+
+            // VL затухает по своему счёту - час офлайна снимает один уровень.
+            // Раньше он умножался на долю уцелевшего буфера, и VL 2 обнулялся
+            // просто из-за округления вниз.
+            val decayedVl = (rec.vl - hoursBeyondGrace.toInt()).coerceAtLeast(0)
+
+            if (cappedBuffer <= 0.0 && decayedVl <= 0) return@Runnable
             gp.restorePersisted(cappedBuffer, decayedVl)
         })
     }
