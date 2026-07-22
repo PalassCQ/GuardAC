@@ -97,7 +97,11 @@ class AlertManager(private val plugin: GuardAC) {
 
     private val digests = ConcurrentHashMap<UUID, HitDigest>()
 
-    fun recordVerdict(gp: GuardPlayer, probability: Double, model: String) {
+    /**
+     * Возвращает true, когда набралась очередная пачка (x3, x6, x9...) и алерт ушёл.
+     * По этому же событию растёт VL - число в алерте и уровень нарушений идут в ногу.
+     */
+    fun recordVerdict(gp: GuardPlayer, probability: Double, model: String): Boolean {
         val minHits = plugin.configManager.alertMinHits.coerceAtLeast(1)
         val minConfidence = plugin.configManager.alertMinConfidence
         val d = digests.computeIfAbsent(gp.uuid) { HitDigest() }
@@ -105,7 +109,7 @@ class AlertManager(private val plugin: GuardAC) {
         var announceMax = 0.0
         var firstOfEpisode = false
         synchronized(d) {
-            if (probability * 100.0 < minConfidence) return
+            if (probability * 100.0 < minConfidence) return false
             val now = System.currentTimeMillis()
 
             if (now - d.lastHitMs > EPISODE_IDLE_MS) {
@@ -117,7 +121,7 @@ class AlertManager(private val plugin: GuardAC) {
 
             if (probability > d.batchMax) d.batchMax = probability
             d.model = model
-            if (now - d.lastCountedMs < MONITOR_THROTTLE_MS) return
+            if (now - d.lastCountedMs < MONITOR_THROTTLE_MS) return false
             d.lastCountedMs = now
 
             val previous = d.episodeHits
@@ -131,7 +135,9 @@ class AlertManager(private val plugin: GuardAC) {
         }
         if (announceCount > 0) {
             sendCountAlert(gp, announceCount, announceMax, model, withSound = firstOfEpisode)
+            return true
         }
+        return false
     }
 
     private fun sendCountAlert(gp: GuardPlayer, count: Int, maxProb: Double, model: String, withSound: Boolean) {

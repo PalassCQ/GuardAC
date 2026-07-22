@@ -136,12 +136,11 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
                         plugin.alertManager.sendSuspiciousAlert(gp, bufferAfter)
                     }
                 }
-                val flagged      = gp.flagAi()
-                val isolatedAfter = gp.isIsolated
-
                 plugin.alertManager.dispatchMonitorHit(gp, prob, result.model)
 
-                plugin.alertManager.recordVerdict(gp, prob, modelTag(result.sources))
+                val batchAnnounced = plugin.alertManager.recordVerdict(gp, prob, modelTag(result.sources))
+                val flagged        = batchAnnounced && gp.creditAiViolation()
+                val isolatedAfter  = gp.isIsolated
 
                 plugin.scheduler.entity(gp.player, Runnable {
                     if (!gp.player.isOnline) return@Runnable

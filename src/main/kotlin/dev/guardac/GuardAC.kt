@@ -99,6 +99,7 @@ class GuardAC : JavaPlugin() {
     fun reload() {
         runCatching {
             configManager.load()
+            punishmentManager.reload()
             monitorConfig.load()
             hologramConfig.load()
             locale.reload()

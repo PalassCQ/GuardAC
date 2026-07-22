@@ -6,7 +6,7 @@
 # below switches everything the plugin SAYS (staff alerts, command output,
 # player messages) between languages.
 
-config-version: 35
+config-version: 36
 
 # Language of all plugin messages: en | ru
 locale: "en"
@@ -60,12 +60,13 @@ animations:
   # level has no animation. Types: pig | explode | particles | lightning | vortex
   # | meteor | cage.
   enabled: true
-  # Optional: force a random animation before EVERY level automatically, even the
-  # ones without an [animation] line. Off by default - normally you place the
-  # [animation] lines yourself in punishments.yml.
-  auto-on-ban: false
-  # Length of the show, in ticks (20 = 1 second).
-  duration-ticks: 60
+  # Play a random animation before every level that actually punishes - ban, kick,
+  # or any console command - even when that level has no [animation] line.
+  # Levels that only [alert] or [log] stay silent.
+  auto-on-ban: true
+  # Length of the show, in ticks (20 = 1 second). Every animation type runs for
+  # exactly this long, so a ban never lands instantly.
+  duration-ticks: 100
   # Particle type and density for the "particles" animation.
   particle: FLAME
   particle-count: 30

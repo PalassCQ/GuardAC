@@ -272,11 +272,41 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
     }
 
     private fun playExplode(player: Player, finishWith: (Location) -> Unit) {
+        val world = player.world
+        val duration = plugin.configManager.animationDurationTicks
+        playSound(player.location, "BLOCK_FIRE_AMBIENT", 1f, 0.5f)
 
-        plugin.scheduler.entityDelayed(
-            player, 6L, Runnable { finishWith(player.location.clone()) },
+        var t = 0
+        plugin.scheduler.entityTimer(
+            player, 1L, 1L,
             retired = Runnable { finishWith(player.location.clone()) },
-        )
+        ) { handle ->
+            try {
+                if (!player.isOnline) { handle.cancel(); finishWith(player.location.clone()); return@entityTimer }
+                val base = player.location
+                val progress = t.toDouble() / duration
+
+                val radius = 2.6 * (1.0 - progress) + 0.2
+                val points = 10
+                for (i in 0 until points) {
+                    val ang = t * 0.35 + Math.PI * 2 * i / points
+                    burst(
+                        world, particle("FLAME"),
+                        base.clone().add(Math.cos(ang) * radius, 0.4 + progress * 1.4, Math.sin(ang) * radius),
+                        2, 0.05, 0.05, 0.05,
+                    )
+                }
+                burst(
+                    world, particle("LARGE_SMOKE", "SMOKE_LARGE", "SMOKE"),
+                    base.clone().add(0.0, 1.0, 0.0), 3, 0.3, 0.5, 0.3, 0.01,
+                )
+                if (t % 10 == 0) playSound(base, "BLOCK_FIRE_AMBIENT", 1f, 0.5f + progress.toFloat())
+                if (++t >= duration) { handle.cancel(); finishWith(base.clone()) }
+            } catch (e: Exception) {
+                handle.cancel()
+                finishWith(player.location.clone())
+            }
+        }
     }
 
     private fun playParticles(player: Player, finishWith: (Location) -> Unit) {
@@ -317,9 +347,10 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
 
     private fun playLightning(player: Player, finishWith: (Location) -> Unit) {
         val duration = plugin.configManager.animationDurationTicks
-        val gap = (duration / 4).coerceAtLeast(1).toLong()
+        val strikes = 5
+        val gap = (duration / strikes).coerceAtLeast(1).toLong()
 
-        for (i in 0..2) {
+        for (i in 0 until strikes) {
             plugin.scheduler.entityDelayed(player, gap * i, Runnable {
                 if (!player.isOnline) return@Runnable
                 runCatching { player.world.strikeLightningEffect(player.location) }
@@ -330,7 +361,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
             })
         }
         plugin.scheduler.entityDelayed(
-            player, gap * 3, Runnable { finishWith(player.location.clone()) },
+            player, duration.toLong(), Runnable { finishWith(player.location.clone()) },
             retired = Runnable { finishWith(player.location.clone()) },
         )
     }
@@ -374,7 +405,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
     private fun playMeteor(player: Player, finishWith: (Location) -> Unit) {
         val world = player.world
         val duration = plugin.configManager.animationDurationTicks
-        val fall = (duration * 2 / 3).coerceAtLeast(15)
+        val fall = duration.coerceAtLeast(15)
         playSound(player.location, "ENTITY_GHAST_SHOOT", 1f, 0.5f)
 
         var t = 0

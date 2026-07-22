@@ -331,18 +331,18 @@ class GuardPlayer(
         if (vl > aiViolationLevel) aiViolationLevel = vl
     }
 
+    /**
+     * Один шаг VL. Зовётся ровно тогда, когда накопительный алерт объявляет
+     * очередную пачку ударов: x3 -> VL 1, x6 -> VL 2, x9 -> VL 3 и так далее.
+     * Судья остаётся последним словом - без его подтверждения VL не растёт.
+     */
     @Synchronized
-    fun flagAi(): Boolean {
-        val cfg = plugin.configManager
-        if (aiBuffer < cfg.aiBufferFlag) return false
-        if (!judgeApproves()) {
-            aiBuffer = cfg.aiBufferFlag
-            return false
-        }
+    fun creditAiViolation(): Boolean {
+        if (!judgeApproves()) return false
         maybeEscalateToIsolate()
         aiViolationLevel++
         totalAiFlags.incrementAndGet()
-        aiBuffer = cfg.aiBufferResetOnFlag
+        aiBuffer = plugin.configManager.aiBufferResetOnFlag
         return true
     }
 

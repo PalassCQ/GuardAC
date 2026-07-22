@@ -61,7 +61,9 @@ class ConfigManager(private val plugin: GuardAC) {
                 }
             }
             val shippedVersion = defaults.getInt("config-version", cfg.getInt("config-version", 0))
-            if (cfg.getInt("config-version", 0) != shippedVersion) {
+            val currentVersion = cfg.getInt("config-version", 0)
+            added += migrate(currentVersion)
+            if (currentVersion != shippedVersion) {
                 cfg.set("config-version", shippedVersion)
                 added++
             }
@@ -75,6 +77,32 @@ class ConfigManager(private val plugin: GuardAC) {
         } catch (e: Exception) {
             plugin.logger.warning("[GuardAC] Could not merge new options into config.yml: ${e.message}")
         }
+    }
+
+    /**
+     * Переносит значения, которые обычный мердж не тронет: он дописывает только
+     * отсутствующие ключи и никогда не меняет уже настроенные. Выполняется один раз -
+     * дальше config-version уже новый.
+     */
+    private fun migrate(from: Int): Int {
+        var changed = 0
+        if (from in 1 until 36) {
+            if (!cfg.getBoolean("animations.auto-on-ban", true)) {
+                cfg.set("animations.auto-on-ban", true)
+                changed++
+            }
+            if (cfg.getInt("animations.duration-ticks", ANIM_DURATION_TICKS) != ANIM_DURATION_TICKS) {
+                cfg.set("animations.duration-ticks", ANIM_DURATION_TICKS)
+                changed++
+            }
+            if (changed > 0) {
+                plugin.logger.info(
+                    "[GuardAC] config.yml updated: every punishment that bans or kicks now plays " +
+                    "an animation first, and all animations last ${ANIM_DURATION_TICKS / 20} seconds."
+                )
+            }
+        }
+        return changed
     }
 
     private fun loadPunishments() {
@@ -204,14 +232,15 @@ class ConfigManager(private val plugin: GuardAC) {
     val punishMinTps: Double get() = cfg.getDouble("punishment.min-tps", 16.0)
 
     val animationsEnabled: Boolean   get() = cfg.getBoolean("animations.enabled", true)
-    val animationDurationTicks: Int  get() = cfg.getInt("animations.duration-ticks", 60).coerceIn(1, 600)
+    val animationDurationTicks: Int  get() =
+        cfg.getInt("animations.duration-ticks", ANIM_DURATION_TICKS).coerceIn(1, 600)
     val animationParticle: String    get() = cfg.getString("animations.particle", "FLAME")!!
     val animationParticleCount: Int  get() = cfg.getInt("animations.particle-count", 30).coerceIn(1, 500)
     val animationDropInventory: Boolean get() = cfg.getBoolean("animations.drop-inventory", true)
     val animationSound: Boolean      get() = cfg.getBoolean("animations.sound", true)
     val animationPigHeight: Double   get() = cfg.getDouble("animations.pig-height", 10.0).coerceIn(1.0, 60.0)
 
-    val animationAutoOnBan: Boolean  get() = cfg.getBoolean("animations.auto-on-ban", false)
+    val animationAutoOnBan: Boolean  get() = cfg.getBoolean("animations.auto-on-ban", true)
 
     val animationFallbackBanTime: String get() =
         cfg.getString("animations.fallback-ban-time", "30d")!!.trim()
@@ -266,5 +295,8 @@ class ConfigManager(private val plugin: GuardAC) {
         const val INFER_PATH = "/v1/infer"
         const val INFER_BATCH_PATH = "/v1/infer/batch"
         const val DEFAULT_AI_SERVER = "https://guardac.net"
+
+        /** Одна длина для всех анимаций: 100 тиков = 5 секунд. */
+        const val ANIM_DURATION_TICKS = 100
     }
 }
