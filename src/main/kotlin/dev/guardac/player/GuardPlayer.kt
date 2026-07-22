@@ -350,10 +350,10 @@ class GuardPlayer(
         if (!plugin.configManager.aiJudgeEnabled) return true
         val now = System.currentTimeMillis()
         if (judgeFromModel && now - judgeAtMs <= JUDGE_TTL_MS) {
-            return judgeProb >= CHEAT_THRESHOLD
+            return judgeProb >= JUDGE_THRESHOLD
         }
         if (hitProbHistory.isEmpty()) return true
-        return hitProbHistory.average() >= CHEAT_THRESHOLD
+        return hitProbHistory.average() >= JUDGE_THRESHOLD
     }
 
     @Synchronized
@@ -419,6 +419,12 @@ class GuardPlayer(
         const val UNSTABLE_GAP_MIN_MS      = 15L
         const val MS_PER_TICK              = 50L
         const val CHEAT_THRESHOLD          = 0.90
+
+        // Планка, по которой судья пропускает шаг VL. Замер на живом датасете
+        // (backend/scripts/simulate_plugin.py): на 0.90 бан получали 7.1% честных
+        // записей, на 0.97 - 1.5%, а читеров ловим 98% -> 89% за одну сессию,
+        // что за две сессии всё равно даёт ~99%. Ложный бан дороже пропуска.
+        const val JUDGE_THRESHOLD          = 0.97
         const val LEGIT_THRESHOLD          = 0.10
 
         const val LAG_GAIN_SCALE           = 0.5
