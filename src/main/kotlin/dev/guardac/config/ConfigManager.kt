@@ -102,6 +102,18 @@ class ConfigManager(private val plugin: GuardAC) {
                 )
             }
         }
+        if (from in 1 until 37) {
+            // 75 sits inside the range an honest player's aim reaches mid-fight,
+            // which produced ~28 false alerts per hour of legitimate play.
+            if (cfg.getDouble("alerts.min-hit-confidence", ALERT_MIN_CONFIDENCE) < ALERT_MIN_CONFIDENCE) {
+                cfg.set("alerts.min-hit-confidence", ALERT_MIN_CONFIDENCE)
+                changed++
+                plugin.logger.info(
+                    "[GuardAC] config.yml updated: alerts.min-hit-confidence raised to " +
+                    "${ALERT_MIN_CONFIDENCE.toInt()} - far fewer alerts on honest players."
+                )
+            }
+        }
         return changed
     }
 
@@ -184,7 +196,8 @@ class ConfigManager(private val plugin: GuardAC) {
 
     val alertsToConsole: Boolean get() = cfg.getBoolean("alerts.print-to-console", true)
 
-    val alertMinConfidence: Double get() = cfg.getDouble("alerts.min-hit-confidence", 75.0)
+    val alertMinConfidence: Double get() =
+        cfg.getDouble("alerts.min-hit-confidence", ALERT_MIN_CONFIDENCE)
     val alertMinHits: Int          get() = cfg.getInt("alerts.min-hits", 3)
 
     val suspiciousAlertsEnabled: Boolean get() = cfg.getBoolean("alerts.suspicious.enabled", true)
@@ -298,5 +311,13 @@ class ConfigManager(private val plugin: GuardAC) {
 
         /** Одна длина для всех анимаций: 100 тиков = 5 секунд. */
         const val ANIM_DURATION_TICKS = 100
+
+        /**
+         * Порог уверенности, с которого удар считается подозрительным.
+         * Замер на живом датасете (backend/scripts): на 75 честная игра давала
+         * ~28 ложных алертов в час, на 95 - 0.8, при этом читеры остаются
+         * видны (96% записей с читом всё равно поднимают алерт).
+         */
+        const val ALERT_MIN_CONFIDENCE = 95.0
     }
 }
