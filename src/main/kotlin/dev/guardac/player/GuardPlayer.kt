@@ -51,11 +51,6 @@ class GuardPlayer(
     private val sequenceSize get() = plugin.configManager.aiSequence
     private val tickBuffer   = ArrayDeque<AimSample>(plugin.configManager.aiSequence * 2)
 
-    private val deepBuffer          = ArrayDeque<AimSample>(DEEP_WINDOW_TICKS)
-    private var defWindowsSinceDeep = 0
-    @Volatile private var judgeProb      = -1.0
-    @Volatile private var judgeAtMs      = 0L
-    @Volatile private var judgeFromModel = false
     private var ticksSinceLastSend = 0
 
     var idleTickCount: Int = 0
@@ -137,15 +132,12 @@ class GuardPlayer(
 
         if (!plugin.configManager.aiContinuous && !recordForAi) {
             if (tickBuffer.isNotEmpty()) tickBuffer.clear()
-            if (deepBuffer.isNotEmpty()) deepBuffer.clear()
             ticksSinceLastSend = 0
             return
         }
 
         tickBuffer.addLast(tick)
         while (tickBuffer.size > sequenceSize * 2) tickBuffer.removeFirst()
-        deepBuffer.addLast(tick)
-        while (deepBuffer.size > DEEP_WINDOW_TICKS) deepBuffer.removeFirst()
         ticksSinceLastSend++
     }
 
@@ -154,21 +146,6 @@ class GuardPlayer(
         if (tickBuffer.size < sequenceSize) return null
         ticksSinceLastSend = 0
         return tickBuffer.takeLast(sequenceSize).toTypedArray()
-    }
-
-    fun pollDeepWindow(): Array<AimSample>? {
-        if (!plugin.configManager.aiJudgeEnabled) return null
-        defWindowsSinceDeep++
-        if (defWindowsSinceDeep < DEEP_MIN_DEF_RESULTS) return null
-        if (deepBuffer.size < DEEP_WINDOW_TICKS) return null
-        defWindowsSinceDeep = 0
-        return deepBuffer.toTypedArray()
-    }
-
-    fun recordJudgeVerdict(probability: Double) {
-        judgeProb      = probability
-        judgeAtMs      = System.currentTimeMillis()
-        judgeFromModel = true
     }
 
     var aiBuffer: Double = 0.0
@@ -334,11 +311,12 @@ class GuardPlayer(
     /**
      * Один шаг VL. Зовётся ровно тогда, когда накопительный алерт объявляет
      * очередную пачку ударов: x3 -> VL 1, x6 -> VL 2, x9 -> VL 3 и так далее.
-     * Судья остаётся последним словом - без его подтверждения VL не растёт.
+     * Порог уверенности стоит на самой пачке (alerts.min-hit-confidence), так
+     * что число в алерте и уровень нарушений всегда идут в ногу - как у
+     * классических античитов (SlothAC/MLSAC): один флаг = один шаг VL.
      */
     @Synchronized
     fun creditAiViolation(): Boolean {
-        if (!judgeApproves()) return false
         maybeEscalateToIsolate()
         aiViolationLevel++
         totalAiFlags.incrementAndGet()
@@ -346,20 +324,9 @@ class GuardPlayer(
         return true
     }
 
-    private fun judgeApproves(): Boolean {
-        if (!plugin.configManager.aiJudgeEnabled) return true
-        val now = System.currentTimeMillis()
-        if (judgeFromModel && now - judgeAtMs <= JUDGE_TTL_MS) {
-            return judgeProb >= JUDGE_THRESHOLD
-        }
-        if (hitProbHistory.isEmpty()) return true
-        return hitProbHistory.average() >= JUDGE_THRESHOLD
-    }
-
+    /** Уверенность, с которой был поднят флаг - среднее последних пиков. */
     @Synchronized
     fun flagConfidence(): Double {
-        val now = System.currentTimeMillis()
-        if (judgeFromModel && now - judgeAtMs <= JUDGE_TTL_MS) return judgeProb
         if (hitProbHistory.isNotEmpty()) return hitProbHistory.average()
         return lastAiProbability
     }
@@ -376,8 +343,6 @@ class GuardPlayer(
         hitProbHistory.clear()
         lastFeedMs = 0L
         lastGainMs = 0L
-        judgeProb = -1.0; judgeAtMs = 0L; judgeFromModel = false
-        defWindowsSinceDeep = 0
         fpBaseline = 0.0; fpRecent = 0.0; fpHits = 0
         attackSpeedPenalty = 0.0
         isolateUntilMs     = 0L
@@ -419,12 +384,6 @@ class GuardPlayer(
         const val UNSTABLE_GAP_MIN_MS      = 15L
         const val MS_PER_TICK              = 50L
         const val CHEAT_THRESHOLD          = 0.90
-
-        // Планка, по которой судья пропускает шаг VL. Замер на живом датасете
-        // (backend/scripts/simulate_plugin.py): на 0.90 бан получали 7.1% честных
-        // записей, на 0.97 - 1.5%, а читеров ловим 98% -> 89% за одну сессию,
-        // что за две сессии всё равно даёт ~99%. Ложный бан дороже пропуска.
-        const val JUDGE_THRESHOLD          = 0.97
         const val LEGIT_THRESHOLD          = 0.10
 
         const val LAG_GAIN_SCALE           = 0.5
@@ -437,9 +396,5 @@ class GuardPlayer(
         const val FP_FAST                  = 0.25
         const val FP_SLOW                  = 0.03
         const val FP_THROTTLE_MS           = 30_000L
-
-        const val DEEP_WINDOW_TICKS        = 160
-        const val DEEP_MIN_DEF_RESULTS     = 5
-        const val JUDGE_TTL_MS             = 20_000L
     }
 }

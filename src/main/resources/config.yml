@@ -6,7 +6,7 @@
 # below switches everything the plugin SAYS (staff alerts, command output,
 # player messages) between languages.
 
-config-version: 40
+config-version: 41
 
 # Language of all plugin messages: en | ru
 locale: "en"
@@ -28,11 +28,14 @@ ai:
   only-alert: false
 
 alerts:
-  # Show a hit to staff when the AI is at least this confident (0-100).
-  # Lower values report more, including some ordinary aggressive PvP.
-  min-hit-confidence: 85
-  # One alert per this many suspicious hits: x3, then x6, x9 and so on.
-  # A lone random spike below the bar stays silent.
+  # A hit counts when the AI is at least this confident (0-100). This same bar
+  # decides the ban: every counted hit raises the violation level one step, so
+  # the number in the alert and the VL move together (x3 = VL1, x6 = VL2, ...).
+  # Lower it and staff see more hits, but aggressive-but-legit PvP starts to gain
+  # VL too - 90 is the measured balance for the current model.
+  min-hit-confidence: 90
+  # How many counted hits make up one step: x3, then x6, x9 and so on. Each step
+  # is one violation level. A lone random spike below the bar stays silent.
   min-hits: 3
   # Also print alerts to the server console.
   print-to-console: true

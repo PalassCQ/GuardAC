@@ -102,20 +102,23 @@ class ConfigManager(private val plugin: GuardAC) {
                 )
             }
         }
-        if (from in 1 until 40) {
-            // Earlier versions shipped this bar at 75 (too noisy on legit combat)
-            // or at 95 (quiet, but hides real hits). Both were defaults nobody
-            // chose, and the merge never rewrites an existing value - so move
-            // those two exact values onto the measured one, leaving any bar the
-            // owner actually tuned themselves alone.
+        if (from in 1 until 41) {
+            // Each counted hit now drives one VL step directly (no judge behind
+            // the ban), so this bar is the only thing standing between an
+            // aggressive-but-legit player and a ban. The old shipped defaults
+            // (75 / 85 / 95) were tuned for the two-gate design and 75/85 are far
+            // too low without the judge - on legit sessions they ban 20-30%. Move
+            // any of those three untouched defaults onto the measured 90, leaving
+            // a value the owner tuned to something else alone.
             val bar = cfg.getDouble("alerts.min-hit-confidence", ALERT_MIN_CONFIDENCE)
-            if (bar == 75.0 || bar == 95.0) {
+            if (bar == 75.0 || bar == 85.0 || bar == 95.0) {
                 cfg.set("alerts.min-hit-confidence", ALERT_MIN_CONFIDENCE)
                 changed++
                 plugin.logger.info(
                     "[GuardAC] config.yml: alerts.min-hit-confidence set to " +
-                    "${ALERT_MIN_CONFIDENCE.toInt()} (was ${bar.toInt()}) - measured " +
-                    "balance between missed hits and false alerts on legit combat."
+                    "${ALERT_MIN_CONFIDENCE.toInt()} (was ${bar.toInt()}). Every hit " +
+                    "now advances VL directly, so this single bar guards the ban - " +
+                    "measured to keep false bans low on legit combat."
                 )
             }
         }
@@ -195,7 +198,6 @@ class ConfigManager(private val plugin: GuardAC) {
 
     val aiBufferFlag: Double        get() = cfg.getDouble("ai.buffer.flag", 30.0)
     val aiBufferResetOnFlag: Double get() = cfg.getDouble("ai.buffer.reset-on-flag", 10.0)
-    val aiJudgeEnabled: Boolean     get() = cfg.getBoolean("ai.judge", true)
     val aiBufferMultiplier: Double  get() = cfg.getDouble("ai.buffer.multiplier", 100.0)
     val aiBufferDecrease: Double    get() = cfg.getDouble("ai.buffer.decrease", 0.25)
 
@@ -318,11 +320,14 @@ class ConfigManager(private val plugin: GuardAC) {
         const val ANIM_DURATION_TICKS = 100
 
         /** Порог уверенности, с которого удар считается подозрительным. */
-        // Measured on the current model (scripts/simulate_plugin.py, per hour of
-        // legit PvP): bar 75 -> 22 false staff alerts, 85 -> 8.6, 95 -> 1.0,
-        // while cheats caught per session move only 75.7% -> 74.9% -> 67.8%.
-        // 85 is the chosen balance. Move it only on numbers from a NEW model's
-        // simulate_plugin run - never in advance of a retrain.
-        const val ALERT_MIN_CONFIDENCE = 85.0
+        // Every counted hit now advances VL one-to-one (x3 -> VL1, x6 -> VL2), so
+        // this bar is the SINGLE gate that decides both the alert and the ban -
+        // there is no separate judge behind it any more. Measured on the current
+        // model (scripts/simulate_plugin.py + measure_fix), per legit session at
+        // VL2=ban: bar 85 -> 20.9% false bans, 90 -> 10.4%, 95 -> 4.1%; cheats
+        // caught 96% -> 95% -> 88%. 90 keeps the catch rate high while the graded
+        // default ladder (VL2 kick, VL3 ban) absorbs the rest. Move it only on
+        // numbers from a fresh simulate_plugin run against the deployed model.
+        const val ALERT_MIN_CONFIDENCE = 90.0
     }
 }
