@@ -102,15 +102,17 @@ class ConfigManager(private val plugin: GuardAC) {
                 )
             }
         }
-        if (from == 37 && cfg.getDouble("alerts.min-hit-confidence", ALERT_MIN_CONFIDENCE) == 95.0) {
-            // 37 briefly shipped a raised bar as a stop-gap while the model was
-            // being fixed. The fix landed in the model itself, so the bar goes
-            // back to its normal value instead of staying quietly clamped.
+        if (from in 1 until 39 && cfg.getDouble("alerts.min-hit-confidence", ALERT_MIN_CONFIDENCE) == 75.0) {
+            // 38 lowered the bar back to 75 expecting a retrained model that in
+            // fact never finished training. Measured with the model actually
+            // deployed, 75 floods staff with false hit alerts during ordinary
+            // legit PvP; 95 is the safe bar. Heal every config still on 75.
             cfg.set("alerts.min-hit-confidence", ALERT_MIN_CONFIDENCE)
             changed++
             plugin.logger.info(
-                "[GuardAC] config.yml: alerts.min-hit-confidence back to " +
-                "${ALERT_MIN_CONFIDENCE.toInt()} - the model no longer needs the raised bar."
+                "[GuardAC] config.yml: alerts.min-hit-confidence raised to " +
+                "${ALERT_MIN_CONFIDENCE.toInt()} - the previous default produced " +
+                "false hit alerts on legit combat."
             )
         }
         return changed
@@ -312,6 +314,10 @@ class ConfigManager(private val plugin: GuardAC) {
         const val ANIM_DURATION_TICKS = 100
 
         /** Порог уверенности, с которого удар считается подозрительным. */
-        const val ALERT_MIN_CONFIDENCE = 75.0
+        // 95, not 75: with the current model the digest bar 75 sits inside the
+        // honest-player tail (measured ~40 false staff alerts per hour of legit
+        // PvP vs ~1 at 95). Lower it only after a NEW model's simulate_plugin
+        // run proves the lower bar clean - never in advance of a retrain.
+        const val ALERT_MIN_CONFIDENCE = 95.0
     }
 }
