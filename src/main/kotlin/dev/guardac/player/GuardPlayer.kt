@@ -310,10 +310,9 @@ class GuardPlayer(
 
     /**
      * Один шаг VL. Зовётся ровно тогда, когда накопительный алерт объявляет
-     * очередную пачку ударов: x3 -> VL 1, x6 -> VL 2, x9 -> VL 3 и так далее.
-     * Порог уверенности стоит на самой пачке (alerts.min-hit-confidence), так
-     * что число в алерте и уровень нарушений всегда идут в ногу - как у
-     * классических античитов (SlothAC/MLSAC): один флаг = один шаг VL.
+     * очередную пачку ударов (x3 -> VL 1, x6 -> VL 2, x9 -> VL 3 ...). Судья
+     * (judgeApproves) стоит на СЧЁТЕ этой пачки, а не режет VL после неё, поэтому
+     * число в алерте и VL идут строго 1:1 - если показали x6, значит VL уже 2.
      */
     @Synchronized
     fun creditAiViolation(): Boolean {
@@ -322,6 +321,19 @@ class GuardPlayer(
         totalAiFlags.incrementAndGet()
         aiBuffer = plugin.configManager.aiBufferResetOnFlag
         return true
+    }
+
+    /**
+     * Судья. Удар засчитывается в ×N (а значит и в VL) только когда СРЕДНЕЕ
+     * уверенности последних пиков устойчиво высоко - разовый всплеск честного
+     * агрессивного PvP не проходит. Это защита от ложных банов. Порог достижим
+     * для реального читера, поэтому ×N больше не залипает без бана. Стоит на
+     * самом счёте пачки, так что ×N и VL остаются 1:1.
+     */
+    @Synchronized
+    fun judgeApproves(): Boolean {
+        if (hitProbHistory.isEmpty()) return false
+        return hitProbHistory.average() >= JUDGE_THRESHOLD
     }
 
     /** Уверенность, с которой был поднят флаг - среднее последних пиков. */
@@ -385,6 +397,14 @@ class GuardPlayer(
         const val MS_PER_TICK              = 50L
         const val CHEAT_THRESHOLD          = 0.90
         const val LEGIT_THRESHOLD          = 0.10
+
+        // Судья: удар идёт в счёт ×N, только если СРЕДНЕЕ последних пиков >= этого.
+        // Замер (backend/scripts/simulate_plugin.py, худший агрессивный датасет):
+        // на 0.90 бан получают ~9% честных сессий при VL2, читеров ловим ~93% за
+        // сессию; 0.95 = ~4% / ~88%. 0.90 достижим для реального читера (его хиты
+        // 0.85-0.96), поэтому ×54 больше не висит без бана. Гейт стоит на СЧЁТЕ,
+        // значит ×N и VL строго 1:1. Поднять до 0.95, если появятся ложные баны.
+        const val JUDGE_THRESHOLD          = 0.90
 
         const val LAG_GAIN_SCALE           = 0.5
         const val IDLE_DELTA_THRESHOLD     = 0.05f

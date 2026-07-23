@@ -100,6 +100,9 @@ class AlertManager(private val plugin: GuardAC) {
     /**
      * Возвращает true, когда набралась очередная пачка (x3, x6, x9...) и алерт ушёл.
      * По этому же событию растёт VL - число в алерте и уровень нарушений идут в ногу.
+     * Удар засчитывается, только если он выше порога И судья подтверждает устойчиво
+     * высокую уверенность (gp.judgeApproves) - так ×N не залипает без бана, а честный
+     * агрессивный всплеск не набивает счёт.
      */
     fun recordVerdict(gp: GuardPlayer, probability: Double, model: String): Boolean {
         val minHits = plugin.configManager.alertMinHits.coerceAtLeast(1)
@@ -109,7 +112,7 @@ class AlertManager(private val plugin: GuardAC) {
         var announceMax = 0.0
         var firstOfEpisode = false
         synchronized(d) {
-            if (probability * 100.0 < minConfidence) return false
+            if (probability * 100.0 < minConfidence || !gp.judgeApproves()) return false
             val now = System.currentTimeMillis()
 
             if (now - d.lastHitMs > EPISODE_IDLE_MS) {
