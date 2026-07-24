@@ -108,8 +108,13 @@ class PacketListener(private val plugin: GuardAC) :
     }
 
     private fun handleAttack(gp: GuardPlayer, entityId: Int, player: Player) {
-        val targetUuid = plugin.playerDataManager.uuidByEntityId(entityId) ?: return
+        val targetUuid = plugin.playerDataManager.uuidByEntityId(entityId)
         if (targetUuid == player.uniqueId) return
+        // During normal play only real tracked players count as combat, keeping the
+        // detection window tight. While a data-collection recording is active we also
+        // count hits on entities we do not track (training bots / packet NPCs),
+        // otherwise sparring a fake player would record no ticks at all.
+        if (targetUuid == null && plugin.recorder.captureOf(gp.uuid) == null) return
         gp.combat.recordAttack()
     }
 
