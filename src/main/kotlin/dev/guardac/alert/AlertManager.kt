@@ -44,6 +44,15 @@ class AlertManager(private val plugin: GuardAC) {
     private val probSessions = ConcurrentHashMap<UUID, UUID>()
     private val probTasks    = ConcurrentHashMap<UUID, TaskHandle>()
     private val crossServerEnabled = CopyOnWriteArraySet<UUID>()
+
+    /** Кто выключил строку AVG над игроками (/guard avg off). Хранится «кто убрал». */
+    private val avgHidden = CopyOnWriteArraySet<UUID>()
+
+    fun setAvg(uuid: UUID, enabled: Boolean) {
+        if (enabled) avgHidden.remove(uuid) else avgHidden.add(uuid)
+    }
+    fun hasAvg(uuid: UUID): Boolean = !avgHidden.contains(uuid)
+
     fun reload() {}
     fun toggleAlerts(uuid: UUID): Boolean =
         if (alertsMuted.remove(uuid)) true else { alertsMuted.add(uuid); false }

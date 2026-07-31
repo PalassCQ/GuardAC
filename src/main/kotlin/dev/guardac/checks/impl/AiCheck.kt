@@ -52,6 +52,41 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
 
         plugin.aiTransport.infer(ticks, false)
             .thenAccept { result -> handleResult(gp, result, lagDistorted, ticks) }
+
+        pollJudge(gp)
+    }
+
+    /**
+     * Раз в несколько обычных окон отправляет судье одно длинное (~8 c боя).
+     *
+     * Судья есть не у каждого тарифа. Бэкенд честно отвечает deep=false, когда
+     * длинную модель ему брать неоткуда - и такой ответ плагину бесполезен, а
+     * запрос из квоты уже списан. Поэтому первый же deep=false выключает
+     * отправку на JUDGE_PROBE_INTERVAL_MS: дальше уходит одна проба раз в
+     * полчаса, а не лишнее окно каждые пять.
+     */
+    private fun pollJudge(gp: GuardPlayer) {
+        if (!plugin.configManager.aiJudgeEnabled) return
+        if (System.currentTimeMillis() < judgeDisabledUntilMs) return
+
+        val deepTicks = gp.pollDeepSequence() ?: return
+        plugin.aiTransport.infer(deepTicks, false).thenAccept { result ->
+            if (result !is InferenceResult.Success) return@thenAccept
+            if (result.deep) {
+                judgeDisabledUntilMs = 0L
+                judgeState = JudgeState.ACTIVE
+                gp.recordJudgeVerdict(result.probability)
+            } else {
+                judgeDisabledUntilMs = System.currentTimeMillis() + JUDGE_PROBE_INTERVAL_MS
+                judgeState = JudgeState.UNAVAILABLE
+                if (plugin.configManager.debugEnabled) {
+                    plugin.logger.info(
+                        "[AI] Backend has no long-window judge for this key - " +
+                        "falling back to the local judge for a while."
+                    )
+                }
+            }
+        }
     }
 
     private fun isDeadWindow(ticks: Array<AimSample>, deadZone: Double, minActive: Int): Boolean {
@@ -162,9 +197,21 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
     private fun modelTag(sources: List<String>): String =
         if (sources.isEmpty()) "[AI]" else sources.joinToString("") { "[$it]" }
 
+    /** Виден ли длинному окну судья на бэкенде для этого ключа. */
+    enum class JudgeState { UNKNOWN, ACTIVE, UNAVAILABLE }
+
     companion object {
         private const val CHECK_NAME = "AI"
         private const val UNSTABLE_TICKS_MIN = 3
         private const val UNSTABLE_PING_MIN  = 100
+
+        private const val JUDGE_PROBE_INTERVAL_MS = 30L * 60_000L
+
+        // Свойство ключа/тарифа, а не конкретной проверки, поэтому состояние
+        // одно на сервер - его показывает /guard health.
+        @Volatile private var judgeDisabledUntilMs: Long = 0L
+
+        @Volatile var judgeState: JudgeState = JudgeState.UNKNOWN
+            private set
     }
 }

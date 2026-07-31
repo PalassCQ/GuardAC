@@ -119,6 +119,19 @@ class ConfigManager(private val plugin: GuardAC) {
                 )
             }
         }
+        if (from in 1 until 41) {
+            val interval = cfg.getInt("vl-decay.interval-seconds", VL_DECAY_INTERVAL_SECONDS)
+            if (interval == 60) {
+                cfg.set("vl-decay.interval-seconds", VL_DECAY_INTERVAL_SECONDS)
+                changed++
+                plugin.logger.info(
+                    "[GuardAC] config.yml: vl-decay.interval-seconds set to " +
+                    "$VL_DECAY_INTERVAL_SECONDS (was 60) - the old value decayed VL " +
+                    "60x faster online than offline and could erase a kick's VL " +
+                    "before the next violation reached the ban level."
+                )
+            }
+        }
         return changed
     }
 
@@ -193,6 +206,8 @@ class ConfigManager(private val plugin: GuardAC) {
 
     val aiOnlyAlert: Boolean   get() = cfg.getBoolean("ai.only-alert", false)
 
+    val aiJudgeEnabled: Boolean get() = cfg.getBoolean("ai.judge", true)
+
     val aiBufferFlag: Double        get() = cfg.getDouble("ai.buffer.flag", 30.0)
     val aiBufferResetOnFlag: Double get() = cfg.getDouble("ai.buffer.reset-on-flag", 10.0)
     val aiBufferMultiplier: Double  get() = cfg.getDouble("ai.buffer.multiplier", 100.0)
@@ -240,7 +255,7 @@ class ConfigManager(private val plugin: GuardAC) {
     val aiBatchMaxDelayMs: Long     get() = cfg.getLong("ai.batching.max-delay-ms", 15L)
 
     val vlDecayEnabled: Boolean      get() = cfg.getBoolean("vl-decay.enabled", true)
-    val vlDecayIntervalSeconds: Int  get() = cfg.getInt("vl-decay.interval-seconds", 60)
+    val vlDecayIntervalSeconds: Int  get() = cfg.getInt("vl-decay.interval-seconds", VL_DECAY_INTERVAL_SECONDS)
     val vlDecayAmount: Int           get() = cfg.getInt("vl-decay.amount", 1)
     val vlDecaySkipInCombat: Boolean get() = cfg.getBoolean("vl-decay.skip-in-combat", true)
 
@@ -283,7 +298,7 @@ class ConfigManager(private val plugin: GuardAC) {
     val worldGuardDisabledRegions: List<String> get() = cfg.getStringList("worldguard.disabled-regions")
 
     val persistBufferEnabled: Boolean get() = cfg.getBoolean("persist-buffer.enabled", true)
-    val persistBufferGraceMinutes: Double get() = cfg.getDouble("persist-buffer.grace-minutes", 5.0)
+    val persistBufferGraceMinutes: Double get() = cfg.getDouble("persist-buffer.grace-minutes", 10.0)
     val persistBufferDecayPerHour: Double get() = cfg.getDouble("persist-buffer.decay-per-hour", 5.0)
     val persistBufferCapOnRestore: Double get() = cfg.getDouble("persist-buffer.cap-on-restore", 20.0)
 
@@ -323,5 +338,6 @@ class ConfigManager(private val plugin: GuardAC) {
         // x3/x6/VL - that pair keeps false bans low while a real cheater still
         // bans fast. Since the judge gates the count, x3=VL1 / x6=VL2 exactly.
         const val ALERT_MIN_CONFIDENCE = 85.0
+        const val VL_DECAY_INTERVAL_SECONDS = 3600
     }
 }

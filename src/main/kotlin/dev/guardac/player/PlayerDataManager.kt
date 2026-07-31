@@ -39,6 +39,20 @@ class PlayerDataManager(private val plugin: GuardAC) : Listener {
 
     private val entityIdToUuid = ConcurrentHashMap<Int, UUID>()
 
+    private class Carry(val buffer: Double, val vl: Int, val epochMillis: Long)
+
+    /**
+     * Буфер и VL вышедшего игрока, пока он ещё в памяти этого процесса.
+     *
+     * Запись в SQLite на выходе и чтение на входе идут через ПУЛ асинхронных
+     * задач - порядок между ними не гарантирован. При кике наказанием игрок
+     * возвращается через секунду-две, и чтение успевало обогнать запись: вход
+     * не находил строку, стирал её и обнулял VL, поэтому до бан-уровня дело не
+     * доходило никогда. Память отвечает мгновенно и разрывает эту гонку;
+     * SQLite остаётся долговременным путём (переживает рестарт сервера).
+     */
+    private val carryOver = ConcurrentHashMap<UUID, Carry>()
+
     @EventHandler(priority = EventPriority.MONITOR)
     fun onLogin(event: PlayerLoginEvent) {
         plugin.reputationClient.recordJoinHost(event.hostname)
@@ -74,6 +88,8 @@ class PlayerDataManager(private val plugin: GuardAC) : Listener {
             if (plugin.configManager.persistBufferEnabled &&
                 (gp.aiBuffer > 0.0 || gp.aiViolationLevel > 0)
             ) {
+                carryOver[uuid] = Carry(gp.aiBuffer, gp.aiViolationLevel, System.currentTimeMillis())
+                pruneCarryOver()
                 plugin.punishmentHistory.saveBuffer(uuid, gp.aiBuffer, gp.aiViolationLevel)
             }
             plugin.suppressionManager.onQuit(gp)
@@ -91,29 +107,49 @@ class PlayerDataManager(private val plugin: GuardAC) : Listener {
         val cfg = plugin.configManager
         if (!cfg.persistBufferEnabled) return
 
+        // Быстрый путь: игрок вышел при живом сервере (кик наказанием, реконнект).
+        carryOver.remove(gp.uuid)?.let { carry ->
+            applyPersisted(gp, carry.buffer, carry.vl, carry.epochMillis)
+            plugin.punishmentHistory.clearBuffer(gp.uuid)
+            return
+        }
+
         plugin.scheduler.async(Runnable {
             val rec = plugin.punishmentHistory.loadBuffer(gp.uuid) ?: return@Runnable
             plugin.punishmentHistory.clearBuffer(gp.uuid)
-
-            val ageMinutes = (System.currentTimeMillis() - rec.epochMillis) / 60000.0
-            if (ageMinutes > cfg.persistBufferTtlMinutes) return@Runnable
-
-            // Первые grace-минут ничего не теряется - это обычный реконнект.
-            val hoursBeyondGrace =
-                ((ageMinutes - cfg.persistBufferGraceMinutes) / 60.0).coerceAtLeast(0.0)
-
-            val decayedBuffer =
-                (rec.buffer - hoursBeyondGrace * cfg.persistBufferDecayPerHour).coerceAtLeast(0.0)
-            val cappedBuffer = decayedBuffer.coerceAtMost(cfg.persistBufferCapOnRestore)
-
-            // VL затухает по своему счёту - час офлайна снимает один уровень.
-            // Раньше он умножался на долю уцелевшего буфера, и VL 2 обнулялся
-            // просто из-за округления вниз.
-            val decayedVl = (rec.vl - hoursBeyondGrace.toInt()).coerceAtLeast(0)
-
-            if (cappedBuffer <= 0.0 && decayedVl <= 0) return@Runnable
-            gp.restorePersisted(cappedBuffer, decayedVl)
+            applyPersisted(gp, rec.buffer, rec.vl, rec.epochMillis)
         })
+    }
+
+    private fun applyPersisted(gp: GuardPlayer, buffer: Double, vl: Int, savedAtMs: Long) {
+        val cfg = plugin.configManager
+        val ageMinutes = (System.currentTimeMillis() - savedAtMs) / 60000.0
+        if (ageMinutes > cfg.persistBufferTtlMinutes) return
+
+        // Первые grace-минут ничего не теряется - это обычный реконнект.
+        val hoursBeyondGrace =
+            ((ageMinutes - cfg.persistBufferGraceMinutes) / 60.0).coerceAtLeast(0.0)
+
+        val decayedBuffer =
+            (buffer - hoursBeyondGrace * cfg.persistBufferDecayPerHour).coerceAtLeast(0.0)
+        val cappedBuffer = decayedBuffer.coerceAtMost(cfg.persistBufferCapOnRestore)
+
+        // VL затухает по своему счёту - час офлайна снимает один уровень.
+        // Раньше он умножался на долю уцелевшего буфера, и VL 2 обнулялся
+        // просто из-за округления вниз.
+        val decayedVl = (vl - hoursBeyondGrace.toInt()).coerceAtLeast(0)
+
+        if (cappedBuffer <= 0.0 && decayedVl <= 0) return
+        gp.restorePersisted(cappedBuffer, decayedVl)
+    }
+
+    /** Игрок, который так и не вернулся, не должен висеть в памяти вечно. */
+    private fun pruneCarryOver() {
+        if (carryOver.size <= CARRY_OVER_MAX) return
+        val cutoff = System.currentTimeMillis() -
+            (plugin.configManager.persistBufferTtlMinutes * 60_000.0).toLong()
+        carryOver.entries.removeIf { it.value.epochMillis < cutoff }
+        if (carryOver.size > CARRY_OVER_MAX) carryOver.clear()
     }
 
     fun add(player: Player): GuardPlayer {
@@ -140,5 +176,9 @@ class PlayerDataManager(private val plugin: GuardAC) : Listener {
             }
             entityIdToUuid[player.entityId] = player.uniqueId
         }
+    }
+
+    private companion object {
+        const val CARRY_OVER_MAX = 512
     }
 }

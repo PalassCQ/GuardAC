@@ -86,6 +86,7 @@ class GuardAC : JavaPlugin() {
 
     private var runtimeStarted = false
     private var vlDecayTask: TaskHandle? = null
+    private var combatResetTask: TaskHandle? = null
 
     override fun onEnable() {
         instance = this
@@ -109,6 +110,8 @@ class GuardAC : JavaPlugin() {
             playerDataManager.reloadAll()
             hologramManager.reload()
             worldGuardCompat = WorldGuardCompat(logger, configManager.worldGuardEnabled, configManager.worldGuardDisabledRegions)
+            startVlDecayTask()
+            startCombatResetTask()
         }.onSuccess {
             logger.info("GuardAC reloaded successfully.")
         }.onFailure {
@@ -154,6 +157,7 @@ class GuardAC : JavaPlugin() {
         server.pluginManager.registerEvents(banAnimationManager, this)
         server.pluginManager.registerEvents(DamageListener(this), this)
         startVlDecayTask()
+        startCombatResetTask()
         hologramManager.start()
 
         reputationClient.startNetworkAlertPolling()
@@ -185,10 +189,28 @@ class GuardAC : JavaPlugin() {
         vlDecayTask = scheduler.globalTimer(intervalTicks, intervalTicks) {
             val decayAmount  = configManager.vlDecayAmount
             val skipInCombat = configManager.vlDecaySkipInCombat
+            // "В бою" = ударил за последнюю минуту, а не за последние 2 секунды
+            // (окно анализа). Со старым значением почти любой момент считался
+            // мирным, и уровень таял прямо посреди драки.
+            val combatTicks  = (configManager.combatResetAfterSeconds * 20L)
+                .coerceIn(20L, Int.MAX_VALUE.toLong()).toInt()
             playerDataManager.getAll().forEach { gp ->
                 if (!gp.player.isOnline) return@forEach
-                if (skipInCombat && gp.combat.isInCombatWindow(configManager.aiSequence)) return@forEach
+                if (skipInCombat && gp.combat.isInCombatWindow(combatTicks)) return@forEach
                 gp.decayVl(decayAmount)
+            }
+        }
+    }
+
+    fun startCombatResetTask() {
+        combatResetTask?.cancel()
+        combatResetTask = null
+        if (!configManager.combatResetEnabled) return
+
+        combatResetTask = scheduler.globalTimer(COMBAT_RESET_CHECK_TICKS, COMBAT_RESET_CHECK_TICKS) {
+            playerDataManager.getAll().forEach { gp ->
+                if (!gp.player.isOnline) return@forEach
+                gp.maybeResetStaleCombat()
             }
         }
     }
@@ -204,6 +226,8 @@ class GuardAC : JavaPlugin() {
         runtimeStarted = false
         vlDecayTask?.cancel()
         vlDecayTask = null
+        combatResetTask?.cancel()
+        combatResetTask = null
         runCatching { banAnimationManager.restoreAllFrozen() }
         runCatching { banAnimationManager.removeAnimationEntities() }
         runCatching { hologramManager.stop() }
@@ -216,7 +240,10 @@ class GuardAC : JavaPlugin() {
         runCatching {
             if (configManager.persistBufferEnabled) {
                 playerDataManager.getAll().forEach { gp ->
-                    if (gp.aiBuffer > 0.0) {
+                    // Буфер гаснет за минуту без боя, а VL живёт часами - условие
+                    // "только если буфер > 0" стирало VL всем, кто на момент
+                    // рестарта просто не дрался.
+                    if (gp.aiBuffer > 0.0 || gp.aiViolationLevel > 0) {
                         punishmentHistory.saveBufferNow(gp.uuid, gp.aiBuffer, gp.aiViolationLevel)
                     }
                 }
@@ -243,13 +270,13 @@ class GuardAC : JavaPlugin() {
         val hlStatus  = if (hologramConfig.enabled) "enabled" else "disabled"
 
         logger.info("")
-        logger.info("   ▍ GuardAC  ·  v$version")
+        logger.info("   GuardAC  ·  v$version")
         logger.info("   ▏")
         logger.info("   ▏  protection  : $aiStatus")
         logger.info("   ▏  cross-server: $csStatus")
         logger.info("   ▏  alert sound : $sndStatus")
         logger.info("   ▏  holograms   : $hlStatus")
-        logger.info("   ▍ ready.")
+        logger.info("   ready.")
         logger.info("")
 
         if (configManager.aiEnabled) {
@@ -265,5 +292,7 @@ class GuardAC : JavaPlugin() {
     companion object {
         lateinit var instance: GuardAC
             private set
+
+        const val COMBAT_RESET_CHECK_TICKS = 20L
     }
 }

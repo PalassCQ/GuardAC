@@ -6,7 +6,7 @@
 # below switches everything the plugin SAYS (staff alerts, command output,
 # player messages) between languages.
 
-config-version: 40
+config-version: 41
 
 # Language of all plugin messages: en | ru
 locale: "en"
@@ -49,7 +49,7 @@ alerts:
 vl-decay:
   enabled: true
   # Check every N seconds...
-  interval-seconds: 60
+  interval-seconds: 3600
   # ...and remove this many VL from everyone.
   amount: 1
   # Do not decay while the player is actively fighting.

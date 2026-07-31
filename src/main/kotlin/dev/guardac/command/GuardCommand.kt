@@ -23,9 +23,10 @@
 package dev.guardac.command
 
 import dev.guardac.GuardAC
+import dev.guardac.checks.impl.AiCheck
 import dev.guardac.combat.SuppressionStage
+import dev.guardac.menu.LiveHitsMenu
 import dev.guardac.menu.ResultsMenu
-import dev.guardac.menu.SuspectsMenu
 import dev.guardac.util.Colors
 import dev.guardac.util.Message
 import org.bukkit.Bukkit
@@ -58,12 +59,11 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
             "alerts"      -> handleAlerts(sender)
             "monitor"     -> handleMonitor(sender)
             "profile"     -> handleProfile(sender, args)
-            "suspicious"  -> handleSuspicious(sender)
             "menu"        -> handleMenu(sender)
+            "avg"         -> handleAvg(sender, args)
             "debug"       -> handleDebug(sender, args)
             "prob"        -> handleProb(sender, args)
             "exempt"      -> handleExempt(sender, args)
-            "reset"       -> handleReset(sender, args)
             "punish"      -> handlePunish(sender, args)
             "stats"       -> handleStats(sender, args)
             "health"      -> handleHealth(sender)
@@ -86,12 +86,14 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
                 .filter { sender.hasPermission("guardac.command.$it") }
                 .filter { it.startsWith(args[0].lowercase()) }
             2 -> when (args[0].lowercase()) {
-                "profile", "debug", "prob", "reset", "punish", "log", "history", "results"
+                "profile", "debug", "prob", "punish", "log", "history", "results"
                     -> online.filter { it.startsWith(args[1], ignoreCase = true) }
                 "exempt"
                     -> (listOf("remove", "status") + online).filter { it.startsWith(args[1], ignoreCase = true) }
                 "stats"
                     -> listOf("1h", "6h", "24h", "7d").filter { it.startsWith(args[1]) }
+                "avg"
+                    -> listOf("on", "off").filter { it.startsWith(args[1].lowercase()) }
                 else -> emptyList()
             }
             3 -> when (args[0].lowercase()) {
@@ -139,8 +141,23 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
 
     private fun handleMenu(sender: CommandSender) {
         if (sender !is Player) { sender.sendMessage(plugin.locale.get(Message.RUN_AS_PLAYER)); return }
-        sender.sendMessage(plugin.locale.get(Message.SUSPECTS_MENU_OPEN))
-        SuspectsMenu(plugin, sender).open()
+        sender.sendMessage(plugin.locale.get(Message.LIVE_MENU_OPEN))
+        LiveHitsMenu(plugin, sender).open()
+    }
+
+    private fun handleAvg(sender: CommandSender, args: Array<out String>) {
+        if (sender !is Player) { sender.sendMessage(plugin.locale.get(Message.RUN_AS_PLAYER)); return }
+        val enabled = when (args.getOrNull(1)?.lowercase()) {
+            "on"  -> true
+            "off" -> false
+            null  -> !plugin.alertManager.hasAvg(sender.uniqueId)
+            else  -> return sender.sendMessage(plugin.locale.get(Message.USAGE_AVG))
+        }
+        plugin.alertManager.setAvg(sender.uniqueId, enabled)
+        sender.sendMessage(
+            if (enabled) plugin.locale.get(Message.AVG_ENABLED)
+            else         plugin.locale.get(Message.AVG_DISABLED)
+        )
     }
 
     private fun handleProfile(sender: CommandSender, args: Array<out String>) {
@@ -170,6 +187,14 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
             "avg",  "%.1f".format(gp.avgProbability * 100.0),
             "peak", "%.1f".format(gp.peakProbability * 100.0),
         ))
+        // Судья решает, засчитывается ли удар в ×N и VL, поэтому стафф должен
+        // видеть его вердикт - иначе непонятно, почему детекты идут, а бана нет.
+        sender.sendMessage(plugin.locale.get(
+            Message.PROFILE_JUDGE,
+            "verdict", gp.judgeVerdictOrNull()
+                ?.let { "%.1f".format(it * 100.0) + "%" }
+                ?: plugin.locale.get(Message.PROFILE_JUDGE_LOCAL),
+        ))
         sender.sendMessage(plugin.locale.get(
             Message.PROFILE_SENSITIVITY,
             "sens_x", "%.2f".format(gp.rotation.sensitivityX),
@@ -192,25 +217,6 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
         SuppressionStage.NONE    -> "&8-"
         SuppressionStage.DAMPEN  -> "&#FFC857Dampen"
         SuppressionStage.ISOLATE -> "&#FF4D6DIsolate"
-    }
-
-    private fun handleSuspicious(sender: CommandSender) {
-        val list = plugin.playerDataManager.getAll()
-            .filter { it.player.isOnline }
-            .filter { it.aiBuffer > SUSPICIOUS_BUFFER_THRESHOLD }
-            .sortedByDescending { it.aiBuffer }
-            .take(10)
-
-        if (list.isEmpty()) { sender.sendMessage(plugin.locale.get(Message.SUSPICIOUS_EMPTY)); return }
-        sender.sendMessage(plugin.locale.get(Message.SUSPICIOUS_HEADER, "count", list.size.toString()))
-        list.forEach { gp ->
-            sender.sendMessage(plugin.locale.get(
-                Message.SUSPICIOUS_ENTRY,
-                "player", gp.player.name,
-                "buffer", "%.1f".format(gp.aiBuffer),
-                "ping",   gp.player.ping.toString(),
-            ))
-        }
     }
 
     private fun handleDebug(sender: CommandSender, args: Array<out String>) {
@@ -307,17 +313,6 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
         }
     }
 
-    private fun handleReset(sender: CommandSender, args: Array<out String>) {
-        val name = args.getOrNull(1)
-            ?: return sender.sendMessage(plugin.locale.get(Message.USAGE_RESET))
-        val target = Bukkit.getPlayerExact(name)
-            ?: return sender.sendMessage(plugin.locale.get(Message.PLAYER_NOT_FOUND, "player", name))
-        val gp = plugin.playerDataManager.get(target)
-            ?: return sender.sendMessage(plugin.locale.get(Message.PROFILE_NO_DATA))
-        gp.resetAllVL()
-        sender.sendMessage(plugin.locale.get(Message.RESET_ALL_SUCCESS, "player", target.name))
-    }
-
     private fun handlePunish(sender: CommandSender, args: Array<out String>) {
         val name = args.getOrNull(1)
             ?: return sender.sendMessage(plugin.locale.get(Message.USAGE_PUNISH))
@@ -395,6 +390,7 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
         sender.sendMessage(plugin.locale.get(Message.HEALTH_BACKEND, "status", backend, "server", cfg.aiServer))
         sender.sendMessage(plugin.locale.get(Message.HEALTH_MODE, "mode", mode))
         sender.sendMessage(plugin.locale.get(Message.HEALTH_KEY, "status", keyLine))
+        sender.sendMessage(plugin.locale.get(Message.HEALTH_JUDGE, "status", judgeLine()))
         sender.sendMessage(plugin.locale.get(Message.HEALTH_TPS, "tps", "%.1f".format(plugin.tpsMonitor.tps)))
         sender.sendMessage(plugin.locale.get(
             Message.HEALTH_TRACKED, "tracked", all.size.toString(), "suspicious", suspicious.toString()
@@ -409,6 +405,15 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
 
     private fun onOff(value: Boolean): String =
         plugin.locale.get(if (value) Message.COMMON_ON else Message.COMMON_OFF)
+
+    private fun judgeLine(): String = when {
+        !plugin.configManager.aiJudgeEnabled -> plugin.locale.get(Message.HEALTH_OFF)
+        else -> when (AiCheck.judgeState) {
+            AiCheck.JudgeState.ACTIVE      -> plugin.locale.get(Message.HEALTH_JUDGE_ACTIVE)
+            AiCheck.JudgeState.UNAVAILABLE -> plugin.locale.get(Message.HEALTH_JUDGE_NONE)
+            AiCheck.JudgeState.UNKNOWN     -> plugin.locale.get(Message.HEALTH_JUDGE_UNKNOWN)
+        }
+    }
 
     private fun handleLog(sender: CommandSender, args: Array<out String>) {
         val log = plugin.punishmentManager.violationLog
@@ -497,12 +502,11 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
         sender.sendMessage(plugin.locale.get(Message.HELP_ALERTS))
         sender.sendMessage(plugin.locale.get(Message.HELP_MONITOR))
         sender.sendMessage(plugin.locale.get(Message.HELP_PROFILE))
-        sender.sendMessage(plugin.locale.get(Message.HELP_SUSPICIOUS))
         sender.sendMessage(plugin.locale.get(Message.HELP_MENU))
+        sender.sendMessage(plugin.locale.get(Message.HELP_AVG))
         sender.sendMessage(plugin.locale.get(Message.HELP_DEBUG))
         sender.sendMessage(plugin.locale.get(Message.HELP_PROB))
         sender.sendMessage(plugin.locale.get(Message.HELP_EXEMPT))
-        sender.sendMessage(plugin.locale.get(Message.HELP_RESET))
         sender.sendMessage(plugin.locale.get(Message.HELP_PUNISH))
         sender.sendMessage(plugin.locale.get(Message.HELP_STATS))
         sender.sendMessage(plugin.locale.get(Message.HELP_HEALTH))
@@ -534,8 +538,8 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
             DateTimeFormatter.ofPattern("dd.MM HH:mm").withZone(ZoneId.systemDefault())
 
         val SUBCOMMANDS = listOf(
-            "help", "reload", "alerts", "monitor", "profile", "suspicious", "menu",
-            "debug", "prob", "exempt", "reset", "punish", "stats", "health",
+            "help", "reload", "alerts", "monitor", "profile", "menu", "avg",
+            "debug", "prob", "exempt", "punish", "stats", "health",
             "crossserver", "log", "history", "results",
         )
     }

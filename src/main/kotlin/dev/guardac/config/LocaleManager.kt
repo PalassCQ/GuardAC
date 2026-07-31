@@ -82,13 +82,38 @@ class LocaleManager(private val plugin: GuardAC) {
                     added++
                 }
             }
-            if (added > 0) {
+            val healed = healOldDefaults(onDisk)
+            if (added > 0 || healed > 0) {
                 onDisk.save(file)
-                plugin.logger.info("[GuardAC] messages_$locale.yml: $added new message(s) added.")
+                if (added > 0) {
+                    plugin.logger.info("[GuardAC] messages_$locale.yml: $added new message(s) added.")
+                }
+                if (healed > 0) {
+                    plugin.logger.info(
+                        "[GuardAC] messages_$locale.yml: dropped the heavy bar from the message " +
+                        "prefix. Edit `prefix` if you want your own."
+                    )
+                }
             }
         } catch (e: Exception) {
             plugin.logger.warning("[GuardAC] Could not merge new messages into messages_$locale.yml: ${e.message}")
         }
+    }
+
+    /**
+     * Обновляет значения, которые мердж не тронет: он дописывает только
+     * отсутствующие ключи и никогда не меняет уже записанные. Правится ТОЛЬКО
+     * точное старое значение по умолчанию - если владелец задал свой префикс,
+     * он остаётся как есть.
+     */
+    private fun healOldDefaults(onDisk: YamlConfiguration): Int {
+        var changed = 0
+        val prefix = onDisk.getString("prefix")
+        if (prefix != null && prefix.contains(LEGACY_PREFIX_BAR)) {
+            onDisk.set("prefix", prefix.replace(LEGACY_PREFIX_BAR, ""))
+            changed++
+        }
+        return changed
     }
 
     fun get(message: Message, vararg placeholders: String): String {
@@ -108,5 +133,10 @@ class LocaleManager(private val plugin: GuardAC) {
             i += 2
         }
         return Colors.translate(result)
+    }
+
+    private companion object {
+        /** Толстая синяя палка, стоявшая в начале префикса до этой версии. */
+        const val LEGACY_PREFIX_BAR = "&#22D3EE▍ "
     }
 }

@@ -51,6 +51,9 @@ class GuardPlayer(
     private val sequenceSize get() = plugin.configManager.aiSequence
     private val tickBuffer   = ArrayDeque<AimSample>(plugin.configManager.aiSequence * 2)
 
+    private val deepBuffer = ArrayDeque<AimSample>(DEEP_WINDOW_TICKS + 32)
+    private var activeShortWindows = 0
+
     private var ticksSinceLastSend = 0
 
     var idleTickCount: Int = 0
@@ -117,12 +120,23 @@ class GuardPlayer(
     var highProbCount: Int = 0
         private set
 
-    private val hitProbHistory = ArrayDeque<Double>(HIT_HISTORY_SIZE)
+    /** Один объявленный момент боя: пиковая вероятность и когда он случился. */
+    data class HitSample(val probability: Double, val epochMillis: Long)
+
+    private val hitHistory = ArrayDeque<HitSample>(HIT_HISTORY_SIZE)
     private var lastFeedMs = 0L
     private var lastGainMs = 0L
 
     @Synchronized
-    fun getHitProbHistory(): List<Double> = hitProbHistory.toList()
+    fun getHitProbHistory(): List<Double> = hitHistory.map { it.probability }
+
+    /** Лента последних моментов боя, старые первыми. Для меню и голограммы. */
+    @Synchronized
+    fun getHitFeed(): List<HitSample> = hitHistory.toList()
+
+    /** Когда игрок последний раз получал оценку в бою, 0 - никогда. */
+    @Synchronized
+    fun lastHitMs(): Long = hitHistory.lastOrNull()?.epochMillis ?: 0L
 
     fun onTick(tick: AimSample, recordForAi: Boolean) {
         totalTickCount++
@@ -132,6 +146,7 @@ class GuardPlayer(
 
         if (!plugin.configManager.aiContinuous && !recordForAi) {
             if (tickBuffer.isNotEmpty()) tickBuffer.clear()
+            if (deepBuffer.isNotEmpty()) deepBuffer.clear()
             ticksSinceLastSend = 0
             return
         }
@@ -139,6 +154,10 @@ class GuardPlayer(
         tickBuffer.addLast(tick)
         while (tickBuffer.size > sequenceSize * 2) tickBuffer.removeFirst()
         ticksSinceLastSend++
+
+        val judgeWindow = DEEP_WINDOW_TICKS
+        deepBuffer.addLast(tick)
+        while (deepBuffer.size > judgeWindow) deepBuffer.removeFirst()
     }
 
     fun pollSequence(): Array<AimSample>? {
@@ -146,6 +165,19 @@ class GuardPlayer(
         if (tickBuffer.size < sequenceSize) return null
         ticksSinceLastSend = 0
         return tickBuffer.takeLast(sequenceSize).toTypedArray()
+    }
+
+    /**
+     * Длинное окно для судьи - одно на каждые DEEP_TRIGGER_EVERY обычных.
+     * Счётчик сбрасывается только когда окно реально ушло: иначе не набравшийся
+     * буфер стоил бы ещё пяти окон ожидания на ровном месте.
+     */
+    fun pollDeepSequence(): Array<AimSample>? {
+        if (deepBuffer.size < DEEP_WINDOW_TICKS) return null
+        activeShortWindows++
+        if (activeShortWindows < DEEP_TRIGGER_EVERY) return null
+        activeShortWindows = 0
+        return deepBuffer.toTypedArray()
     }
 
     var aiBuffer: Double = 0.0
@@ -208,14 +240,14 @@ class GuardPlayer(
         val windowMs = cfg.aiSequence.toLong() * MS_PER_TICK
         val now = System.currentTimeMillis()
 
-        if (hitProbHistory.isNotEmpty() && now - lastFeedMs < windowMs) {
-            val last = hitProbHistory.removeLast()
-            hitProbHistory.addLast(max(last, probability))
+        if (hitHistory.isNotEmpty() && now - lastFeedMs < windowMs) {
+            val last = hitHistory.removeLast()
+            hitHistory.addLast(HitSample(max(last.probability, probability), now))
         } else {
-            hitProbHistory.addLast(probability)
+            hitHistory.addLast(HitSample(probability, now))
             lastFeedMs = now
         }
-        while (hitProbHistory.size > HIT_HISTORY_SIZE) hitProbHistory.removeFirst()
+        while (hitHistory.size > HIT_HISTORY_SIZE) hitHistory.removeFirst()
 
         aiBuffer = when {
             probability > CHEAT_THRESHOLD -> {
@@ -236,22 +268,35 @@ class GuardPlayer(
         applySuppression(probability)
     }
 
-    private fun maybeResetStaleCombat() {
+    /**
+     * Минута без единого удара - и вся боевая витрина игрока гаснет: лента над
+     * головой, средняя, пик, буфер. Уровень нарушений (VL) и счётчик флагов
+     * НЕ трогаются: они живут по своим правилам (vl-decay / persist-buffer),
+     * иначе читер сбрасывал бы наказание, просто постояв минуту в стороне.
+     *
+     * Якорь - последний удар. Ориентир на последнюю оценку берётся только когда
+     * ударов не было вообще (ai.continuous), иначе витрина висела бы вечно.
+     */
+    @Synchronized
+    fun maybeResetStaleCombat() {
         val cfg = plugin.configManager
         if (!cfg.combatResetEnabled) return
-        val lastMs = combat.lastAttackMs
-        if (lastMs == 0L) return
-        if (System.currentTimeMillis() - lastMs < cfg.combatResetAfterSeconds * 1000L) return
-        if (aiBuffer == 0.0 && probHistory.isEmpty() && hitProbHistory.isEmpty()) return
+        val anchor = if (combat.lastAttackMs != 0L) combat.lastAttackMs else lastFeedMs
+        if (anchor == 0L) return
+        if (System.currentTimeMillis() - anchor < cfg.combatResetAfterSeconds * 1000L) return
+        if (aiBuffer == 0.0 && probHistory.isEmpty() && hitHistory.isEmpty()) return
         aiBuffer = 0.0
         probHistory.clear(); probHistorySum = 0.0
-        hitProbHistory.clear()
+        hitHistory.clear()
         lastFeedMs = 0L
         lastGainMs = 0L
+        lastAiProbability = 0.0
         peakProbability = 0.0
         highProbCount = 0
         attackSpeedPenalty = 0.0
         isolateUntilMs = 0L
+        judgeVerdictProb = -1.0
+        judgeVerdictMs = 0L
     }
 
     @Volatile var attackSpeedPenalty: Double = 0.0
@@ -323,23 +368,54 @@ class GuardPlayer(
         return true
     }
 
+    private var judgeVerdictProb: Double = -1.0
+    private var judgeVerdictMs: Long = 0L
+
+    /** Вердикт длинного окна (~8 c боя) от модели-судьи на бэкенде. */
+    @Synchronized
+    fun recordJudgeVerdict(probability: Double) {
+        judgeVerdictProb = probability
+        judgeVerdictMs   = System.currentTimeMillis()
+    }
+
+    /** Есть ли свежий вердикт судьи - для /guard profile и диагностики. */
+    @Synchronized
+    fun judgeVerdictOrNull(): Double? =
+        if (judgeVerdictProb >= 0.0 && System.currentTimeMillis() - judgeVerdictMs <= DEEP_VERDICT_TTL_MS)
+            judgeVerdictProb else null
+
     /**
-     * Судья. Удар засчитывается в ×N (а значит и в VL) только когда СРЕДНЕЕ
-     * уверенности последних пиков устойчиво высоко - разовый всплеск честного
-     * агрессивного PvP не проходит. Это защита от ложных банов. Порог достижим
-     * для реального читера, поэтому ×N больше не залипает без бана. Стоит на
-     * самом счёте пачки, так что ×N и VL остаются 1:1.
+     * Судья. Удар засчитывается в ×N (а значит и в VL) только с его одобрения.
+     *
+     * Первый голос - у модели-судьи: она смотрит одно длинное окно (~8 c боя)
+     * вместо нервного двухсекундного снимка, поэтому её вердикт на порядок
+     * устойчивее. Нет свежего вердикта (тариф без судьи, сеть моргнула) -
+     * работает локальная замена: среднее последних пиков.
+     *
+     * Пороги у них РАЗНЫЕ и не взаимозаменяемы: у длинного окна своя калибровка,
+     * измеренная отдельно (backend/scripts/simulate_plugin.py). Не сводить в одну
+     * константу.
      */
     @Synchronized
     fun judgeApproves(): Boolean {
-        if (hitProbHistory.isEmpty()) return false
-        return hitProbHistory.average() >= JUDGE_THRESHOLD
+        judgeVerdictOrNull()?.let { return it >= DEEP_JUDGE_THRESHOLD }
+        if (hitHistory.isEmpty()) return false
+        return localJudgeMean() >= JUDGE_THRESHOLD
+    }
+
+    /** Среднее последних JUDGE_SAMPLE_SIZE пиков - вход локального судьи. */
+    private fun localJudgeMean(): Double {
+        if (hitHistory.isEmpty()) return 0.0
+        val from = (hitHistory.size - JUDGE_SAMPLE_SIZE).coerceAtLeast(0)
+        var sum = 0.0
+        for (i in from until hitHistory.size) sum += hitHistory[i].probability
+        return sum / (hitHistory.size - from)
     }
 
     /** Уверенность, с которой был поднят флаг - среднее последних пиков. */
     @Synchronized
     fun flagConfidence(): Double {
-        if (hitProbHistory.isNotEmpty()) return hitProbHistory.average()
+        if (hitHistory.isNotEmpty()) return localJudgeMean()
         return lastAiProbability
     }
 
@@ -352,13 +428,15 @@ class GuardPlayer(
         highProbCount     = 0
         probHistory.clear()
         probHistorySum    = 0.0
-        hitProbHistory.clear()
+        hitHistory.clear()
         lastFeedMs = 0L
         lastGainMs = 0L
         fpBaseline = 0.0; fpRecent = 0.0; fpHits = 0
         attackSpeedPenalty = 0.0
         isolateUntilMs     = 0L
         lastFlagMs         = 0L
+        judgeVerdictProb   = -1.0
+        judgeVerdictMs     = 0L
     }
 
     private val checkVL = ConcurrentHashMap<String, Int>(4)
@@ -398,23 +476,38 @@ class GuardPlayer(
         const val CHEAT_THRESHOLD          = 0.90
         const val LEGIT_THRESHOLD          = 0.10
 
-        // Судья: удар идёт в счёт ×N, только если СРЕДНЕЕ последних пиков >= этого.
-        // Замер (backend/scripts/simulate_plugin.py, худший агрессивный датасет):
-        // на 0.90 бан получают ~9% честных сессий при VL2, читеров ловим ~93% за
-        // сессию; 0.95 = ~4% / ~88%. 0.90 достижим для реального читера (его хиты
-        // 0.85-0.96), поэтому ×54 больше не висит без бана. Гейт стоит на СЧЁТЕ,
-        // значит ×N и VL строго 1:1. Поднять до 0.95, если появятся ложные баны.
+        // Локальный судья (запасной путь: тариф без модели-судьи, сбой сети).
+        // Оставлен на прежнем значении сознательно - так серверы без судьи
+        // получают ровно сегодняшнее поведение, без регресса.
         const val JUDGE_THRESHOLD          = 0.90
+
+        // Судья на длинном окне. У него СВОЯ калибровка: окно усредняет ~8 c боя,
+        // и его вероятности распределены иначе, чем у двухсекундного снимка.
+        // Замер на 705 реальных записях (backend/scripts/simulate_plugin.py,
+        // боевой порог счёта 0.85, бан на VL3):
+        //   0.90 -> ложных банов 3.1%, читеров за сессию 87.7%
+        //   0.95 -> ложных банов 1.2%, читеров за сессию 78.9%   <- выбрано
+        //   0.97 -> ложных банов 0.7%, читеров за сессию 73.2%
+        // 0.95 срезает ложные баны почти втрое; 79% за одну сессию - это ~96%
+        // за две, а ложный бан стоит дороже отложенной поимки.
+        const val DEEP_JUDGE_THRESHOLD     = 0.95
 
         const val LAG_GAIN_SCALE           = 0.5
         const val IDLE_DELTA_THRESHOLD     = 0.05f
         const val AVG_WINDOW               = 10
-        const val HIT_HISTORY_SIZE         = 5
+        // Лента хранит 10 моментов (столько показывает меню); судья смотрит
+        // только последние JUDGE_SAMPLE_SIZE - это его исторический вход.
+        const val HIT_HISTORY_SIZE         = 10
+        const val JUDGE_SAMPLE_SIZE        = 5
         const val HIGH_PROB_THRESHOLD      = 0.70
         const val CONFIDENCE_WEIGHT_FACTOR = 2.0
 
         const val FP_FAST                  = 0.25
         const val FP_SLOW                  = 0.03
         const val FP_THROTTLE_MS           = 30_000L
+
+        const val DEEP_WINDOW_TICKS        = 160
+        const val DEEP_TRIGGER_EVERY       = 5
+        const val DEEP_VERDICT_TTL_MS      = 20_000L
     }
 }

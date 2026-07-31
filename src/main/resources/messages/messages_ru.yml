@@ -3,7 +3,7 @@
 # ║  Поддерживаются &-коды и HEX-цвета вида &#22D3EE                ║
 # ╚══════════════════════════════════════════════════════════════╝
 
-prefix: "&#22D3EE▍ &#22D3EEG&#34C2E8u&#46B1E2a&#58A0DCr&#6A8FD6d&#4D86EEA&#3B82F6C &8»&r"
+prefix: "&#22D3EEG&#34C2E8u&#46B1E2a&#58A0DCr&#6A8FD6d&#4D86EEA&#3B82F6C &8»&r"
 
 no-permission: "&#FF4D6D✖ &7Недостаточно прав для этой команды."
 player-not-found: "&#FF4D6D✖ &7Игрок &#AEB8C4{player} &7не найден или оффлайн."
@@ -44,12 +44,11 @@ profile-sensitivity: " &8▏ &7Чувствительность&8: &f{sens_x} &8
 profile-riding: " &8▏ &7В транспорте&8: {riding}"
 profile-brand: " &8▏ &7Клиент&8: &f{brand}"
 profile-avg-prob: " &8▏ &7Средняя вероятность&8: &#67E8F9{avg}% &8(пик&8: &#FF4D6D{peak}%&8)"
+# Вердикт судьи - именно он решает, засчитается ли удар в счётчик и в VL.
+profile-judge: " &8▏ &7Судья&8: &#A78BFA{verdict}"
+profile-judge-local: "&8по последним ударам"
 # Плейсхолдеры: {stage} {penalty}
 profile-suppression: " &8▏ &7Suppression&8: {stage} &8(&7атака &8-&#AEB8C4{penalty}%&8)"
-
-suspicious-header: "{prefix} &#67E8F9&lПодозрительные &8(&#AEB8C4{count}&8)"
-suspicious-entry: " &#22D3EE▸ &#AEB8C4{player} &8• &7буфер &#FF4D6D{buffer} &8• &7пинг &#AEB8C4{ping}мс"
-suspicious-empty: "&#4ADE80✔ &7Подозрительных игроков нет."
 
 debug-header: "&8&m        &r {prefix} &7Дебаг &#67E8F9{player} &8&m        "
 debug-rotation: " &8▏ &7Yaw / Pitch&8: &f{yaw} &8/ &f{pitch}"
@@ -87,8 +86,9 @@ exempt-status-not-exempt: " &7{player}&8: &#67E8F9проверки активн�
 exempt-already: "&#FFC857● &#AEB8C4{player} &7уже в исключениях."
 exempt-not-found: "&#FFC857● &#AEB8C4{player} &7не найден в исключениях."
 
-reset-success: "&#4ADE80✔ &7Счётчики сброшены для &#AEB8C4{player}&7."
-reset-all-success: "&#4ADE80✔ &7Все счётчики сброшены для &#AEB8C4{player}&7."
+# Строка AVG над игроками - личная настройка каждого стаффа (/guard avg on|off).
+avg-enabled: "&#4ADE80✔ &7Строка &#AEB8C4AVG &7над игроками &#4ADE80включена&7."
+avg-disabled: "&#FFC857● &7Строка &#AEB8C4AVG &7над игроками &8выключена&7 &8- &7видна только лента ударов."
 
 punish-success: "&#4ADE80✔ &7Наказание применено к &#AEB8C4{player}&7."
 punish-no-data: "&#FF4D6D✖ &7Данные игрока не найдены."
@@ -99,6 +99,10 @@ health-header: "{prefix} &#67E8F9&lСостояние GuardAC &8- &#AEB8C4v{vers
 health-backend: " &8▏ &7Бэкенд ИИ&8: {status} &8({server})"
 health-mode: " &8▏ &7Режим&8: {mode}"
 health-key: " &8▏ &7Ключ доступа&8: {status}"
+health-judge: " &8▏ &7Судья &8(&7длинное окно&8)&8: {status}"
+health-judge-active: "&#4ADE80● работает"
+health-judge-none: "&#FFC857● нет в вашем тарифе &8- &7решает локальный судья"
+health-judge-unknown: "&8● проверяю"
 health-tps: " &8▏ &7TPS сервера&8: &#AEB8C4{tps}"
 health-tracked: " &8▏ &7Под наблюдением&8: &#AEB8C4{tracked} &8• &7подозрительных&8: &#FFC857{suspicious}"
 health-modules: " &8▏ &7Кросс-сервер&8: {crossserver} &8• &7голограммы&8: {holograms} &8• &7звук&8: {sound}"
@@ -133,22 +137,27 @@ crossserver-alert: "{prefix} &8[&#22D3EE{server}&8] &#FF4D6D&l{player} &8- &7п�
 crossserver-enabled: "&#4ADE80✔ &7Межсерверные алерты &#4ADE80включены&7."
 crossserver-disabled: "&#FFC857● &7Межсерверные алерты &8выключены&7."
 
-suspects-menu-open: "&#4ADE80✔ &7Открываю меню подозрительных…"
-suspects-menu-title: "&#22D3EEGuardAC &8• &7Подозрительные"
-suspects-menu-empty: "&7Подозрительных игроков нет."
-suspects-menu-prev: "&#67E8F9← Предыдущая страница"
-suspects-menu-next: "&#67E8F9Следующая страница →"
-suspects-menu-refresh: "&#4ADE80⟳ Обновить"
-suspects-menu-close: "&#FF4D6D✖ Закрыть"
+menu-prev: "&#67E8F9← Предыдущая страница"
+menu-next: "&#67E8F9Следующая страница →"
+menu-close: "&#FF4D6D✖ Закрыть"
 menu-empty-title: "&e&lПусто"
-menu-skull-conf: " &8» &7Уверенность&8: {color}{value}%"
-menu-skull-avg: " &8» &7Средняя&8: {color}{value}%"
-menu-skull-vl: " &8» &7Уровень&8: &#AEB8C4{value}"
-menu-skull-ping: " &8» &7Пинг&8: &#AEB8C4{value} мс"
-menu-skull-click: "&e▶ &7Клик - наблюдать (спектатор)"
 menu-page: "&8Страница &7{page}"
-menu-refresh-lore: "&7Обновить список"
 menu-player-offline: "&cИгрок &#AEB8C4{player} &cуже не в сети."
+
+# Меню /guard menu - живая лента боя за последнюю минуту.
+# Цвета результатов берутся из monitor.yml, как и в /guard monitor.
+live-menu-open: "&#4ADE80✔ &7Открываю живую ленту боя…"
+live-menu-title: "&#22D3EEGuardAC &8• &7В бою"
+live-menu-empty: "&7Сейчас никто не дерётся."
+live-menu-hits-header: "&7Последние удары &8(&#AEB8C4{count}&8)"
+live-menu-hit: " &8○ {color}{value} &8• {color}{pct}%"
+live-menu-avg: " &8» &7Средняя&8: {color}{value}%"
+live-menu-vl: " &8» &7Уровень&8: &#AEB8C4{value}"
+live-menu-last-hit: " &8» &7Последний удар&8: &#AEB8C4{seconds} &7с назад"
+live-menu-click: "&e▶ &7ЛКМ - наблюдать (спектатор)"
+live-menu-info-title: "&#67E8F9Живая лента"
+live-menu-info-count: " &8» &7В бою сейчас&8: &#AEB8C4{count}"
+live-menu-info-window: " &8» &7Игрок пропадает через &#AEB8C4{seconds} &7с без ударов"
 menu-unsafe-name: "&#FF4D6D✖ &7Ник &#AEB8C4{player} &7небезопасен для консольных команд - действие пропущено."
 # Игрок из глобальной базы зашёл на сервер. {servers} - сколько серверов сети
 # его отмечали (включая ваши). Плейсхолдеры: {player} {detections} {servers}
@@ -169,12 +178,11 @@ help-reload: " &#22D3EE/guardac reload &8- &7перезагрузить конф
 help-alerts: " &#22D3EE/guardac alerts &8- &7подписка на оповещения"
 help-monitor: " &#22D3EE/guardac monitor &8- &7монитор всех ударов с вероятностью AI"
 help-profile: " &#22D3EE/guardac profile &7<игрок> &8- &7профиль игрока"
-help-suspicious: " &#22D3EE/guardac suspicious &8- &7список подозрительных"
-help-menu: " &#22D3EE/guardac menu &8- &7GUI-меню подозрительных"
+help-menu: " &#22D3EE/guardac menu &8- &7живая лента боя (кто дерётся сейчас)"
+help-avg: " &#22D3EE/guardac avg &7<on|off> &8- &7строка AVG над игроками"
 help-debug: " &#22D3EE/guardac debug &7[игрок] &8- &7данные поворотов в реальном времени"
 help-prob: " &#22D3EE/guardac prob &7<игрок> &8- &7монитор вероятности в action bar"
 help-exempt: " &#22D3EE/guardac exempt &7<игрок|remove|status> &8- &7исключения"
-help-reset: " &#22D3EE/guardac reset &7<игрок> &8- &7сбросить счётчики"
 help-punish: " &#22D3EE/guardac punish &7<игрок> &8- &7ручное наказание"
 help-stats: " &#22D3EE/guardac stats &7[1h|6h|24h|7d] &8- &7статистика"
 help-health: " &#22D3EE/guardac health &8- &7самодиагностика анти-чита"
@@ -188,7 +196,7 @@ usage-prob: "&#FFC857● &7Использование&8: &#AEB8C4/guardac prob <
 usage-exempt: "&#FFC857● &7Использование&8: &#AEB8C4/guardac exempt <ник | remove <ник> | status <ник>>"
 usage-exempt-remove: "&#FFC857● &7Использование&8: &#AEB8C4/guardac exempt remove <ник>"
 usage-exempt-status: "&#FFC857● &7Использование&8: &#AEB8C4/guardac exempt status <ник>"
-usage-reset: "&#FFC857● &7Использование&8: &#AEB8C4/guardac reset <ник>"
+usage-avg: "&#FFC857● &7Использование&8: &#AEB8C4/guardac avg <on|off>"
 usage-punish: "&#FFC857● &7Использование&8: &#AEB8C4/guardac punish <ник>"
 usage-stats: "&#FFC857● &7Использование&8: &#AEB8C4/guardac stats [1h|6h|24h|7d]"
 usage-dc-stop: "&#FFC857● &7Использование&8: &#AEB8C4/guarddc stop <ник>"
@@ -213,7 +221,7 @@ help-history: " &#22D3EE/guardac history &7[ник] &8- &7когда и за ч�
 # Окно /guardac results - история результатов ИИ по игроку.
 # Каждая стекляшка = 10 результатов, цвет = средняя вероятность пачки.
 results-menu-title: "&#22D3EEGuardAC &8• &7История {player}"
-results-empty: "&#22D3EE▍ &7По игроку &#67E8F9{player} &7пока нет результатов ИИ."
+results-empty: "&7По игроку &#67E8F9{player} &7пока нет результатов ИИ."
 results-head-title: "&#67E8F9{player}"
 results-head-total: " &8» &7Результатов&8: &7{count}"
 results-head-avg: " &8» &7Средняя&8: {color}{avg}"

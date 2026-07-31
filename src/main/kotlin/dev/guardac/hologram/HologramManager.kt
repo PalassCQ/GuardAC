@@ -135,7 +135,7 @@ class HologramManager(private val plugin: GuardAC) {
         viewer: Player, targetId: UUID, loc: Location,
         gp: GuardPlayer, state: ViewerState, cfg: HologramConfig,
     ) {
-        val texts = buildLines(gp, cfg)
+        val texts = buildLines(gp, cfg, plugin.alertManager.hasAvg(viewer.uniqueId))
         val cache = state.targets.getOrPut(targetId) { EntityCache() }
         val lh    = cfg.lineHeight
 
@@ -170,7 +170,7 @@ class HologramManager(private val plugin: GuardAC) {
         state.targets.clear()
     }
 
-    private fun buildLines(gp: GuardPlayer, cfg: HologramConfig): List<String> {
+    private fun buildLines(gp: GuardPlayer, cfg: HologramConfig, showAvg: Boolean): List<String> {
         val lines = ArrayList<String>(cfg.maxHits + 1)
 
         val hits = gp.getHitProbHistory()
@@ -179,9 +179,11 @@ class HologramManager(private val plugin: GuardAC) {
             lines.add(cfg.hitFormat.replace("{PROB}", probStr))
         }
 
-        val avg    = gp.avgProbability
-        val avgStr = "${cfg.colorFor(avg)}${"%.0f".format(avg * 100.0)}%"
-        lines.add(cfg.header.replace("{AVG}", avgStr))
+        if (showAvg) {
+            val avg    = gp.avgProbability
+            val avgStr = "${cfg.colorFor(avg)}${"%.0f".format(avg * 100.0)}%"
+            lines.add(cfg.header.replace("{AVG}", avgStr))
+        }
 
         return lines.map { GSON.serialize(LEGACY.deserialize(it)) }
     }

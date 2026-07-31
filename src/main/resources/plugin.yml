@@ -17,7 +17,7 @@ softdepend:
 commands:
   guard:
     description: GuardAC main administration command
-    usage: /guard <help|alerts|monitor|profile|reload|suspicious|menu|debug|prob|exempt|reset|punish|stats|health|log|history|results|crossserver>
+    usage: /guard <help|alerts|monitor|profile|reload|menu|avg|debug|prob|exempt|punish|stats|health|log|history|results|crossserver>
     aliases: [gac, guardac]
   guarddc:
     description: GuardAC dataset collection for AI training
@@ -28,7 +28,7 @@ commands:
 permissions:
   # Master permission - grants every sub-command permission below. Give this to
   # a full admin; grant individual guardac.command.* nodes for limited staff
-  # (e.g. a helper who may ONLY use /guard monitor and /guard suspicious).
+  # (e.g. a helper who may ONLY use /guard monitor and /guard menu).
   guardac.admin:
     description: Full access to all GuardAC administration commands
     default: op
@@ -38,12 +38,11 @@ permissions:
       guardac.command.alerts: true
       guardac.command.monitor: true
       guardac.command.profile: true
-      guardac.command.suspicious: true
       guardac.command.menu: true
+      guardac.command.avg: true
       guardac.command.debug: true
       guardac.command.prob: true
       guardac.command.exempt: true
-      guardac.command.reset: true
       guardac.command.punish: true
       guardac.command.stats: true
       guardac.command.health: true
@@ -56,12 +55,11 @@ permissions:
   guardac.command.alerts:      { description: Toggle receiving alerts,     default: op }
   guardac.command.monitor:     { description: Live combat monitor,         default: op }
   guardac.command.profile:     { description: View a player's AI profile,  default: op }
-  guardac.command.suspicious:  { description: List suspicious players,     default: op }
-  guardac.command.menu:        { description: Open the suspects menu,      default: op }
+  guardac.command.menu:        { description: Open the live combat feed,   default: op }
+  guardac.command.avg:         { description: Toggle the AVG hologram line, default: op }
   guardac.command.debug:       { description: Debug a player's rotation,   default: op }
   guardac.command.prob:        { description: Live probability actionbar,  default: op }
   guardac.command.exempt:      { description: Exempt players from checks,  default: op }
-  guardac.command.reset:       { description: Reset a player's VL,         default: op }
   guardac.command.punish:      { description: Manually punish a player,    default: op }
   guardac.command.stats:       { description: View server AC stats,        default: op }
   guardac.command.health:      { description: Anticheat self-diagnostic,   default: op }
