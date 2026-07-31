@@ -56,15 +56,6 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
         pollJudge(gp)
     }
 
-    /**
-     * Раз в несколько обычных окон отправляет судье одно длинное (~8 c боя).
-     *
-     * Судья есть не у каждого тарифа. Бэкенд честно отвечает deep=false, когда
-     * длинную модель ему брать неоткуда - и такой ответ плагину бесполезен, а
-     * запрос из квоты уже списан. Поэтому первый же deep=false выключает
-     * отправку на JUDGE_PROBE_INTERVAL_MS: дальше уходит одна проба раз в
-     * полчаса, а не лишнее окно каждые пять.
-     */
     private fun pollJudge(gp: GuardPlayer) {
         if (!plugin.configManager.aiJudgeEnabled) return
         if (System.currentTimeMillis() < judgeDisabledUntilMs) return
@@ -197,7 +188,6 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
     private fun modelTag(sources: List<String>): String =
         if (sources.isEmpty()) "[AI]" else sources.joinToString("") { "[$it]" }
 
-    /** Виден ли длинному окну судья на бэкенде для этого ключа. */
     enum class JudgeState { UNKNOWN, ACTIVE, UNAVAILABLE }
 
     companion object {
@@ -207,8 +197,6 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
 
         private const val JUDGE_PROBE_INTERVAL_MS = 30L * 60_000L
 
-        // Свойство ключа/тарифа, а не конкретной проверки, поэтому состояние
-        // одно на сервер - его показывает /guard health.
         @Volatile private var judgeDisabledUntilMs: Long = 0L
 
         @Volatile var judgeState: JudgeState = JudgeState.UNKNOWN

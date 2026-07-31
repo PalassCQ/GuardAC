@@ -100,12 +100,6 @@ class LocaleManager(private val plugin: GuardAC) {
         }
     }
 
-    /**
-     * Обновляет значения, которые мердж не тронет: он дописывает только
-     * отсутствующие ключи и никогда не меняет уже записанные. Правится ТОЛЬКО
-     * точное старое значение по умолчанию - если владелец задал свой префикс,
-     * он остаётся как есть.
-     */
     private fun healOldDefaults(onDisk: YamlConfiguration): Int {
         var changed = 0
         val prefix = onDisk.getString("prefix")
@@ -136,7 +130,7 @@ class LocaleManager(private val plugin: GuardAC) {
     }
 
     private companion object {
-        /** Толстая синяя палка, стоявшая в начале префикса до этой версии. */
+
         const val LEGACY_PREFIX_BAR = "&#22D3EE▍ "
     }
 }

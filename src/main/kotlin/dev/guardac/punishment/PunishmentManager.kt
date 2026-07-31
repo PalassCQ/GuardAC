@@ -157,8 +157,6 @@ class PunishmentManager(private val plugin: GuardAC) {
             val hasRealCommand   = actions.any { isPunishmentCommand(it) }
             val hasExplicitAnim  = actions.any { it.trim().lowercase(Locale.ROOT).startsWith("[animation]") }
 
-            // Авто-анимация играет только там, где есть настоящее наказание:
-            // уровни с одним [alert]/[log] показывать нечего.
             val autoAnim = plugin.configManager.animationAutoOnBan
             val willAnimate = plugin.configManager.animationsEnabled &&
                 (forceAnimation || hasExplicitAnim || (autoAnim && hasRealCommand))

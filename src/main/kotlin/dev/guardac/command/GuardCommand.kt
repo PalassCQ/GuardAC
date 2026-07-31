@@ -187,8 +187,7 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
             "avg",  "%.1f".format(gp.avgProbability * 100.0),
             "peak", "%.1f".format(gp.peakProbability * 100.0),
         ))
-        // Судья решает, засчитывается ли удар в ×N и VL, поэтому стафф должен
-        // видеть его вердикт - иначе непонятно, почему детекты идут, а бана нет.
+
         sender.sendMessage(plugin.locale.get(
             Message.PROFILE_JUDGE,
             "verdict", gp.judgeVerdictOrNull()

@@ -43,12 +43,6 @@ import org.bukkit.inventory.meta.SkullMeta
 import java.util.Locale
 import java.util.UUID
 
-/**
- * Живая лента боя: все, кто дрался за последнюю минуту, и последние удары
- * каждого. Список ведёт сам детект - лента игрока гаснет через
- * combat-reset.after-seconds без единого удара, поэтому здесь остаются ровно
- * те, кто сейчас в бою. Обновляется сама, пока окно открыто.
- */
 class LiveHitsMenu(
     private val plugin: GuardAC,
     private val admin: Player,
@@ -89,10 +83,6 @@ class LiveHitsMenu(
         HandlerList.unregisterAll(this)
     }
 
-    /**
-     * Кто сейчас в ленте. Пустая лента = минуты без ударов уже прошли, игрок
-     * отсюда уходит сам. Сортировка по пику: самые горячие сверху.
-     */
     private fun activePlayers(): List<Pair<GuardPlayer, List<GuardPlayer.HitSample>>> =
         plugin.playerDataManager.getAll()
             .asSequence()
@@ -144,7 +134,6 @@ class LiveHitsMenu(
         lore.add("")
         lore.add(plugin.locale.get(Message.LIVE_MENU_HITS_HEADER, "count", feed.size.toString()))
 
-        // Свежий удар сверху - так же, как в ленте над головой.
         for (hit in feed.asReversed()) {
             val pct = hit.probability * 100.0
             lore.add(plugin.locale.get(
@@ -235,7 +224,6 @@ class LiveHitsMenu(
         }
     }
 
-    /** ЛКМ по голове - спектатор и телепорт к игроку. */
     private fun spectate(viewer: Player, targetId: UUID) {
         val target = Bukkit.getPlayer(targetId)
         if (target == null || !target.isOnline) {

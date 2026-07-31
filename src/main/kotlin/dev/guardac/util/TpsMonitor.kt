@@ -19,6 +19,7 @@
  *   - Grim (© 2025 GrimAnticheat, https://github.com/GrimAnticheat/Grim)
  * All derived code is licensed under GPL-3.0.
  */
+
 package dev.guardac.util
 
 import dev.guardac.GuardAC

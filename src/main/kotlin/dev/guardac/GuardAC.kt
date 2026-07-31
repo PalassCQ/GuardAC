@@ -189,9 +189,7 @@ class GuardAC : JavaPlugin() {
         vlDecayTask = scheduler.globalTimer(intervalTicks, intervalTicks) {
             val decayAmount  = configManager.vlDecayAmount
             val skipInCombat = configManager.vlDecaySkipInCombat
-            // "В бою" = ударил за последнюю минуту, а не за последние 2 секунды
-            // (окно анализа). Со старым значением почти любой момент считался
-            // мирным, и уровень таял прямо посреди драки.
+
             val combatTicks  = (configManager.combatResetAfterSeconds * 20L)
                 .coerceIn(20L, Int.MAX_VALUE.toLong()).toInt()
             playerDataManager.getAll().forEach { gp ->
@@ -240,9 +238,7 @@ class GuardAC : JavaPlugin() {
         runCatching {
             if (configManager.persistBufferEnabled) {
                 playerDataManager.getAll().forEach { gp ->
-                    // Буфер гаснет за минуту без боя, а VL живёт часами - условие
-                    // "только если буфер > 0" стирало VL всем, кто на момент
-                    // рестарта просто не дрался.
+
                     if (gp.aiBuffer > 0.0 || gp.aiViolationLevel > 0) {
                         punishmentHistory.saveBufferNow(gp.uuid, gp.aiBuffer, gp.aiViolationLevel)
                     }

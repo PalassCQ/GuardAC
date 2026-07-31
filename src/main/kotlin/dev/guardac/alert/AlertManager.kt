@@ -45,7 +45,6 @@ class AlertManager(private val plugin: GuardAC) {
     private val probTasks    = ConcurrentHashMap<UUID, TaskHandle>()
     private val crossServerEnabled = CopyOnWriteArraySet<UUID>()
 
-    /** Кто выключил строку AVG над игроками (/guard avg off). Хранится «кто убрал». */
     private val avgHidden = CopyOnWriteArraySet<UUID>()
 
     fun setAvg(uuid: UUID, enabled: Boolean) {
@@ -106,13 +105,6 @@ class AlertManager(private val plugin: GuardAC) {
 
     private val digests = ConcurrentHashMap<UUID, HitDigest>()
 
-    /**
-     * Возвращает true, когда набралась очередная пачка (x3, x6, x9...) и алерт ушёл.
-     * По этому же событию растёт VL - число в алерте и уровень нарушений идут в ногу.
-     * Удар засчитывается, только если он выше порога И судья подтверждает устойчиво
-     * высокую уверенность (gp.judgeApproves) - так ×N не залипает без бана, а честный
-     * агрессивный всплеск не набивает счёт.
-     */
     fun recordVerdict(gp: GuardPlayer, probability: Double, model: String): Boolean {
         val minHits = plugin.configManager.alertMinHits.coerceAtLeast(1)
         val minConfidence = plugin.configManager.alertMinConfidence

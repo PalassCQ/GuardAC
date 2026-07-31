@@ -79,11 +79,6 @@ class ConfigManager(private val plugin: GuardAC) {
         }
     }
 
-    /**
-     * Переносит значения, которые обычный мердж не тронет: он дописывает только
-     * отсутствующие ключи и никогда не меняет уже настроенные. Выполняется один раз -
-     * дальше config-version уже новый.
-     */
     private fun migrate(from: Int): Int {
         var changed = 0
         if (from in 1 until 36) {
@@ -103,11 +98,7 @@ class ConfigManager(private val plugin: GuardAC) {
             }
         }
         if (from in 1 until 40) {
-            // Earlier versions shipped this bar at 75 (too noisy on legit combat)
-            // or at 95 (quiet, but hides real hits). Both were defaults nobody
-            // chose, and the merge never rewrites an existing value - so move
-            // those two exact values onto the measured one, leaving any bar the
-            // owner actually tuned themselves alone.
+
             val bar = cfg.getDouble("alerts.min-hit-confidence", ALERT_MIN_CONFIDENCE)
             if (bar == 75.0 || bar == 95.0) {
                 cfg.set("alerts.min-hit-confidence", ALERT_MIN_CONFIDENCE)
@@ -328,15 +319,8 @@ class ConfigManager(private val plugin: GuardAC) {
         const val INFER_BATCH_PATH = "/v1/infer/batch"
         const val DEFAULT_AI_SERVER = "https://guardac.net"
 
-        /** Одна длина для всех анимаций: 100 тиков = 5 секунд. */
         const val ANIM_DURATION_TICKS = 100
 
-        /** Порог уверенности, с которого удар считается подозрительным. */
-        // Per-window floor: a window must be at least this confident to be a
-        // candidate hit. On top of it the judge (GuardPlayer.JUDGE_THRESHOLD)
-        // needs the recent average to stay high before the hit counts toward
-        // x3/x6/VL - that pair keeps false bans low while a real cheater still
-        // bans fast. Since the judge gates the count, x3=VL1 / x6=VL2 exactly.
         const val ALERT_MIN_CONFIDENCE = 85.0
         const val VL_DECAY_INTERVAL_SECONDS = 3600
     }
