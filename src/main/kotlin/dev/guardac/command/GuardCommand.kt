@@ -66,6 +66,7 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
             "exempt"      -> handleExempt(sender, args)
             "punish"      -> handlePunish(sender, args)
             "stats"       -> handleStats(sender, args)
+            "top"         -> handleTop(sender, args)
             "health"      -> handleHealth(sender)
             "crossserver" -> handleCrossServer(sender)
             "log"         -> handleLog(sender, args)
@@ -90,7 +91,7 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
                     -> online.filter { it.startsWith(args[1], ignoreCase = true) }
                 "exempt"
                     -> (listOf("remove", "status") + online).filter { it.startsWith(args[1], ignoreCase = true) }
-                "stats"
+                "stats", "top"
                     -> listOf("1h", "6h", "24h", "7d").filter { it.startsWith(args[1]) }
                 "avg"
                     -> listOf("on", "off").filter { it.startsWith(args[1].lowercase()) }
@@ -365,6 +366,44 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
         sender.sendMessage(plugin.locale.get(Message.STATS_DETECTIONS, "detections", todayDetections.toString(), "requests", todayRequests.toString()))
     }
 
+    private fun handleTop(sender: CommandSender, args: Array<out String>) {
+        val periodLabel = args.getOrNull(1)?.lowercase(Locale.ROOT) ?: "24h"
+        val periodHours = when (periodLabel) {
+            "1h"        -> 1L
+            "6h"        -> 6L
+            "24h", "1d" -> 24L
+            "7d", "1w"  -> 168L
+            else -> { sender.sendMessage(plugin.locale.get(Message.USAGE_TOP)); return }
+        }
+        val since  = System.currentTimeMillis() - periodHours * 3_600_000L
+        val minPct = plugin.configManager.alertMinConfidence / 100.0
+
+        plugin.scheduler.async(Runnable {
+            val rows = plugin.punishmentHistory.topSuspects(since, minPct, TOP_LIMIT)
+            plugin.scheduler.global(Runnable {
+                if (rows.isEmpty()) {
+                    sender.sendMessage(plugin.locale.get(Message.TOP_EMPTY, "period", periodLabel))
+                    return@Runnable
+                }
+                sender.sendMessage(plugin.locale.get(
+                    Message.TOP_HEADER, "period", periodLabel, "count", rows.size.toString(),
+                ))
+                rows.forEachIndexed { i, e ->
+                    sender.sendMessage(plugin.locale.get(
+                        Message.TOP_ENTRY,
+                        "rank",   (i + 1).toString(),
+                        "player", e.playerName,
+                        "hits",   e.hits.toString(),
+                        "total",  e.total.toString(),
+                        "avg",    "%.0f".format(e.avgProbability * 100.0),
+                        "max",    "%.0f".format(e.maxProbability * 100.0),
+                        "color",  plugin.monitorConfig.colorForProbability(e.maxProbability * 100.0),
+                    ))
+                }
+            })
+        })
+    }
+
     private fun handleHealth(sender: CommandSender) {
         val cfg = plugin.configManager
         val key = cfg.aiApiKey
@@ -508,6 +547,7 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
         sender.sendMessage(plugin.locale.get(Message.HELP_EXEMPT))
         sender.sendMessage(plugin.locale.get(Message.HELP_PUNISH))
         sender.sendMessage(plugin.locale.get(Message.HELP_STATS))
+        sender.sendMessage(plugin.locale.get(Message.HELP_TOP))
         sender.sendMessage(plugin.locale.get(Message.HELP_HEALTH))
         sender.sendMessage(plugin.locale.get(Message.HELP_LOG))
         sender.sendMessage(plugin.locale.get(Message.HELP_HISTORY))
@@ -533,12 +573,13 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
 
     private companion object {
         const val SUSPICIOUS_BUFFER_THRESHOLD = 10.0
+        const val TOP_LIMIT = 10
         val HISTORY_TIME_FMT: DateTimeFormatter =
             DateTimeFormatter.ofPattern("dd.MM HH:mm").withZone(ZoneId.systemDefault())
 
         val SUBCOMMANDS = listOf(
             "help", "reload", "alerts", "monitor", "profile", "menu", "avg",
-            "debug", "prob", "exempt", "punish", "stats", "health",
+            "debug", "prob", "exempt", "punish", "stats", "top", "health",
             "crossserver", "log", "history", "results",
         )
     }

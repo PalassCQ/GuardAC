@@ -46,6 +46,11 @@ class CombatState {
     fun isInCombatWindow(windowTicks: Int): Boolean =
         ticksSinceAttack <= windowTicks
 
+    fun foughtWithinSeconds(seconds: Long): Boolean {
+        val last = lastAttackMs
+        return last != 0L && System.currentTimeMillis() - last <= seconds * 1000L
+    }
+
     fun reset() {
         ticksSinceAttack = Int.MAX_VALUE / 2
         totalAttacks     = 0

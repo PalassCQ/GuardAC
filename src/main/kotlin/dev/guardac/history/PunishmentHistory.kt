@@ -293,6 +293,50 @@ class PunishmentHistory(private val plugin: GuardAC) {
         })
     }
 
+    data class TopEntry(
+        val playerName: String,
+        val hits: Int,
+        val total: Int,
+        val avgProbability: Double,
+        val maxProbability: Double,
+    )
+
+    fun topSuspects(sinceMs: Long, minProbability: Double, limit: Int): List<TopEntry> {
+        val out = ArrayList<TopEntry>()
+        try {
+            synchronized(lock) {
+                val conn = connection ?: return emptyList()
+                conn.prepareStatement(
+                    "SELECT name, " +
+                        "SUM(CASE WHEN prob >= ? THEN 1 ELSE 0 END) AS hits, " +
+                        "COUNT(*) AS total, AVG(prob) AS avg_prob, MAX(prob) AS max_prob " +
+                        "FROM results WHERE ts >= ? GROUP BY name COLLATE NOCASE " +
+                        "HAVING hits > 0 ORDER BY hits DESC, max_prob DESC LIMIT ?"
+                ).use { ps ->
+                    ps.setDouble(1, minProbability)
+                    ps.setLong(2, sinceMs)
+                    ps.setInt(3, limit)
+                    ps.executeQuery().use { rs ->
+                        while (rs.next()) {
+                            out.add(
+                                TopEntry(
+                                    playerName     = rs.getString("name"),
+                                    hits           = rs.getInt("hits"),
+                                    total          = rs.getInt("total"),
+                                    avgProbability = rs.getDouble("avg_prob"),
+                                    maxProbability = rs.getDouble("max_prob"),
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+        } catch (e: SQLException) {
+            plugin.logger.warning("[History] Top query failed: ${e.message}")
+        }
+        return out
+    }
+
     fun resultsFor(name: String, limit: Int): List<AiResult> {
         val out = ArrayList<AiResult>()
         try {

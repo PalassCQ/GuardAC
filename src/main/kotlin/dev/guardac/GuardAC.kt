@@ -190,11 +190,10 @@ class GuardAC : JavaPlugin() {
             val decayAmount  = configManager.vlDecayAmount
             val skipInCombat = configManager.vlDecaySkipInCombat
 
-            val combatTicks  = (configManager.combatResetAfterSeconds * 20L)
-                .coerceIn(20L, Int.MAX_VALUE.toLong()).toInt()
+            val combatSeconds = configManager.combatResetAfterSeconds
             playerDataManager.getAll().forEach { gp ->
                 if (!gp.player.isOnline) return@forEach
-                if (skipInCombat && gp.combat.isInCombatWindow(combatTicks)) return@forEach
+                if (skipInCombat && gp.combat.foughtWithinSeconds(combatSeconds)) return@forEach
                 gp.decayVl(decayAmount)
             }
         }

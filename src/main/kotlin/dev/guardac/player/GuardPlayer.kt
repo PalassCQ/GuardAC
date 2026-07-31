@@ -437,7 +437,7 @@ class GuardPlayer(
         const val CHEAT_THRESHOLD          = 0.90
         const val LEGIT_THRESHOLD          = 0.10
 
-        const val JUDGE_THRESHOLD          = 0.90
+        const val JUDGE_THRESHOLD          = 0.85
 
         const val DEEP_JUDGE_THRESHOLD     = 0.85
 

@@ -122,6 +122,12 @@ stats-ai-status: " &8▏ &7AI engine&8: {status}"
 stats-dc-sessions: " &8▏ &7Active DC sessions&8: &f{sessions}"
 stats-uptime: " &8▏ &7Uptime&8: &f{uptime}"
 
+# /guard top - who the model flagged most over the period.
+# Only results above alerts.min-hit-confidence are counted.
+top-header: "&8&m        &r {prefix} &#67E8F9&lMost suspicious &8({period}) &8&m        "
+top-entry: " &8{rank}. &#AEB8C4{player} &8• {color}{hits} &7of &#AEB8C4{total} &8• &7avg &#67E8F9{avg}% &8• &7peak {color}{max}%"
+top-empty: "&#4ADE80✔ &7Nobody suspicious in the last &#AEB8C4{period}&7."
+
 datacollect-start-success: "&#4ADE80✔ &7Data collection for &f{player} &7started &8• &7{status}"
 datacollect-start-restarted: "&#FFC857● &7Data collection for &f{player} &7restarted &8• &7{status}"
 datacollect-stop-success: "&#4ADE80✔ &7Collection for &f{player} &7saved &8(&f{ticks} &7ticks&8)"
@@ -186,6 +192,7 @@ help-prob: " &#22D3EE/guardac prob &7<player> &8- &7AI probability action bar"
 help-exempt: " &#22D3EE/guardac exempt &7<player|remove|status> &8- &7manage exemptions"
 help-punish: " &#22D3EE/guardac punish &7<player> &8- &7manual punishment"
 help-stats: " &#22D3EE/guardac stats &7[1h|6h|24h|7d] &8- &7statistics"
+help-top: " &#22D3EE/guardac top &7[1h|6h|24h|7d] &8- &7most suspicious players"
 help-health: " &#22D3EE/guardac health &8- &7anticheat self-diagnostic"
 help-log: " &#22D3EE/guardac log &7[player] &8- &7last 20 punishments"
 help-crossserver: " &#22D3EE/guardac crossserver &8- &7cross-server alerts"
@@ -200,6 +207,7 @@ usage-exempt-status: "&#FFC857● &7Usage&8: &#AEB8C4/guardac exempt status <pla
 usage-avg: "&#FFC857● &7Usage&8: &#AEB8C4/guardac avg <on|off>"
 usage-punish: "&#FFC857● &7Usage&8: &#AEB8C4/guardac punish <player>"
 usage-stats: "&#FFC857● &7Usage&8: &#AEB8C4/guardac stats [1h|6h|24h|7d]"
+usage-top: "&#FFC857● &7Usage&8: &#AEB8C4/guardac top [1h|6h|24h|7d]"
 usage-dc-stop: "&#FFC857● &7Usage&8: &#AEB8C4/guarddc stop <player>"
 usage-dc-cancel: "&#FFC857● &7Usage&8: &#AEB8C4/guarddc cancel <player>"
 

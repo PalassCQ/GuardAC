@@ -121,6 +121,12 @@ stats-ai-status: " &8▏ &7AI-движок&8: {status}"
 stats-dc-sessions: " &8▏ &7Активных DC-сессий&8: &f{sessions}"
 stats-uptime: " &8▏ &7Аптайм&8: &f{uptime}"
 
+# /guard top - кого модель чаще всего отмечала за период.
+# Считаются только результаты выше alerts.min-hit-confidence.
+top-header: "&8&m        &r {prefix} &#67E8F9&lСамые подозрительные &8({period}) &8&m        "
+top-entry: " &8{rank}. &#AEB8C4{player} &8• {color}{hits} &7из &#AEB8C4{total} &8• &7средняя &#67E8F9{avg}% &8• &7пик {color}{max}%"
+top-empty: "&#4ADE80✔ &7За &#AEB8C4{period} &7никого подозрительного."
+
 datacollect-start-success: "&#4ADE80✔ &7Сбор данных для &f{player} &7начат &8• &7{status}"
 datacollect-start-restarted: "&#FFC857● &7Сбор данных для &f{player} &7перезапущен &8• &7{status}"
 datacollect-stop-success: "&#4ADE80✔ &7Сбор для &f{player} &7сохранён &8(&f{ticks} &7тиков&8)"
@@ -185,6 +191,7 @@ help-prob: " &#22D3EE/guardac prob &7<игрок> &8- &7монитор веро�
 help-exempt: " &#22D3EE/guardac exempt &7<игрок|remove|status> &8- &7исключения"
 help-punish: " &#22D3EE/guardac punish &7<игрок> &8- &7ручное наказание"
 help-stats: " &#22D3EE/guardac stats &7[1h|6h|24h|7d] &8- &7статистика"
+help-top: " &#22D3EE/guardac top &7[1h|6h|24h|7d] &8- &7самые подозрительные за период"
 help-health: " &#22D3EE/guardac health &8- &7самодиагностика анти-чита"
 help-log: " &#22D3EE/guardac log &7[игрок] &8- &7последние 20 наказаний"
 help-crossserver: " &#22D3EE/guardac crossserver &8- &7межсерверные алерты"
@@ -199,6 +206,7 @@ usage-exempt-status: "&#FFC857● &7Использование&8: &#AEB8C4/guard
 usage-avg: "&#FFC857● &7Использование&8: &#AEB8C4/guardac avg <on|off>"
 usage-punish: "&#FFC857● &7Использование&8: &#AEB8C4/guardac punish <ник>"
 usage-stats: "&#FFC857● &7Использование&8: &#AEB8C4/guardac stats [1h|6h|24h|7d]"
+usage-top: "&#FFC857● &7Использование&8: &#AEB8C4/guardac top [1h|6h|24h|7d]"
 usage-dc-stop: "&#FFC857● &7Использование&8: &#AEB8C4/guarddc stop <ник>"
 usage-dc-cancel: "&#FFC857● &7Использование&8: &#AEB8C4/guarddc cancel <ник>"
 

@@ -125,6 +125,12 @@ enum class Message(val key: String) {
     STATS_DC_SESSIONS("stats-dc-sessions"),
     STATS_UPTIME("stats-uptime"),
 
+    TOP_HEADER("top-header"),
+    TOP_ENTRY("top-entry"),
+    TOP_EMPTY("top-empty"),
+    USAGE_TOP("usage-top"),
+    HELP_TOP("help-top"),
+
     LOG_HEADER("log-header"),
     LOG_EMPTY("log-empty"),
 
