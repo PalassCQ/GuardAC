@@ -86,9 +86,10 @@ exempt-status-not-exempt: " &7{player}&8: &#67E8F9проверки активн�
 exempt-already: "&#FFC857● &#AEB8C4{player} &7уже в исключениях."
 exempt-not-found: "&#FFC857● &#AEB8C4{player} &7не найден в исключениях."
 
-# Строка AVG над игроками - личная настройка каждого стаффа (/guard avg on|off).
-avg-enabled: "&#4ADE80✔ &7Строка &#AEB8C4AVG &7над игроками &#4ADE80включена&7."
-avg-disabled: "&#FFC857● &7Строка &#AEB8C4AVG &7над игроками &8выключена&7 &8- &7видна только лента ударов."
+# Показ данных над головами игроков - личная настройка каждого стаффа (/guard avg on|off).
+# Выключено = над головами не видно вообще ничего.
+overhead-shown: "&#4ADE80✔ &7Данные над игроками &#4ADE80показаны&7."
+overhead-hidden: "&#FFC857● &7Данные над игроками &8скрыты&7 &8- &7над головами ничего не видно."
 
 punish-success: "&#4ADE80✔ &7Наказание применено к &#AEB8C4{player}&7."
 punish-no-data: "&#FF4D6D✖ &7Данные игрока не найдены."
@@ -185,7 +186,7 @@ help-alerts: " &#22D3EE/guardac alerts &8- &7подписка на оповещ�
 help-monitor: " &#22D3EE/guardac monitor &8- &7монитор всех ударов с вероятностью AI"
 help-profile: " &#22D3EE/guardac profile &7<игрок> &8- &7профиль игрока"
 help-menu: " &#22D3EE/guardac menu &8- &7живая лента боя (кто дерётся сейчас)"
-help-avg: " &#22D3EE/guardac avg &7<on|off> &8- &7строка AVG над игроками"
+help-overhead: " &#22D3EE/guardac avg &7<on|off> &8- &7данные над игроками"
 help-debug: " &#22D3EE/guardac debug &7[игрок] &8- &7данные поворотов в реальном времени"
 help-prob: " &#22D3EE/guardac prob &7<игрок> &8- &7монитор вероятности в action bar"
 help-exempt: " &#22D3EE/guardac exempt &7<игрок|remove|status> &8- &7исключения"

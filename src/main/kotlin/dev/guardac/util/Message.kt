@@ -89,10 +89,10 @@ enum class Message(val key: String) {
     EXEMPT_ALREADY("exempt-already"),
     EXEMPT_NOT_FOUND("exempt-not-found"),
 
-    AVG_ENABLED("avg-enabled"),
-    AVG_DISABLED("avg-disabled"),
+    OVERHEAD_SHOWN("overhead-shown"),
+    OVERHEAD_HIDDEN("overhead-hidden"),
     USAGE_AVG("usage-avg"),
-    HELP_AVG("help-avg"),
+    HELP_AVG("help-overhead"),
 
     PUNISH_SUCCESS("punish-success"),
     PUNISH_NO_DATA("punish-no-data"),

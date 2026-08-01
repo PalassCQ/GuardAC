@@ -45,12 +45,12 @@ class AlertManager(private val plugin: GuardAC) {
     private val probTasks    = ConcurrentHashMap<UUID, TaskHandle>()
     private val crossServerEnabled = CopyOnWriteArraySet<UUID>()
 
-    private val avgHidden = CopyOnWriteArraySet<UUID>()
+    private val overheadHidden = CopyOnWriteArraySet<UUID>()
 
-    fun setAvg(uuid: UUID, enabled: Boolean) {
-        if (enabled) avgHidden.remove(uuid) else avgHidden.add(uuid)
+    fun setOverhead(uuid: UUID, enabled: Boolean) {
+        if (enabled) overheadHidden.remove(uuid) else overheadHidden.add(uuid)
     }
-    fun hasAvg(uuid: UUID): Boolean = !avgHidden.contains(uuid)
+    fun hasOverhead(uuid: UUID): Boolean = !overheadHidden.contains(uuid)
 
     fun reload() {}
     fun toggleAlerts(uuid: UUID): Boolean =
@@ -173,6 +173,7 @@ class AlertManager(private val plugin: GuardAC) {
 
     fun onPlayerQuit(uuid: UUID) {
         digests.remove(uuid)
+        overheadHidden.remove(uuid)
     }
 
     private fun detailed(p: Double): String = "%.12f".format(java.util.Locale.ROOT, p)

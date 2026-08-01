@@ -87,9 +87,10 @@ exempt-status-not-exempt: " &7{player}&8: &#67E8F9checks active&7."
 exempt-already: "&#FFC857● &#AEB8C4{player} &7is already exempted."
 exempt-not-found: "&#FFC857● &#AEB8C4{player} &7not found in exemptions."
 
-# The AVG line above players - a personal toggle per staff member (/guard avg on|off).
-avg-enabled: "&#4ADE80✔ &7The &#AEB8C4AVG &7line above players is &#4ADE80on&7."
-avg-disabled: "&#FFC857● &7The &#AEB8C4AVG &7line above players is &8off&7 &8- &7only the hit feed is shown."
+# Data shown above players - a personal toggle per staff member (/guard avg on|off).
+# Off = nothing at all is drawn above heads.
+overhead-shown: "&#4ADE80✔ &7Data above players is &#4ADE80shown&7."
+overhead-hidden: "&#FFC857● &7Data above players is &8hidden&7 &8- &7nothing is drawn above heads."
 
 punish-success: "&#4ADE80✔ &7Punishment applied to &#AEB8C4{player}&7."
 punish-no-data: "&#FF4D6D✖ &7Player data not found."
@@ -186,7 +187,7 @@ help-alerts: " &#22D3EE/guardac alerts &8- &7toggle alert subscription"
 help-monitor: " &#22D3EE/guardac monitor &8- &7monitor all hits with AI probability"
 help-profile: " &#22D3EE/guardac profile &7<player> &8- &7player profile"
 help-menu: " &#22D3EE/guardac menu &8- &7live combat feed (who is fighting now)"
-help-avg: " &#22D3EE/guardac avg &7<on|off> &8- &7AVG line above players"
+help-overhead: " &#22D3EE/guardac avg &7<on|off> &8- &7data above players"
 help-debug: " &#22D3EE/guardac debug &7[player] &8- &7live rotation data"
 help-prob: " &#22D3EE/guardac prob &7<player> &8- &7AI probability action bar"
 help-exempt: " &#22D3EE/guardac exempt &7<player|remove|status> &8- &7manage exemptions"

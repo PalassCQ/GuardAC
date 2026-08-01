@@ -78,6 +78,11 @@ class HologramManager(private val plugin: GuardAC) {
         start()
     }
 
+    fun clearFor(player: Player) {
+        val state = viewers.remove(player.uniqueId) ?: return
+        destroyAll(player, state)
+    }
+
     fun onQuit(player: Player) {
         val state = viewers.remove(player.uniqueId)
         if (state != null) destroyAll(player, state)
@@ -103,6 +108,10 @@ class HologramManager(private val plugin: GuardAC) {
         if (staffList.isEmpty()) return
 
         for (viewer in staffList) {
+            if (!plugin.alertManager.hasOverhead(viewer.uniqueId)) {
+                viewers.remove(viewer.uniqueId)?.let { destroyAll(viewer, it) }
+                continue
+            }
 
             runCatching {
                 val state       = viewers.getOrPut(viewer.uniqueId) { ViewerState(viewer.uniqueId) }
@@ -135,7 +144,7 @@ class HologramManager(private val plugin: GuardAC) {
         viewer: Player, targetId: UUID, loc: Location,
         gp: GuardPlayer, state: ViewerState, cfg: HologramConfig,
     ) {
-        val texts = buildLines(gp, cfg, plugin.alertManager.hasAvg(viewer.uniqueId))
+        val texts = buildLines(gp, cfg)
         val cache = state.targets.getOrPut(targetId) { EntityCache() }
         val lh    = cfg.lineHeight
 
@@ -170,7 +179,7 @@ class HologramManager(private val plugin: GuardAC) {
         state.targets.clear()
     }
 
-    private fun buildLines(gp: GuardPlayer, cfg: HologramConfig, showAvg: Boolean): List<String> {
+    private fun buildLines(gp: GuardPlayer, cfg: HologramConfig): List<String> {
         val lines = ArrayList<String>(cfg.maxHits + 1)
 
         val hits = gp.getHitProbHistory()
@@ -179,11 +188,9 @@ class HologramManager(private val plugin: GuardAC) {
             lines.add(cfg.hitFormat.replace("{PROB}", probStr))
         }
 
-        if (showAvg) {
-            val avg    = gp.avgProbability
-            val avgStr = "${cfg.colorFor(avg)}${"%.0f".format(avg * 100.0)}%"
-            lines.add(cfg.header.replace("{AVG}", avgStr))
-        }
+        val avg    = gp.avgProbability
+        val avgStr = "${cfg.colorFor(avg)}${"%.0f".format(avg * 100.0)}%"
+        lines.add(cfg.header.replace("{AVG}", avgStr))
 
         return lines.map { GSON.serialize(LEGACY.deserialize(it)) }
     }

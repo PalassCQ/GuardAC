@@ -151,13 +151,14 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
         val enabled = when (args.getOrNull(1)?.lowercase()) {
             "on"  -> true
             "off" -> false
-            null  -> !plugin.alertManager.hasAvg(sender.uniqueId)
+            null  -> !plugin.alertManager.hasOverhead(sender.uniqueId)
             else  -> return sender.sendMessage(plugin.locale.get(Message.USAGE_AVG))
         }
-        plugin.alertManager.setAvg(sender.uniqueId, enabled)
+        plugin.alertManager.setOverhead(sender.uniqueId, enabled)
+        if (!enabled) plugin.hologramManager.clearFor(sender)
         sender.sendMessage(
-            if (enabled) plugin.locale.get(Message.AVG_ENABLED)
-            else         plugin.locale.get(Message.AVG_DISABLED)
+            if (enabled) plugin.locale.get(Message.OVERHEAD_SHOWN)
+            else         plugin.locale.get(Message.OVERHEAD_HIDDEN)
         )
     }
 
