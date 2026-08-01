@@ -21,6 +21,7 @@
  */
 
 package dev.guardac.alert
+
 import dev.guardac.GuardAC
 import dev.guardac.combat.SuppressionStage
 import dev.guardac.player.GuardPlayer
@@ -38,6 +39,8 @@ import dev.guardac.util.TaskHandle
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArraySet
+import kotlin.math.ceil
+
 class AlertManager(private val plugin: GuardAC) {
     private val alertsMuted      = CopyOnWriteArraySet<UUID>()
     private val monitorReceivers = CopyOnWriteArraySet<UUID>()
@@ -386,7 +389,12 @@ class AlertManager(private val plugin: GuardAC) {
     }
 
     private fun probBar(pct: Double): String {
-        val filled = (pct / 10.0).toInt().coerceIn(0, 10)
+        // Round UP: each dot stands for a 10% band, and a value anywhere inside
+        // a band has to light it. Truncating meant the last dot only lit at
+        // exactly 100.0%, which the model can never return - a sigmoid never
+        // reaches 1.0, and label smoothing caps it near 0.975 - so the tenth
+        // dot was dead on every server. 0% still lights nothing.
+        val filled = ceil(pct / 10.0).toInt().coerceIn(0, 10)
         val sb = StringBuilder()
         for (i in 1..10) {
             if (i <= filled) {
