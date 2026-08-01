@@ -389,11 +389,6 @@ class AlertManager(private val plugin: GuardAC) {
     }
 
     private fun probBar(pct: Double): String {
-        // Round UP: each dot stands for a 10% band, and a value anywhere inside
-        // a band has to light it. Truncating meant the last dot only lit at
-        // exactly 100.0%, which the model can never return - a sigmoid never
-        // reaches 1.0, and label smoothing caps it near 0.975 - so the tenth
-        // dot was dead on every server. 0% still lights nothing.
         val filled = ceil(pct / 10.0).toInt().coerceIn(0, 10)
         val sb = StringBuilder()
         for (i in 1..10) {

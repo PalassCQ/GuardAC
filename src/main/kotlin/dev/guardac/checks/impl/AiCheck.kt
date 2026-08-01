@@ -67,10 +67,6 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
                 judgeDisabledUntilMs = 0L
                 judgeState = JudgeState.ACTIVE
                 gp.recordJudgeVerdict(result.probability)
-                // The judge decides whether a violation is allowed through, so
-                // staff have to be able to see what it actually said. Its window
-                // never goes through handleResult, so without this the monitor
-                // only ever showed the short-window model.
                 plugin.alertManager.dispatchMonitorHit(gp, result.probability, result.model)
             } else {
                 judgeDisabledUntilMs = System.currentTimeMillis() + JUDGE_PROBE_INTERVAL_MS

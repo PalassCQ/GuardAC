@@ -98,10 +98,6 @@ class PlayerDataManager(private val plugin: GuardAC) : Listener {
 
         carryOver.remove(gp.uuid)?.let { carry ->
             applyPersisted(gp, carry.buffer, carry.vl, carry.epochMillis)
-            // The state came from memory, but the row saved on quit still has to
-            // go. clearBuffer talks to SQLite synchronously, and this runs on the
-            // join path - a burst of joins after a restart would each take an
-            // fsync on the main thread.
             plugin.scheduler.async(Runnable { plugin.punishmentHistory.clearBuffer(gp.uuid) })
             return
         }

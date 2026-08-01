@@ -188,18 +188,6 @@ class HologramManager(private val plugin: GuardAC) {
             lines.add(cfg.hitFormat.replace("{PROB}", probStr))
         }
 
-        // The average of the lines printed right above it - nothing else.
-        //
-        // It used to be GuardPlayer.avgProbability, which is a different figure
-        // over a different span: the plain mean of the last AVG_WINDOW RAW
-        // windows (~5 s, every window), while the lines are one PEAK per 2 s
-        // slot (~10 s). On a player whose probability swings, the peaks read
-        // 97..99 while the raw mean read 78 - two honest numbers that look like
-        // an arithmetic error when stacked on top of each other.
-        //
-        // At the default max-hits (5) this is also exactly what the judge
-        // averages before it lets a violation through (GuardPlayer
-        // JUDGE_SAMPLE_SIZE), so staff now read the number bans are decided on.
         val avg    = if (shown.isEmpty()) 0.0 else shown.average()
         val avgStr = "${cfg.colorFor(avg)}${"%.0f".format(avg * 100.0)}%"
         lines.add(cfg.header.replace("{AVG}", avgStr))
