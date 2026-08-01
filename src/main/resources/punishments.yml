@@ -20,7 +20,8 @@
 #   [broadcast] <msg> - message to all players
 #   [animation] <type>- visual show BEFORE the next action. Bare "[animation]" =
 #                       a random type; "[animation] pig" = a specific one:
-#                       pig | explode | particles | lightning | vortex | meteor | cage
+#                       pig | explode | particles | lightning | vortex | meteor |
+#                       cage | endrod
 #                       (settings in config.yml -> animations). Delete the line and
 #                       that level has no animation.
 #   [kick] <reason>   - kick the player off the server (any name, no ban plugin needed).
