@@ -36,6 +36,7 @@ import dev.guardac.GuardAC
 import dev.guardac.sample.AimSample
 import dev.guardac.player.GuardPlayer
 import org.bukkit.entity.Player
+import kotlin.math.abs
 
 class PacketListener(private val plugin: GuardAC) :
     PacketListenerAbstract(PacketListenerPriority.LOW) {
@@ -77,7 +78,8 @@ class PacketListener(private val plugin: GuardAC) :
     }
 
     private fun handleRotation(gp: GuardPlayer, yaw: Float, pitch: Float) {
-        gp.recordRotationTiming(System.nanoTime())
+        val now = System.nanoTime()
+        gp.recordRotationTiming(now)
         gp.rotation.update(yaw, pitch)
         if (gp.consumeTeleportGate()) {
 
@@ -89,6 +91,13 @@ class PacketListener(private val plugin: GuardAC) :
         val dpitch = gp.rotation.deltaPitch
 
         if (dyaw == 0f && dpitch == 0f) return
+
+        val active = abs(dyaw) + abs(dpitch) >= plugin.configManager.aiDeadZone
+        if (gp.isStaleSample(now, active)) {
+
+            gp.rotation.clearState()
+            return
+        }
 
         plugin.checkRegistry.rotationChecks.forEach { it.onRotation(gp) }
 

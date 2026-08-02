@@ -43,6 +43,7 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
         if (plugin.worldGuardCompat.shouldBypass(gp.player)) return
 
         val unstable = gp.consumeUnstableTicks()
+        val stale = gp.consumeStaleSamples()
         val lagDistorted = unstable >= UNSTABLE_TICKS_MIN && gp.player.ping >= UNSTABLE_PING_MIN
 
         if (isDeadWindow(ticks, cfg.aiDeadZone, cfg.aiMinActiveTicks)) return
@@ -51,7 +52,7 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
         if (minTps > 0.0 && plugin.tpsMonitor.tps < minTps) return
 
         plugin.aiTransport.infer(ticks, false)
-            .thenAccept { result -> handleResult(gp, result, lagDistorted, ticks) }
+            .thenAccept { result -> handleResult(gp, result, lagDistorted, stale, ticks) }
 
         pollJudge(gp)
     }
@@ -93,7 +94,8 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
     }
 
     private fun handleResult(
-        gp: GuardPlayer, result: InferenceResult, lagDistorted: Boolean, ticks: Array<AimSample>,
+        gp: GuardPlayer, result: InferenceResult, lagDistorted: Boolean, stale: Int,
+        ticks: Array<AimSample>,
     ) {
         when (result) {
             is InferenceResult.Disabled -> return
@@ -117,7 +119,8 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
                         " | avg=${"%.3f".format(gp.avgProbability)}" +
                         " | buf=${"%.2f".format(gp.aiBuffer)}" +
                         " | label=$label" +
-                        " | ping=${gp.player.ping}ms"
+                        " | ping=${gp.player.ping}ms" +
+                        " | stale=$stale"
                     )
                 }
 

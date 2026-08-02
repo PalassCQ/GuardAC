@@ -87,7 +87,10 @@ class GuardPlayer(
     }
 
     @Volatile private var lastRotationNanos: Long = 0L
+    @Volatile private var lastActiveNanos: Long = 0L
+    @Volatile private var lastSampleActive: Boolean = false
     @Volatile private var unstableTicks: Int = 0
+    @Volatile private var staleSamples: Int = 0
 
     fun recordRotationTiming(nowNanos: Long) {
         val last = lastRotationNanos
@@ -96,6 +99,25 @@ class GuardPlayer(
 
         val gapMs = (nowNanos - last) / 1_000_000
         if (gapMs < UNSTABLE_GAP_MIN_MS) unstableTicks++
+    }
+
+    fun isStaleSample(nowNanos: Long, active: Boolean): Boolean {
+        val hadMotion = lastSampleActive
+        val last = lastActiveNanos
+        lastSampleActive = active
+        if (active) lastActiveNanos = nowNanos
+
+        if (!active || !hadMotion || last == 0L) return false
+        if ((nowNanos - last) / 1_000_000 < STALE_GAP_MIN_MS) return false
+
+        staleSamples++
+        return true
+    }
+
+    fun consumeStaleSamples(): Int {
+        val v = staleSamples
+        staleSamples = 0
+        return v
     }
 
     fun consumeUnstableTicks(): Int {
@@ -433,6 +455,7 @@ class GuardPlayer(
 
     private companion object {
         const val UNSTABLE_GAP_MIN_MS      = 15L
+        const val STALE_GAP_MIN_MS         = 120L
         const val MS_PER_TICK              = 50L
         const val CHEAT_THRESHOLD          = 0.90
         const val LEGIT_THRESHOLD          = 0.10
