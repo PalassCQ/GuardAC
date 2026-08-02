@@ -133,7 +133,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         }
 
         val lift = if (resolved == "pig") null
-                   else beginLift(player, cfg.animationDurationTicks, resolved == "endrod")
+                   else beginLift(player, cfg.animationDurationTicks, if (resolved == "endrod") PISTON_PULSES else 0)
 
         val finishWith: (Location) -> Unit = { loc ->
             if (done.compareAndSet(false, true)) {
@@ -175,58 +175,44 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
 
     private class Lift(val stop: () -> Unit)
 
-    private fun beginLift(player: Player, duration: Int, piston: Boolean): Lift {
-        val height  = plugin.configManager.animationPigHeight
-        val targetY = player.location.y + height
+    private fun beginLift(player: Player, duration: Int, pulses: Int): Lift {
+        val height = plugin.configManager.animationPigHeight
+        val start  = player.location.clone()
 
         if (player.isInsideVehicle) runCatching { player.leaveVehicle() }
-
-        val mount = runCatching {
-            track(player.world.spawn(player.location, Pig::class.java).apply {
-                setGravity(false)
-                isSilent = true
-                isInvulnerable = true
-                removeWhenFarAway = true
-                Compat.potion("INVISIBILITY")?.let {
-                    addPotionEffect(PotionEffect(it, duration + 40, 0, false, false))
-                }
-            })
-        }.getOrNull() ?: return Lift { }
-
-        runCatching { mount.addPassenger(player) }
 
         var t = 0
         val task = plugin.scheduler.entityTimer(player, 1L, 1L) { handle ->
             try {
-                if (!player.isOnline || !mount.isValid || t >= duration) {
+                if (!player.isOnline || t >= duration) {
                     handle.cancel()
                     return@entityTimer
                 }
-                if (!mount.passengers.contains(player)) {
-                    plugin.scheduler.teleport(player, mount.location)
-                    runCatching { mount.addPassenger(player) }
+                val targetY = start.y + liftProfile(t + 1, duration, height, pulses)
+                val here = player.location
+                if (kotlin.math.abs(targetY - here.y) > 1.0e-4) {
+                    plugin.scheduler.teleport(player, here.clone().apply { y = targetY })
                 }
-                val speed = if (piston && t < PISTON_TICKS) {
-                    PISTON_SPEED
-                } else {
-                    val left = targetY - mount.location.y
-                    if (left <= 0.0) 0.0
-                    else (left / (duration - t).coerceAtLeast(1)).coerceIn(0.0, PISTON_SPEED)
-                }
-                mount.velocity = Vector(0.0, speed, 0.0)
-                anchors[player.uniqueId] = mount.location.clone()
+                anchors[player.uniqueId] = player.location.clone()
                 t++
             } catch (e: Exception) {
                 handle.cancel()
             }
         }
+        return Lift { runCatching { task.cancel() } }
+    }
 
-        return Lift {
-            runCatching { task.cancel() }
-            runCatching { mount.removePassenger(player) }
-            spawned.remove(mount)
-            runCatching { mount.remove() }
-        }
+    private fun liftProfile(t: Int, duration: Int, height: Double, pulses: Int): Double {
+        if (pulses <= 0) return height * (t.toDouble() / duration).coerceIn(0.0, 1.0)
+
+        val cycle = (duration / pulses).coerceAtLeast(1)
+        val push  = (cycle * PUSH_FRACTION).toInt().coerceAtLeast(1)
+        val step  = height / pulses
+
+        val index = (t / cycle).coerceIn(0, pulses - 1)
+        val into  = t - index * cycle
+        val frac  = (into.toDouble() / push).coerceIn(0.0, 1.0)
+        return (step * index + step * frac).coerceAtMost(height)
     }
 
     private class Freeze(val restore: () -> Unit)
@@ -576,6 +562,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         burst(world, particle("END_ROD", "CRIT"), rodLocation(player, player.location), 24, 0.25, 0.3, 0.25, 0.05)
 
         var lastY = player.location.y
+        var wasPushing = false
         var t = 0
         plugin.scheduler.entityTimer(
             player, 1L, 1L,
@@ -613,9 +600,13 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
                     )
                     burst(world, particle("CRIT"), seat, 20, 0.3, 0.15, 0.3, 0.25)
                 }
-                if (t == PISTON_TICKS) {
-                    playAnySound(base, 0.8f, 1.4f, "BLOCK_PISTON_CONTRACT", "BLOCK_PISTON_IN")
+                val pushing = lift > PUSH_EPSILON
+                if (pushing && !wasPushing) {
+                    playAnySound(base, 1f, 0.6f, "BLOCK_PISTON_EXTEND", "BLOCK_PISTON_OUT")
+                } else if (!pushing && wasPushing) {
+                    playAnySound(base, 0.7f, 1.3f, "BLOCK_PISTON_CONTRACT", "BLOCK_PISTON_IN")
                 }
+                wasPushing = pushing
 
                 val current = rod
                 if (current != null) {
@@ -636,7 +627,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
                     }
                 }
 
-                val thrust = if (t < PISTON_TICKS) 3 else 1
+                val thrust = if (pushing) 4 else 1
                 burst(
                     world, particle("LARGE_SMOKE", "SMOKE_LARGE", "SMOKE"),
                     seat.clone().add(0.0, -0.15, 0.0), 6 * thrust, 0.14, 0.06, 0.14, 0.02 + lift * 0.15,
@@ -824,8 +815,9 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
 
         private const val ROD_JUMP_DIST_SQ = 9.0
 
-        private const val PISTON_TICKS = 10
-        private const val PISTON_SPEED = 0.35
+        private const val PISTON_PULSES = 5
+        private const val PUSH_EPSILON = 0.005
+        private const val PUSH_FRACTION = 0.3
 
         private const val ROD_OFFSET_Y = -1.0
 
