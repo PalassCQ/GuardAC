@@ -520,10 +520,9 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
 
         val height    = plugin.configManager.animationPigHeight
         val targetY   = player.location.y + height
-        val riseSpeed = riseSpeedFor(height, duration)
 
-        var rod: Entity? = material?.let { spawnRodSegment(rodLocation(player.location, riseSpeed), it) }
-        val solid = rod != null
+        var rod: Entity? = null
+        val solid = material != null
         val cleanup = {
             rod?.let { seg -> spawned.remove(seg); runCatching { seg.remove() } }
             rod = null
@@ -563,12 +562,33 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
                         plugin.scheduler.teleport(player, mount.location)
                         runCatching { mount.addPassenger(player) }
                     }
-                    if (mount.location.y < targetY) lift = riseSpeed
+
+                    lift = if (t < PISTON_TICKS) {
+                        PISTON_SPEED
+                    } else {
+                        val left = targetY - mount.location.y
+                        if (left <= 0.0) 0.0
+                        else (left / (duration - t).coerceAtLeast(1)).coerceIn(0.0, PISTON_SPEED)
+                    }
                     mount.velocity = Vector(0.0, lift, 0.0)
                     anchors[player.uniqueId] = mount.location.clone()
                 }
 
                 val seat = rodLocation(base, lift)
+
+                if (rod == null && material != null && t == 0) {
+                    rod = spawnRodSegment(seat, material)
+                    playAnySound(seat, 1f, 0.55f, "BLOCK_PISTON_EXTEND", "BLOCK_PISTON_OUT")
+                    burst(
+                        world, particle("LARGE_SMOKE", "SMOKE_LARGE", "SMOKE"),
+                        seat.clone().add(0.0, -0.1, 0.0), 30, 0.35, 0.1, 0.35, 0.09,
+                    )
+                    burst(world, particle("CRIT"), seat, 20, 0.3, 0.15, 0.3, 0.25)
+                }
+                if (t == PISTON_TICKS) {
+                    playAnySound(base, 0.8f, 1.4f, "BLOCK_PISTON_CONTRACT", "BLOCK_PISTON_IN")
+                }
+
                 val current = rod
                 if (current != null) {
 
@@ -588,9 +608,10 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
                     }
                 }
 
+                val thrust = if (t < PISTON_TICKS) 3 else 1
                 burst(
                     world, particle("LARGE_SMOKE", "SMOKE_LARGE", "SMOKE"),
-                    seat.clone().add(0.0, -0.15, 0.0), 6, 0.14, 0.06, 0.14, 0.02,
+                    seat.clone().add(0.0, -0.15, 0.0), 6 * thrust, 0.14, 0.06, 0.14, 0.02 + lift * 0.15,
                 )
                 burst(world, particle("END_ROD", "CRIT"), seat, 5, 0.1, 0.06, 0.1, 0.03)
 
@@ -711,6 +732,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
 
     private fun playKillSound(player: Player, loc: Location) {
         if (!plugin.configManager.animationSound) return
+        if (!plugin.configManager.animationKillSound) return
         val sound = Compat.sound("ENTITY_WITHER_DEATH")
         if (sound == null) {
             warnUnavailable("sound", "ENTITY_WITHER_DEATH")
@@ -769,6 +791,9 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         private const val RISE_FRACTION = 1.0
 
         private const val ROD_JUMP_DIST_SQ = 9.0
+
+        private const val PISTON_TICKS = 10
+        private const val PISTON_SPEED = 0.35
 
         private const val ROD_OFFSET_Y = -1.0
 

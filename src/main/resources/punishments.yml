@@ -18,12 +18,8 @@
 #   [reset]           - reset the group's VL
 #   [wait] <time>     - pause the chain (2s, 40t, 500ms)
 #   [broadcast] <msg> - message to all players
-#   [animation] <type>- visual show BEFORE the next action. Bare "[animation]" =
-#                       a random type; "[animation] pig" = a specific one:
-#                       pig | explode | particles | lightning | vortex | meteor |
-#                       cage | endrod
-#                       (settings in config.yml -> animations). Delete the line and
-#                       that level has no animation.
+#   [animation] <type>- visual show BEFORE the next action (see the list below).
+#                       Delete the line and that level has no animation.
 #   [kick] <reason>   - kick the player off the server (any name, no ban plugin needed).
 #   [ban] <time> <reason> - ban through your ban system (LiteBans / AdvancedBan /
 #                       vanilla, see config.yml -> web-commands.ban-bridge).
@@ -31,11 +27,35 @@
 #                       Works on every server - no tempban plugin required.
 #   <command>         - run as console
 #
+# ── Animations ────────────────────────────────────────────────────────────────
+# Write the line exactly like this, as one of the actions of a level:
+#
+#     - "[animation]"            <- picks a random type every time
+#     - "[animation] endrod"     <- always this one
+#
+# Available types (the name is what you type after [animation]):
+#
+#   pig        the player is carried up on a pig
+#   explode    a ring of fire closes in on him and detonates
+#   particles  a spinning column of particles (type/density in config.yml)
+#   lightning  five lightning strikes
+#   vortex     twin spirals winding upward
+#   meteor     a burning comet falls in and hits him
+#   cage       a glowing cage shrinks around him
+#   endrod     an end rod fires him up like a piston, then shatters
+#
+# The show runs BEFORE the rest of that level's actions, so the ban or kick
+# lands only after it finishes. Length, height, sounds and the final wither
+# "kill" sound are all in config.yml -> animations. With
+# `animations.auto-on-ban: true` (the default) any level that really punishes
+# already plays a random show even without an "[animation]" line - the line is
+# only needed to pin a specific type. Staff can also pick one by hand:
+# `/guard punish <player> cage`.
+#
 # `actions` are grouped by VL. The nearest level BELOW fires: at VL=4 the block
 # "3" runs. In the default ladder VL1 only warns staff, VL2 kicks with a random
-# animation, and VL3+ ban. The animation is just the "[animation]" line - delete
-# it and that level plays no show. Each show ends with a sped-up wither "kill"
-# sound; the inventory only drops when a ban actually follows (not on a kick).
+# animation, and VL3+ ban. The inventory only drops when a ban actually follows
+# (not on a kick).
 #
 # This file is only about commands on specific violation levels. Early staff
 # warnings and soft in-combat measures live in config.yml instead - they have

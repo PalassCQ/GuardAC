@@ -262,6 +262,8 @@ class ConfigManager(private val plugin: GuardAC) {
     val animationParticleCount: Int  get() = cfg.getInt("animations.particle-count", 30).coerceIn(1, 500)
     val animationDropInventory: Boolean get() = cfg.getBoolean("animations.drop-inventory", true)
     val animationSound: Boolean      get() = cfg.getBoolean("animations.sound", true)
+
+    val animationKillSound: Boolean  get() = cfg.getBoolean("animations.kill-sound", true)
     val animationPigHeight: Double   get() = cfg.getDouble("animations.pig-height", 10.0).coerceIn(1.0, 60.0)
 
     val animationAutoOnBan: Boolean  get() = cfg.getBoolean("animations.auto-on-ban", true)

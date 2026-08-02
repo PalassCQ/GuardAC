@@ -6,7 +6,7 @@
 # below switches everything the plugin SAYS (staff alerts, command output,
 # player messages) between languages.
 
-config-version: 41
+config-version: 42
 
 # Language of all plugin messages: en | ru
 locale: "en"
@@ -59,8 +59,17 @@ animations:
   # Visual show played on the cheater (see punishments.yml). Add an "[animation]"
   # line to a punishment level to play one there: a bare "[animation]" picks a
   # random type, "[animation] pig" forces a specific one. Remove the line and the
-  # level has no animation. Types: pig | explode | particles | lightning | vortex
-  # | meteor | cage | endrod.
+  # level has no animation.
+  #
+  #   pig       - the player is carried up on a pig
+  #   explode   - a ring of fire closes in and detonates
+  #   particles - a spinning column of the particle set below
+  #   lightning - five lightning strikes
+  #   vortex    - twin spirals winding upward
+  #   meteor    - a burning comet falls in and hits the player
+  #   cage      - a glowing cage shrinks around the player
+  #   endrod    - an end rod fires the player up like a piston and shatters
+  #
   # Staff can also pick one per punishment: "/guard punish <player> meteor".
   # Without a type the animation is random.
   enabled: true
@@ -76,6 +85,9 @@ animations:
   particle-count: 30
   # Play sound effects during the show.
   sound: true
+  # The sped-up wither "kill" sound at the very end of every show.
+  # Set to false to keep the show but drop that final sting.
+  kill-sound: true
   # Used only by /guard punish and forced animations: if that level has no ban
   # command of its own, this ban is issued after the show. 30d / 12h / 45m; "" = permanent.
   fallback-ban-time: "30d"
