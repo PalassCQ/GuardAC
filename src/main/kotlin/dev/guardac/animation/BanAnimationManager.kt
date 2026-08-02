@@ -504,13 +504,32 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         runCatching { player.isSneaking = true }
         playAnySound(player.location, 0.9f, 0.7f, "ENTITY_ENDERMAN_TELEPORT", "ENTITY_ENDERMEN_TELEPORT")
 
+        val mount = runCatching {
+            track(world.spawn(player.location, Pig::class.java).apply {
+                setGravity(false)
+                isSilent = true
+                isInvulnerable = true
+                removeWhenFarAway = true
+                Compat.potion("INVISIBILITY")?.let {
+                    addPotionEffect(PotionEffect(it, duration + 40, 0, false, false))
+                }
+            })
+        }.getOrNull()
+        mount?.let { runCatching { it.addPassenger(player) } }
+
         var rod: Entity? = material?.let { spawnRodSegment(rodLocation(player.location), it) }
         val solid = rod != null
         val cleanup = {
             rod?.let { seg -> spawned.remove(seg); runCatching { seg.remove() } }
             rod = null
+            mount?.let { m ->
+                runCatching { m.removePassenger(player) }
+                spawned.remove(m); runCatching { m.remove() }
+            }
         }
-        burst(world, particle("END_ROD", "CRIT"), rodLocation(player.location), 12, 0.15, 0.2, 0.15, 0.04)
+
+        val targetY = player.location.y + plugin.configManager.animationPigHeight
+        burst(world, particle("END_ROD", "CRIT"), rodLocation(player.location), 14, 0.18, 0.2, 0.18, 0.04)
 
         var t = 0
         plugin.scheduler.entityTimer(
@@ -535,6 +554,17 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
 
                 runCatching { player.isSneaking = true }
 
+                if (mount != null && mount.isValid) {
+                    if (!mount.passengers.contains(player)) {
+                        plugin.scheduler.teleport(player, mount.location)
+                        runCatching { mount.addPassenger(player) }
+                    }
+                    mount.velocity =
+                        if (mount.location.y < targetY) Vector(0.0, RISE_SPEED, 0.0)
+                        else Vector(0.0, 0.0, 0.0)
+                    anchors[player.uniqueId] = mount.location.clone()
+                }
+
                 val current = rod
                 if (current != null) {
                     plugin.scheduler.teleport(current, seat)
@@ -547,13 +577,24 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
                     }
                 }
 
-                if (t % 2 == 0) {
-                    burst(world, particle("END_ROD", "CRIT"), seat, 1, 0.06, 0.02, 0.06, 0.01)
+                burst(world, particle("END_ROD", "CRIT"), seat, 2, 0.07, 0.04, 0.07, 0.02)
+                burst(
+                    world, particle("LARGE_SMOKE", "SMOKE_LARGE", "SMOKE"),
+                    seat.clone().add(0.0, -0.2, 0.0), 2, 0.1, 0.05, 0.1, 0.01,
+                )
+
+                for (arm in 0 until 2) {
+                    val ang = t * 0.28 + arm * Math.PI
+                    val y = 0.2 + ((t * 0.08 + arm * 0.9) % 1.9)
+                    burst(
+                        world, particle("END_ROD", "CRIT"),
+                        base.clone().add(Math.cos(ang) * 0.65, y, Math.sin(ang) * 0.65), 1,
+                    )
                 }
-                val ang = t * 0.2
+                val swirl = -t * 0.19
                 burst(
                     world, particle("PORTAL"),
-                    base.clone().add(Math.cos(ang) * 0.75, 0.9, Math.sin(ang) * 0.75), 1,
+                    base.clone().add(Math.cos(swirl) * 0.85, 1.0, Math.sin(swirl) * 0.85), 3, 0.05, 0.3, 0.05, 0.02,
                 )
                 if (t % 25 == 0) {
                     playAnySound(
@@ -699,7 +740,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         private const val ANIM_TAG = "guardac_anim"
         private const val RISE_SPEED = 0.35
 
-        private const val ROD_OFFSET_Y = -1.0
+        private const val ROD_OFFSET_Y = -0.75
 
         private const val WITHER_PITCH = 1.8f
     }
