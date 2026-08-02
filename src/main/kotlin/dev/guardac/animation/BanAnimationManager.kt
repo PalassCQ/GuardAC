@@ -126,8 +126,18 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         val restore = lifted.restore
         val done = AtomicBoolean(false)
 
+        val resolved = resolveType(type) ?: run {
+
+            warnUnknownType(type)
+            TYPES.random()
+        }
+
+        val lift = if (resolved == "pig") null
+                   else beginLift(player, cfg.animationDurationTicks, resolved == "endrod")
+
         val finishWith: (Location) -> Unit = { loc ->
             if (done.compareAndSet(false, true)) {
+                lift?.stop?.invoke()
                 animating.remove(player.uniqueId)
                 anchors.remove(player.uniqueId)
                 restore()
@@ -141,11 +151,6 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
             }
         }
 
-        val resolved = resolveType(type) ?: run {
-
-            warnUnknownType(type)
-            TYPES.random()
-        }
         when (resolved) {
             "pig"       -> playPig(player, finishWith)
             "explode"   -> playExplode(player, finishWith)
@@ -166,6 +171,62 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
             "[Animation] Unknown animation \"$raw\" - playing a random one instead. " +
             "Available: ${TYPES.joinToString(" | ")}"
         )
+    }
+
+    private class Lift(val stop: () -> Unit)
+
+    private fun beginLift(player: Player, duration: Int, piston: Boolean): Lift {
+        val height  = plugin.configManager.animationPigHeight
+        val targetY = player.location.y + height
+
+        if (player.isInsideVehicle) runCatching { player.leaveVehicle() }
+
+        val mount = runCatching {
+            track(player.world.spawn(player.location, Pig::class.java).apply {
+                setGravity(false)
+                isSilent = true
+                isInvulnerable = true
+                removeWhenFarAway = true
+                Compat.potion("INVISIBILITY")?.let {
+                    addPotionEffect(PotionEffect(it, duration + 40, 0, false, false))
+                }
+            })
+        }.getOrNull() ?: return Lift { }
+
+        runCatching { mount.addPassenger(player) }
+
+        var t = 0
+        val task = plugin.scheduler.entityTimer(player, 1L, 1L) { handle ->
+            try {
+                if (!player.isOnline || !mount.isValid || t >= duration) {
+                    handle.cancel()
+                    return@entityTimer
+                }
+                if (!mount.passengers.contains(player)) {
+                    plugin.scheduler.teleport(player, mount.location)
+                    runCatching { mount.addPassenger(player) }
+                }
+                val speed = if (piston && t < PISTON_TICKS) {
+                    PISTON_SPEED
+                } else {
+                    val left = targetY - mount.location.y
+                    if (left <= 0.0) 0.0
+                    else (left / (duration - t).coerceAtLeast(1)).coerceIn(0.0, PISTON_SPEED)
+                }
+                mount.velocity = Vector(0.0, speed, 0.0)
+                anchors[player.uniqueId] = mount.location.clone()
+                t++
+            } catch (e: Exception) {
+                handle.cancel()
+            }
+        }
+
+        return Lift {
+            runCatching { task.cancel() }
+            runCatching { mount.removePassenger(player) }
+            spawned.remove(mount)
+            runCatching { mount.remove() }
+        }
     }
 
     private class Freeze(val restore: () -> Unit)
@@ -505,35 +566,16 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         runCatching { player.isSneaking = true }
         playAnySound(player.location, 0.9f, 0.7f, "ENTITY_ENDERMAN_TELEPORT", "ENTITY_ENDERMEN_TELEPORT")
 
-        val mount = runCatching {
-            track(world.spawn(player.location, Pig::class.java).apply {
-                setGravity(false)
-                isSilent = true
-                isInvulnerable = true
-                removeWhenFarAway = true
-                Compat.potion("INVISIBILITY")?.let {
-                    addPotionEffect(PotionEffect(it, duration + 40, 0, false, false))
-                }
-            })
-        }.getOrNull()
-        mount?.let { runCatching { it.addPassenger(player) } }
-
-        val height    = plugin.configManager.animationPigHeight
-        val targetY   = player.location.y + height
-
         var rod: Entity? = null
         val solid = material != null
         val cleanup = {
             rod?.let { seg -> spawned.remove(seg); runCatching { seg.remove() } }
             rod = null
-            mount?.let { m ->
-                runCatching { m.removePassenger(player) }
-                spawned.remove(m); runCatching { m.remove() }
-            }
         }
 
-        burst(world, particle("END_ROD", "CRIT"), rodLocation(player.location), 24, 0.25, 0.3, 0.25, 0.05)
+        burst(world, particle("END_ROD", "CRIT"), rodLocation(player, player.location), 24, 0.25, 0.3, 0.25, 0.05)
 
+        var lastY = player.location.y
         var t = 0
         plugin.scheduler.entityTimer(
             player, 1L, 1L,
@@ -556,28 +598,14 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
 
                 runCatching { player.isSneaking = true }
 
-                var lift = 0.0
-                if (mount != null && mount.isValid) {
-                    if (!mount.passengers.contains(player)) {
-                        plugin.scheduler.teleport(player, mount.location)
-                        runCatching { mount.addPassenger(player) }
-                    }
+                val lift = base.y - lastY
+                lastY = base.y
 
-                    lift = if (t < PISTON_TICKS) {
-                        PISTON_SPEED
-                    } else {
-                        val left = targetY - mount.location.y
-                        if (left <= 0.0) 0.0
-                        else (left / (duration - t).coerceAtLeast(1)).coerceIn(0.0, PISTON_SPEED)
-                    }
-                    mount.velocity = Vector(0.0, lift, 0.0)
-                    anchors[player.uniqueId] = mount.location.clone()
-                }
-
-                val seat = rodLocation(base, lift)
+                val seat = rodLocation(player, base, lift)
 
                 if (rod == null && material != null && t == 0) {
-                    rod = spawnRodSegment(seat, material)
+
+                    rod = spawnRodSegment(rodLocation(player, base), material)
                     playAnySound(seat, 1f, 0.55f, "BLOCK_PISTON_EXTEND", "BLOCK_PISTON_OUT")
                     burst(
                         world, particle("LARGE_SMOKE", "SMOKE_LARGE", "SMOKE"),
@@ -647,8 +675,9 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
                 if (++t >= duration) {
                     handle.cancel()
                     val loc = base.clone()
+                    val burstAt = seat.clone()
                     cleanup()
-                    shatterRod(world, loc, if (solid) material else null)
+                    shatterRod(world, burstAt, if (solid) material else null)
                     finishWith(loc)
                 }
             } catch (e: Exception) {
@@ -665,8 +694,11 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         return (height / riseTicks).coerceIn(MIN_RISE_SPEED, RISE_SPEED)
     }
 
-    private fun rodLocation(base: Location, lift: Double = 0.0): Location =
-        base.clone().add(0.0, ROD_OFFSET_Y + lift, 0.0).apply { yaw = 0f; pitch = 0f }
+    private fun rodLocation(player: Player, base: Location, lift: Double = 0.0): Location {
+
+        val ride = if (player.isInsideVehicle) MOUNT_RIDE_OFFSET else 0.0
+        return base.clone().add(0.0, ride + ROD_OFFSET_Y + lift, 0.0).apply { yaw = 0f; pitch = 0f }
+    }
 
     private fun rodMaterial(): Material? = runCatching { Material.valueOf("END_ROD") }.getOrNull()
 
@@ -682,9 +714,9 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         return track<FallingBlock>(block)
     }
 
-    private fun shatterRod(world: org.bukkit.World, base: Location, material: Material?) {
-        val at = rodLocation(base).add(0.0, 0.5, 0.0)
-        playAnySound(base, 1f, 0.8f, "BLOCK_GLASS_BREAK")
+    private fun shatterRod(world: org.bukkit.World, seat: Location, material: Material?) {
+        val at = seat.clone().add(0.0, 0.5, 0.0)
+        playAnySound(seat, 1f, 0.8f, "BLOCK_GLASS_BREAK")
         if (material != null) blockBurst(world, at, material, 24)
         burst(world, particle("END_ROD", "CRIT"), at, 20, 0.28, 0.25, 0.28, 0.12)
         burst(world, particle("PORTAL"), at, 24, 0.3, 0.5, 0.3, 0.2)
@@ -796,6 +828,8 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         private const val PISTON_SPEED = 0.35
 
         private const val ROD_OFFSET_Y = -1.0
+
+        private const val MOUNT_RIDE_OFFSET = 0.9
 
         private const val WITHER_PITCH = 1.8f
     }
