@@ -209,6 +209,8 @@ class ConfigManager(private val plugin: GuardAC) {
     val alertMinConfidence: Double get() =
         cfg.getDouble("alerts.min-hit-confidence", ALERT_MIN_CONFIDENCE).coerceIn(0.0, 100.0)
     val alertMinHits: Int          get() = cfg.getInt("alerts.min-hits", 3).coerceIn(1, 1000)
+    val alertWindowSeconds: Long   get() =
+        cfg.getLong("alerts.window-seconds", ALERT_WINDOW_SECONDS).coerceIn(1L, 3600L)
 
     val suspiciousAlertsEnabled: Boolean get() = cfg.getBoolean("alerts.suspicious.enabled", true)
     val suspiciousAlertBuffer: Double   get() = cfg.getDouble("alerts.suspicious.buffer", 15.0)
@@ -326,6 +328,10 @@ class ConfigManager(private val plugin: GuardAC) {
         const val ANIM_DURATION_TICKS = 100
 
         const val ALERT_MIN_CONFIDENCE = 85.0
+        // How long a counted hit keeps the series alive. Hits further apart than
+        // this start a fresh xN series, so scattered one-off flags never add up
+        // into a punishment the way a sustained episode does.
+        const val ALERT_WINDOW_SECONDS = 20L
         const val VL_DECAY_INTERVAL_SECONDS = 3600
     }
 }

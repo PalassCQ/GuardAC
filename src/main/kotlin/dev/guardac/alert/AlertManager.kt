@@ -109,8 +109,15 @@ class AlertManager(private val plugin: GuardAC) {
     private val digests = ConcurrentHashMap<UUID, HitDigest>()
 
     fun recordVerdict(gp: GuardPlayer, probability: Double, model: String): Boolean {
-        val minHits = plugin.configManager.alertMinHits.coerceAtLeast(1)
-        val minConfidence = plugin.configManager.alertMinConfidence
+        val cfg = plugin.configManager
+        val minHits = cfg.alertMinHits.coerceAtLeast(1)
+        val minConfidence = cfg.alertMinConfidence
+        // One counted hit per window length, never per second: windows are
+        // ai.sequence ticks long but leave every ai.step ticks, so neighbours
+        // overlap by 75% and a single movement lands in four of them. Counting
+        // faster than the window scrolls hands one moment several hits.
+        val momentMs = cfg.aiSequence.toLong() * MS_PER_TICK
+        val episodeIdleMs = cfg.alertWindowSeconds * 1000L
         val d = digests.computeIfAbsent(gp.uuid) { HitDigest() }
         var announceCount = 0
         var announceMax = 0.0
@@ -119,7 +126,7 @@ class AlertManager(private val plugin: GuardAC) {
             if (probability * 100.0 < minConfidence || !gp.judgeApproves()) return false
             val now = System.currentTimeMillis()
 
-            if (now - d.lastHitMs > EPISODE_IDLE_MS) {
+            if (now - d.lastHitMs > episodeIdleMs) {
                 d.episodeHits = 0
                 d.batchMax = 0.0
                 d.lastCountedMs = 0L
@@ -128,7 +135,7 @@ class AlertManager(private val plugin: GuardAC) {
 
             if (probability > d.batchMax) d.batchMax = probability
             d.model = model
-            if (now - d.lastCountedMs < MONITOR_THROTTLE_MS) return false
+            if (now - d.lastCountedMs < momentMs) return false
             d.lastCountedMs = now
 
             val previous = d.episodeHits
@@ -437,11 +444,11 @@ class AlertManager(private val plugin: GuardAC) {
 
     private fun formatPercent(v: Double): String = "%.1f".format(v * 100.0)
     companion object {
+        const val MS_PER_TICK         = 50L
         const val MONITOR_THROTTLE_MS = 1_000L
         const val ALERT_THROTTLE_MS   = 1_000L
         const val SUSPICIOUS_THROTTLE_MS = 15_000L
 
-        const val EPISODE_IDLE_MS     = 30_000L
 
         const val PROB_UPDATE_TICKS   = 10L
     }
