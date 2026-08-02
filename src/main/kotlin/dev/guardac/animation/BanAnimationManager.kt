@@ -246,6 +246,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         runCatching { pig.addPassenger(player) }
 
         val duration = plugin.configManager.animationDurationTicks
+        val riseSpeed = riseSpeedFor(plugin.configManager.animationPigHeight, duration)
         var t = 0
         plugin.scheduler.entityTimer(
             player, 1L, 1L,
@@ -265,7 +266,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
                     plugin.scheduler.teleport(player, pig.location)
                     runCatching { pig.addPassenger(player) }
                 }
-                pig.velocity = if (pig.location.y < targetY) Vector(0.0, RISE_SPEED, 0.0) else Vector(0.0, 0.0, 0.0)
+                pig.velocity = if (pig.location.y < targetY) Vector(0.0, riseSpeed, 0.0) else Vector(0.0, 0.0, 0.0)
                 if (t % 3 == 0) burst(world, particle("CLOUD"), pig.location, 6, 0.3, 0.1, 0.3)
                 if (++t >= duration) {
                     handle.cancel()
@@ -528,7 +529,9 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
             }
         }
 
-        val targetY = player.location.y + plugin.configManager.animationPigHeight
+        val height    = plugin.configManager.animationPigHeight
+        val targetY   = player.location.y + height
+        val riseSpeed = riseSpeedFor(height, duration)
         burst(world, particle("END_ROD", "CRIT"), rodLocation(player.location), 14, 0.18, 0.2, 0.18, 0.04)
 
         var t = 0
@@ -554,20 +557,24 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
 
                 runCatching { player.isSneaking = true }
 
+                var lift = 0.0
                 if (mount != null && mount.isValid) {
                     if (!mount.passengers.contains(player)) {
                         plugin.scheduler.teleport(player, mount.location)
                         runCatching { mount.addPassenger(player) }
                     }
-                    mount.velocity =
-                        if (mount.location.y < targetY) Vector(0.0, RISE_SPEED, 0.0)
-                        else Vector(0.0, 0.0, 0.0)
+                    if (mount.location.y < targetY) lift = riseSpeed
+                    mount.velocity = Vector(0.0, lift, 0.0)
                     anchors[player.uniqueId] = mount.location.clone()
                 }
 
                 val current = rod
                 if (current != null) {
-                    plugin.scheduler.teleport(current, seat)
+
+                    current.velocity = Vector(0.0, lift, 0.0)
+                    if (current.location.distanceSquared(seat) > ROD_RESYNC_DIST_SQ) {
+                        plugin.scheduler.teleport(current, seat)
+                    }
                 } else {
 
                     var y = 0.0
@@ -617,6 +624,11 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
                 finishWith(loc)
             }
         }
+    }
+
+    private fun riseSpeedFor(height: Double, durationTicks: Int): Double {
+        val riseTicks = (durationTicks * RISE_FRACTION).toInt().coerceAtLeast(1)
+        return (height / riseTicks).coerceIn(MIN_RISE_SPEED, RISE_SPEED)
     }
 
     private fun rodLocation(base: Location): Location =
@@ -739,6 +751,11 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
 
         private const val ANIM_TAG = "guardac_anim"
         private const val RISE_SPEED = 0.35
+        private const val MIN_RISE_SPEED = 0.02
+
+        private const val RISE_FRACTION = 0.85
+
+        private const val ROD_RESYNC_DIST_SQ = 0.25
 
         private const val ROD_OFFSET_Y = -0.75
 
