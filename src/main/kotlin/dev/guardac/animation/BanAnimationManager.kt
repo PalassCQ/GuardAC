@@ -47,6 +47,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
 
     private data class MovementState(
         val walk: Float, val fly: Float, val allowFlight: Boolean, val flying: Boolean,
+        val sneaking: Boolean = false,
     )
 
     private val animating: MutableSet<UUID> = ConcurrentHashMap.newKeySet()
@@ -96,6 +97,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
             player.flySpeed    = s.fly
             player.allowFlight = s.allowFlight
             player.isFlying    = s.flying && s.allowFlight
+            player.isSneaking  = s.sneaking
         }
         runCatching { Compat.potion("LEVITATION")?.let { player.removePotionEffect(it) } }
 
@@ -171,7 +173,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
     private fun freeze(player: Player): Freeze {
         anchors[player.uniqueId] = player.location.clone()
         frozen[player.uniqueId] = MovementState(
-            player.walkSpeed, player.flySpeed, player.allowFlight, player.isFlying,
+            player.walkSpeed, player.flySpeed, player.allowFlight, player.isFlying, player.isSneaking,
         )
         runCatching {
             player.isFlying = false
@@ -499,17 +501,18 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         val material = rodMaterial()
 
         if (player.isInsideVehicle) runCatching { player.leaveVehicle() }
-        playAnySound(player.location, 1f, 0.6f, "ITEM_TRIDENT_HIT_GROUND", "BLOCK_ANVIL_LAND")
+        runCatching { player.isSneaking = true }
         playAnySound(player.location, 0.9f, 0.7f, "ENTITY_ENDERMAN_TELEPORT", "ENTITY_ENDERMEN_TELEPORT")
 
-        val rod = ArrayList<Entity>(ROD_SEGMENTS)
+        var rod: Entity? = material?.let { spawnRodSegment(rodLocation(player.location), it) }
+        val solid = rod != null
         val cleanup = {
-            rod.forEach { seg -> spawned.remove(seg); runCatching { seg.remove() } }
-            rod.clear()
+            rod?.let { seg -> spawned.remove(seg); runCatching { seg.remove() } }
+            rod = null
         }
+        burst(world, particle("END_ROD", "CRIT"), rodLocation(player.location), 12, 0.15, 0.2, 0.15, 0.04)
 
         var t = 0
-        var solid = material != null
         plugin.scheduler.entityTimer(
             player, 1L, 1L,
             retired = Runnable {
@@ -528,74 +531,42 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
                 }
 
                 val base = player.location
-                val progress = t.toDouble() / duration
-                val strain = if (progress > 0.72) (progress - 0.72) / 0.28 else 0.0
-                val wobble = 0.02 + strain * 0.1
-                val ox = Math.cos(t * 0.9) * wobble
-                val oz = Math.sin(t * 1.3) * wobble
+                val seat = rodLocation(base)
 
-                val grown = if (t >= ROD_GROW_TICKS) ROD_SEGMENTS
-                            else (1 + t * ROD_SEGMENTS / ROD_GROW_TICKS).coerceIn(1, ROD_SEGMENTS)
+                runCatching { player.isSneaking = true }
 
-                if (material != null && solid) {
-                    while (rod.size < grown) {
-                        val index = rod.size
-                        val at = segmentLocation(base, index, ox, oz)
-                        val segment = spawnRodSegment(at, material)
-                        if (segment == null) { solid = false; break }
-                        rod.add(segment)
-                        burst(world, particle("CRIT"), at.clone().add(0.0, 0.5, 0.0), 10, 0.16, 0.2, 0.16, 0.06)
-                        playAnySound(at, 0.7f, 1.5f - index * 0.2f, "BLOCK_STONE_HIT", "BLOCK_STONE_BREAK")
-                    }
-                    rod.forEachIndexed { index, segment ->
-                        plugin.scheduler.teleport(segment, segmentLocation(base, index, ox, oz))
-                    }
+                val current = rod
+                if (current != null) {
+                    plugin.scheduler.teleport(current, seat)
                 } else {
-                    var y = ROD_TOP_OFFSET + 0.7
-                    val bottom = ROD_TOP_OFFSET - (ROD_SEGMENTS - 1)
-                    while (y >= bottom) {
-                        burst(world, particle("END_ROD", "CRIT"), base.clone().add(ox, y, oz), 1)
-                        y -= 0.2
+
+                    var y = 0.0
+                    while (y <= 0.9) {
+                        burst(world, particle("END_ROD", "CRIT"), seat.clone().add(0.0, y, 0.0), 1)
+                        y += 0.3
                     }
                 }
 
-                for (arm in 0 until 2) {
-                    val ang = -t * 0.4 + arm * Math.PI
-                    val slide = (t * 0.12 + arm * 1.6) % (ROD_SEGMENTS + 0.7)
-                    burst(
-                        world, particle("END_ROD", "CRIT"),
-                        base.clone().add(
-                            Math.cos(ang) * 0.5 + ox,
-                            ROD_TOP_OFFSET + 0.7 - slide,
-                            Math.sin(ang) * 0.5 + oz,
-                        ),
-                        1,
-                    )
+                if (t % 2 == 0) {
+                    burst(world, particle("END_ROD", "CRIT"), seat, 1, 0.06, 0.02, 0.06, 0.01)
                 }
-
-                val tip = base.clone().add(ox, ROD_TOP_OFFSET - (ROD_SEGMENTS - 1), oz)
-                if (t % 2 == 0) burst(world, particle("PORTAL"), tip, 4, 0.12, 0.1, 0.12, 0.02)
-                if (t % 3 == 0) burst(world, particle("END_ROD", "CRIT"), tip, 2, 0.05, 0.05, 0.05, 0.01)
-                if (strain > 0.0 && t % 4 == 0) {
-                    burst(
-                        world, particle("CRIT"),
-                        base.clone().add(ox, ROD_TOP_OFFSET + 0.6, oz),
-                        6, 0.2, 0.15, 0.2, 0.08,
-                    )
-                }
-                if (t % 18 == 0) {
+                val ang = t * 0.2
+                burst(
+                    world, particle("PORTAL"),
+                    base.clone().add(Math.cos(ang) * 0.75, 0.9, Math.sin(ang) * 0.75), 1,
+                )
+                if (t % 25 == 0) {
                     playAnySound(
-                        base, 0.6f, 0.5f + progress.toFloat(),
-                        "BLOCK_RESPAWN_ANCHOR_AMBIENT", "BLOCK_PORTAL_AMBIENT", "BLOCK_BEACON_AMBIENT",
+                        base, 0.4f, 1.3f,
+                        "BLOCK_AMETHYST_BLOCK_CHIME", "BLOCK_NOTE_BLOCK_CHIME", "BLOCK_BEACON_AMBIENT",
                     )
                 }
 
                 if (++t >= duration) {
                     handle.cancel()
                     val loc = base.clone()
-                    val ends = if (rod.isNotEmpty()) rod.size else ROD_SEGMENTS
                     cleanup()
-                    shatterRod(world, loc, ends, if (solid) material else null)
+                    shatterRod(world, loc, if (solid) material else null)
                     finishWith(loc)
                 }
             } catch (e: Exception) {
@@ -607,8 +578,8 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         }
     }
 
-    private fun segmentLocation(base: Location, index: Int, ox: Double, oz: Double): Location =
-        base.clone().add(ox, ROD_TOP_OFFSET - index, oz).apply { yaw = 0f; pitch = 0f }
+    private fun rodLocation(base: Location): Location =
+        base.clone().add(0.0, ROD_OFFSET_Y, 0.0).apply { yaw = 0f; pitch = 0f }
 
     private fun rodMaterial(): Material? = runCatching { Material.valueOf("END_ROD") }.getOrNull()
 
@@ -624,19 +595,12 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         return track<FallingBlock>(block)
     }
 
-    private fun shatterRod(world: org.bukkit.World, base: Location, segments: Int, material: Material?) {
-        val count = segments.coerceAtLeast(1)
+    private fun shatterRod(world: org.bukkit.World, base: Location, material: Material?) {
+        val at = rodLocation(base).add(0.0, 0.5, 0.0)
         playAnySound(base, 1f, 0.8f, "BLOCK_GLASS_BREAK")
-        playAnySound(base, 0.9f, 0.5f, "ENTITY_ENDERMAN_TELEPORT", "ENTITY_ENDERMEN_TELEPORT")
-        for (index in 0 until count) {
-            val at = base.clone().add(0.0, ROD_TOP_OFFSET + 0.5 - index, 0.0)
-            if (material != null) blockBurst(world, at, material, 26)
-            burst(world, particle("END_ROD", "CRIT"), at, 24, 0.3, 0.25, 0.3, 0.14)
-        }
-        burst(
-            world, particle("PORTAL"),
-            base.clone().add(0.0, ROD_TOP_OFFSET, 0.0), 40, 0.4, 0.9, 0.4, 0.25,
-        )
+        if (material != null) blockBurst(world, at, material, 24)
+        burst(world, particle("END_ROD", "CRIT"), at, 20, 0.28, 0.25, 0.28, 0.12)
+        burst(world, particle("PORTAL"), at, 24, 0.3, 0.5, 0.3, 0.2)
     }
 
     private fun blockBurst(world: org.bukkit.World, loc: Location, material: Material, count: Int) {
@@ -735,9 +699,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         private const val ANIM_TAG = "guardac_anim"
         private const val RISE_SPEED = 0.35
 
-        private const val ROD_SEGMENTS = 3
-        private const val ROD_TOP_OFFSET = -0.3
-        private const val ROD_GROW_TICKS = 8
+        private const val ROD_OFFSET_Y = -1.0
 
         private const val WITHER_PITCH = 1.8f
     }
