@@ -588,7 +588,12 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
                 val lift = base.y - lastY
                 lastY = base.y
 
-                val seat = rodLocation(player, base, lift)
+                val cycleTicks  = (duration.toDouble() / PISTON_PULSES).coerceAtLeast(1.0)
+                val strokeTicks = (cycleTicks / ROD_STROKES_PER_CYCLE).coerceAtLeast(1.0)
+                val phase       = (t / strokeTicks) * 2.0 * Math.PI
+                val stroke      = ROD_STROKE * (1.0 - Math.cos(phase)) * 0.5
+
+                val seat = rodLocation(player, base, lift).subtract(0.0, stroke, 0.0)
 
                 if (rod == null && material != null && t == 0) {
 
@@ -820,6 +825,10 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         private const val PUSH_FRACTION = 0.3
 
         private const val ROD_OFFSET_Y = -1.0
+
+        private const val ROD_STROKE = 0.45
+
+        private const val ROD_STROKES_PER_CYCLE = 3.0
 
         private const val MOUNT_RIDE_OFFSET = 0.9
 
