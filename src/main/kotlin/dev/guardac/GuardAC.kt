@@ -87,6 +87,7 @@ class GuardAC : JavaPlugin() {
     private var runtimeStarted = false
     private var vlDecayTask: TaskHandle? = null
     private var combatResetTask: TaskHandle? = null
+    private var packetListener: PacketListener? = null
 
     override fun onEnable() {
         instance = this
@@ -151,7 +152,9 @@ class GuardAC : JavaPlugin() {
         reputationClient      = ReputationClient(this)
         checkRegistry         = CheckRegistry(this)
 
-        PacketEvents.getAPI().eventManager.registerListener(PacketListener(this))
+        packetListener = PacketListener(this).also {
+            PacketEvents.getAPI().eventManager.registerListener(it)
+        }
 
         server.pluginManager.registerEvents(playerDataManager, this)
         server.pluginManager.registerEvents(banAnimationManager, this)
@@ -159,6 +162,7 @@ class GuardAC : JavaPlugin() {
         startVlDecayTask()
         startCombatResetTask()
         hologramManager.start()
+        playerDataManager.adoptOnline()
 
         reputationClient.startNetworkAlertPolling()
 
@@ -225,6 +229,10 @@ class GuardAC : JavaPlugin() {
         vlDecayTask = null
         combatResetTask?.cancel()
         combatResetTask = null
+        runCatching {
+            packetListener?.let { PacketEvents.getAPI().eventManager.unregisterListener(it) }
+        }
+        packetListener = null
         runCatching { banAnimationManager.restoreAllFrozen() }
         runCatching { banAnimationManager.removeAnimationEntities() }
         runCatching { hologramManager.stop() }

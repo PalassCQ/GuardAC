@@ -161,6 +161,14 @@ class PlayerDataManager(private val plugin: GuardAC) : Listener {
         }
     }
 
+    fun adoptOnline() {
+        plugin.server.onlinePlayers.forEach { player ->
+            if (players.containsKey(player.uniqueId)) return@forEach
+            val gp = add(player)
+            restorePersistedBuffer(gp)
+        }
+    }
+
     private companion object {
         const val CARRY_OVER_MAX = 512
     }
