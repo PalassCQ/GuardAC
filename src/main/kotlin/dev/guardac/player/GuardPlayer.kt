@@ -90,7 +90,6 @@ class GuardPlayer(
     @Volatile private var lastActiveNanos: Long = 0L
     @Volatile private var lastSampleActive: Boolean = false
     @Volatile private var unstableTicks: Int = 0
-    @Volatile private var staleSamples: Int = 0
 
     fun recordRotationTiming(nowNanos: Long) {
         val last = lastRotationNanos
@@ -108,16 +107,7 @@ class GuardPlayer(
         if (active) lastActiveNanos = nowNanos
 
         if (!active || !hadMotion || last == 0L) return false
-        if ((nowNanos - last) / 1_000_000 < STALE_GAP_MIN_MS) return false
-
-        staleSamples++
-        return true
-    }
-
-    fun consumeStaleSamples(): Int {
-        val v = staleSamples
-        staleSamples = 0
-        return v
+        return (nowNanos - last) / 1_000_000 >= STALE_GAP_MIN_MS
     }
 
     fun consumeUnstableTicks(): Int {
