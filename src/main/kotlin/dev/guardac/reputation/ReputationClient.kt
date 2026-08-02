@@ -218,7 +218,7 @@ class ReputationClient(private val plugin: GuardAC) {
                 }
             }
 
-            pollSince = dto.now
+            if (dto.now > pollSince) pollSince = dto.now
         } catch (_: Exception) {
 
         }
@@ -365,7 +365,12 @@ class ReputationClient(private val plugin: GuardAC) {
 
     private fun handleWebCommand(c: WebCommandDto) {
         if (c.id <= 0 || !executedWebCommandIds.add(c.id)) return
-        if (executedWebCommandIds.size > 1_000) executedWebCommandIds.clear()
+
+        if (executedWebCommandIds.size > EXECUTED_IDS_MAX) {
+            val keepFrom = executedWebCommandIds.sorted()
+                .getOrNull(executedWebCommandIds.size - EXECUTED_IDS_KEEP)
+            if (keepFrom != null) executedWebCommandIds.removeIf { it < keepFrom }
+        }
         if (c.type != "ban" && c.type != "unban") return
 
         val name = c.player.take(16)
@@ -474,6 +479,9 @@ class ReputationClient(private val plugin: GuardAC) {
 
         const val MAX_PUSH_BATCH = 200
         const val MAX_PENDING_RESULTS = 600
+
+        const val EXECUTED_IDS_MAX  = 1_000
+        const val EXECUTED_IDS_KEEP = 500
     }
 }
 

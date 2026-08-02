@@ -95,6 +95,8 @@ enum class Message(val key: String) {
     HELP_AVG("help-overhead"),
 
     PUNISH_SUCCESS("punish-success"),
+    PUNISH_SUCCESS_ANIMATED("punish-success-animated"),
+    PUNISH_UNKNOWN_ANIMATION("punish-unknown-animation"),
     PUNISH_NO_DATA("punish-no-data"),
     UNSAFE_NAME_KICK("unsafe-name-kick"),
 

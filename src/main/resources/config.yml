@@ -61,6 +61,8 @@ animations:
   # random type, "[animation] pig" forces a specific one. Remove the line and the
   # level has no animation. Types: pig | explode | particles | lightning | vortex
   # | meteor | cage | endrod.
+  # Staff can also pick one per punishment: "/guard punish <player> meteor".
+  # Without a type the animation is random.
   enabled: true
   # Play a random animation before every level that actually punishes - ban, kick,
   # or any console command - even when that level has no [animation] line.

@@ -78,6 +78,8 @@ class PacketListener(private val plugin: GuardAC) :
     }
 
     private fun handleRotation(gp: GuardPlayer, yaw: Float, pitch: Float) {
+        if (!isSaneRotation(yaw) || !isSaneRotation(pitch)) return
+
         val now = System.nanoTime()
         gp.recordRotationTiming(now)
         gp.rotation.update(yaw, pitch)
@@ -124,6 +126,9 @@ class PacketListener(private val plugin: GuardAC) :
         gp.combat.recordAttack()
     }
 
+    private fun isSaneRotation(v: Float): Boolean =
+        !v.isNaN() && !v.isInfinite() && abs(v) <= MAX_ROTATION_MAGNITUDE
+
     private fun buildTick(gp: GuardPlayer) = AimSample(
         deltaYaw      = gp.rotation.deltaYaw,
         deltaPitch    = gp.rotation.deltaPitch,
@@ -134,4 +139,8 @@ class PacketListener(private val plugin: GuardAC) :
         gcdErrorYaw   = gp.rotation.gcdErrorYaw,
         gcdErrorPitch = gp.rotation.gcdErrorPitch,
     )
+
+    private companion object {
+        const val MAX_ROTATION_MAGNITUDE = 1.0e6f
+    }
 }

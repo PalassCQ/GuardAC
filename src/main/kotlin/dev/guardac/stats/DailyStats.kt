@@ -29,6 +29,7 @@ import java.sql.DriverManager
 import java.sql.SQLException
 import java.time.LocalDate
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 
 class DailyStats(private val plugin: GuardAC) {
 
@@ -36,6 +37,7 @@ class DailyStats(private val plugin: GuardAC) {
     private var connection: Connection? = null
     private val todayDetections = AtomicInteger(0)
     private val todayRequests   = AtomicInteger(0)
+    private val lastRequestFlushMs = AtomicLong(System.currentTimeMillis())
     @Volatile private var currentDate: String = LocalDate.now().toString()
 
     fun initialize() {
@@ -92,6 +94,12 @@ class DailyStats(private val plugin: GuardAC) {
     fun recordRequest() {
         checkDateRollover()
         todayRequests.incrementAndGet()
+
+        val now = System.currentTimeMillis()
+        val last = lastRequestFlushMs.get()
+        if (now - last >= REQUEST_FLUSH_INTERVAL_MS && lastRequestFlushMs.compareAndSet(last, now)) {
+            saveAsync()
+        }
     }
 
     fun getTodayDetections(): Int = todayDetections.get()
@@ -99,55 +107,57 @@ class DailyStats(private val plugin: GuardAC) {
 
     private fun checkDateRollover() {
         val today = LocalDate.now().toString()
-        if (today != currentDate) {
+        if (today == currentDate) return
+        synchronized(lock) {
+
+            if (today == currentDate) return
+            val closedDate       = currentDate
+            val closedDetections = todayDetections.getAndSet(0)
+            val closedRequests   = todayRequests.getAndSet(0)
             currentDate = today
-            todayDetections.set(0)
-            todayRequests.set(0)
+            if (closedDetections > 0 || closedRequests > 0) {
+                writeRow(closedDate, closedDetections, closedRequests)
+            }
+        }
+    }
+
+    private fun writeRow(date: String, detections: Int, requests: Int) {
+        try {
+            connection?.prepareStatement(UPSERT_SQL)?.use { ps ->
+                ps.setString(1, date)
+                ps.setInt(2, detections)
+                ps.setInt(3, requests)
+                ps.executeUpdate()
+            }
+        } catch (e: SQLException) {
+            plugin.logger.warning("[Stats] Failed to save stats for $date: ${e.message}")
         }
     }
 
     private fun saveAsync() {
         plugin.scheduler.async(Runnable {
-            val sql = """
-                INSERT INTO daily_stats (date, detections, requests) VALUES (?, ?, ?)
-                ON CONFLICT(date) DO UPDATE SET
-                    detections = excluded.detections,
-                    requests   = excluded.requests
-            """.trimIndent()
-            try {
-                synchronized(lock) {
-                    connection?.prepareStatement(sql)?.use { ps ->
-                        ps.setString(1, currentDate)
-                        ps.setInt(2, todayDetections.get())
-                        ps.setInt(3, todayRequests.get())
-                        ps.executeUpdate()
-                    }
-                }
-            } catch (e: SQLException) {
-                plugin.logger.warning("[Stats] Failed to save stats: ${e.message}")
+            synchronized(lock) {
+                writeRow(currentDate, todayDetections.get(), todayRequests.get())
             }
         })
     }
 
     fun shutdown() {
+        synchronized(lock) {
+            writeRow(currentDate, todayDetections.get(), todayRequests.get())
+            try { connection?.close() } catch (_: SQLException) {}
+            connection = null
+        }
+    }
 
-        val sql = """
+    private companion object {
+        const val REQUEST_FLUSH_INTERVAL_MS = 60_000L
+
+        val UPSERT_SQL = """
             INSERT INTO daily_stats (date, detections, requests) VALUES (?, ?, ?)
             ON CONFLICT(date) DO UPDATE SET
                 detections = excluded.detections,
                 requests   = excluded.requests
         """.trimIndent()
-        synchronized(lock) {
-            try {
-                connection?.prepareStatement(sql)?.use { ps ->
-                    ps.setString(1, currentDate)
-                    ps.setInt(2, todayDetections.get())
-                    ps.setInt(3, todayRequests.get())
-                    ps.executeUpdate()
-                }
-            } catch (_: SQLException) {}
-            try { connection?.close() } catch (_: SQLException) {}
-            connection = null
-        }
     }
 }

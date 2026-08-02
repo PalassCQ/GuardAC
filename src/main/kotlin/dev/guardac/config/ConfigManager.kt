@@ -183,9 +183,9 @@ class ConfigManager(private val plugin: GuardAC) {
     }
 
     val aiInferBatchUrl: String get() = aiBaseUrl + INFER_BATCH_PATH
-    val aiSequence: Int        get() = cfg.getInt("ai.sequence", 40)
-    val aiStep: Int            get() = cfg.getInt("ai.step", 10)
-    val aiTimeoutSeconds: Long get() = cfg.getLong("ai.timeout-seconds", 5)
+    val aiSequence: Int        get() = cfg.getInt("ai.sequence", 40).coerceIn(8, 400)
+    val aiStep: Int            get() = cfg.getInt("ai.step", 10).coerceIn(1, 400)
+    val aiTimeoutSeconds: Long get() = cfg.getLong("ai.timeout-seconds", 5).coerceIn(1L, 60L)
     val aiContinuous: Boolean  get() = cfg.getBoolean("ai.continuous", false)
 
     val aiBinaryWire: Boolean  get() = cfg.getBoolean("ai.binary-wire", true)
@@ -207,8 +207,8 @@ class ConfigManager(private val plugin: GuardAC) {
     val alertsToConsole: Boolean get() = cfg.getBoolean("alerts.print-to-console", true)
 
     val alertMinConfidence: Double get() =
-        cfg.getDouble("alerts.min-hit-confidence", ALERT_MIN_CONFIDENCE)
-    val alertMinHits: Int          get() = cfg.getInt("alerts.min-hits", 3)
+        cfg.getDouble("alerts.min-hit-confidence", ALERT_MIN_CONFIDENCE).coerceIn(0.0, 100.0)
+    val alertMinHits: Int          get() = cfg.getInt("alerts.min-hits", 3).coerceIn(1, 1000)
 
     val suspiciousAlertsEnabled: Boolean get() = cfg.getBoolean("alerts.suspicious.enabled", true)
     val suspiciousAlertBuffer: Double   get() = cfg.getDouble("alerts.suspicious.buffer", 15.0)
@@ -246,8 +246,9 @@ class ConfigManager(private val plugin: GuardAC) {
     val aiBatchMaxDelayMs: Long     get() = cfg.getLong("ai.batching.max-delay-ms", 15L)
 
     val vlDecayEnabled: Boolean      get() = cfg.getBoolean("vl-decay.enabled", true)
-    val vlDecayIntervalSeconds: Int  get() = cfg.getInt("vl-decay.interval-seconds", VL_DECAY_INTERVAL_SECONDS)
-    val vlDecayAmount: Int           get() = cfg.getInt("vl-decay.amount", 1)
+    val vlDecayIntervalSeconds: Int  get() =
+        cfg.getInt("vl-decay.interval-seconds", VL_DECAY_INTERVAL_SECONDS).coerceIn(10, 86_400)
+    val vlDecayAmount: Int           get() = cfg.getInt("vl-decay.amount", 1).coerceIn(1, 100)
     val vlDecaySkipInCombat: Boolean get() = cfg.getBoolean("vl-decay.skip-in-combat", true)
 
     val punishCooldownMs: Long get() = cfg.getLong("punishment.cooldown-ms", 5000L)
@@ -297,7 +298,8 @@ class ConfigManager(private val plugin: GuardAC) {
         cfg.getDouble("persist-buffer.ttl-minutes", cfg.getDouble("persist-buffer.expiry-minutes", 1440.0))
 
     val combatResetEnabled: Boolean      get() = cfg.getBoolean("combat-reset.enabled", true)
-    val combatResetAfterSeconds: Long    get() = cfg.getLong("combat-reset.after-seconds", 60L)
+    val combatResetAfterSeconds: Long    get() =
+        cfg.getLong("combat-reset.after-seconds", 60L).coerceIn(1L, 86_400L)
 
     val suppressionEnabled: Boolean              get() = cfg.getBoolean("combat-suppression.enabled", false)
     val suppressionStartProbability: Double      get() = cfg.getDouble("combat-suppression.penalty.start-probability", 0.75)

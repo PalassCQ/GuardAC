@@ -23,6 +23,7 @@
 package dev.guardac.command
 
 import dev.guardac.GuardAC
+import dev.guardac.animation.BanAnimationManager
 import dev.guardac.checks.impl.AiCheck
 import dev.guardac.combat.SuppressionStage
 import dev.guardac.menu.LiveHitsMenu
@@ -102,6 +103,8 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
                     "remove", "status" -> online.filter { it.startsWith(args[2], ignoreCase = true) }
                     else -> emptyList()
                 }
+                "punish" -> (listOf(BanAnimationManager.RANDOM) + BanAnimationManager.TYPES)
+                    .filter { it.startsWith(args[2].lowercase()) }
                 else -> emptyList()
             }
             else -> emptyList()
@@ -321,19 +324,42 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
             ?: return sender.sendMessage(plugin.locale.get(Message.PLAYER_NOT_FOUND, "player", name))
         val gp = plugin.playerDataManager.get(target)
             ?: return sender.sendMessage(plugin.locale.get(Message.PUNISH_NO_DATA))
+
+        val requested = args.getOrNull(2)
+        if (requested != null && !BanAnimationManager.isKnownType(requested)) {
+            sender.sendMessage(plugin.locale.get(
+                Message.PUNISH_UNKNOWN_ANIMATION,
+                "animation", requested,
+                "list",      animationList(),
+            ))
+            return
+        }
+
+        val animation = BanAnimationManager.resolveType(requested)
+
         plugin.logger.info(
             "[Punish] Manual punish by ${sender.name} on ${target.name} " +
             "(vl=${gp.aiViolationLevel}, buffer=${"%.1f".format(gp.aiBuffer)}, " +
-            "detections=${gp.totalAiFlags.get()})"
+            "detections=${gp.totalAiFlags.get()}, animation=${animation ?: "random"})"
         )
         val verbose = "manual-punish by ${sender.name}"
 
         val maxVl = plugin.punishmentManager.maxVl("AI")
         plugin.alertManager.sendAlert(gp, "Manual", maxVl, verbose, "[Manual]")
 
-        plugin.punishmentManager.handle(gp, "AI", maxVl, verbose, bypassCooldown = true, forceAnimation = true)
-        sender.sendMessage(plugin.locale.get(Message.PUNISH_SUCCESS, "player", target.name))
+        plugin.punishmentManager.handle(
+            gp, "AI", maxVl, verbose,
+            bypassCooldown = true, forceAnimation = true, animationType = animation,
+        )
+        sender.sendMessage(plugin.locale.get(
+            Message.PUNISH_SUCCESS_ANIMATED,
+            "player",    target.name,
+            "animation", animation ?: BanAnimationManager.RANDOM,
+        ))
     }
+
+    private fun animationList(): String =
+        (listOf(BanAnimationManager.RANDOM) + BanAnimationManager.TYPES).joinToString("&8, &#AEB8C4")
 
     private fun handleStats(sender: CommandSender, args: Array<out String>) {
         val periodLabel = args.getOrNull(1)?.lowercase(Locale.ROOT) ?: "24h"

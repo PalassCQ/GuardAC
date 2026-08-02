@@ -135,10 +135,12 @@ class RotationState {
     }
 
     private fun angleDiff(a: Float, b: Float): Float {
-        var diff = a - b
-        while (diff > 180f)  diff -= 360f
-        while (diff < -180f) diff += 360f
-        return diff
+        val diff = (a - b) % 360f
+        return when {
+            diff > 180f  -> diff - 360f
+            diff < -180f -> diff + 360f
+            else         -> diff
+        }
     }
 
     private companion object {

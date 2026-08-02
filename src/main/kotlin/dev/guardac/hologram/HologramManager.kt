@@ -156,7 +156,7 @@ class HologramManager(private val plugin: GuardAC) {
             val lineLoc = loc.clone().add(0.0, (texts.size - 1 - i) * lh, 0.0)
             val line    = cache.lines.getOrNull(i)
             if (line == null) {
-                val entityId = entityIdCounter.incrementAndGet()
+                val entityId = nextEntityId()
                 spawn(viewer, entityId, lineLoc, texts[i])
                 cache.lines.add(LineEntity(entityId, texts[i]))
             } else {
@@ -167,6 +167,13 @@ class HologramManager(private val plugin: GuardAC) {
                 }
             }
         }
+    }
+
+    private fun nextEntityId(): Int {
+        val id = entityIdCounter.decrementAndGet()
+        if (id > ENTITY_ID_FLOOR) return id
+        entityIdCounter.set(ENTITY_ID_START)
+        return entityIdCounter.decrementAndGet()
     }
 
     private fun removeTarget(viewer: Player, targetId: UUID, state: ViewerState) {
@@ -268,7 +275,8 @@ class HologramManager(private val plugin: GuardAC) {
         val LEGACY = LegacyComponentSerializer.legacyAmpersand()
         val GSON   = GsonComponentSerializer.gson()
 
-        const val ENTITY_ID_START             = 43_000_000
+        const val ENTITY_ID_START             = Int.MAX_VALUE
+        const val ENTITY_ID_FLOOR             = Int.MAX_VALUE - 1_000_000
         const val ENTITY_FLAG_INVISIBLE: Byte = 0x20
         const val ARMOR_STAND_MARKER: Byte    = 0x10
         const val TASK_DELAY                  = 10L

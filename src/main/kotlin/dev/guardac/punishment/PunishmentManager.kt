@@ -104,6 +104,7 @@ class PunishmentManager(private val plugin: GuardAC) {
         verbose: String,
         bypassCooldown: Boolean = false,
         forceAnimation: Boolean = false,
+        animationType: String? = null,
     ) {
         val group = groups[checkGroup]
             ?: groups.values.firstOrNull { g ->
@@ -155,21 +156,34 @@ class PunishmentManager(private val plugin: GuardAC) {
             )
 
             val hasRealCommand   = actions.any { isPunishmentCommand(it) }
-            val hasExplicitAnim  = actions.any { it.trim().lowercase(Locale.ROOT).startsWith("[animation]") }
 
-            val autoAnim = plugin.configManager.animationAutoOnBan
-            val willAnimate = plugin.configManager.animationsEnabled &&
-                (forceAnimation || hasExplicitAnim || (autoAnim && hasRealCommand))
+            val chosenAnim = animationType
 
-            val chain = if (forceAnimation && !hasRealCommand) {
-                actions + fallbackBanAction()
+            val effectiveActions = if (chosenAnim != null) {
+                actions.filterNot { it.trim().lowercase(Locale.ROOT).startsWith("[animation]") }
             } else {
                 actions
             }
+            val hasExplicitAnim = effectiveActions.any {
+                it.trim().lowercase(Locale.ROOT).startsWith("[animation]")
+            }
+
+            val autoAnim = plugin.configManager.animationAutoOnBan
+            val willAnimate = plugin.configManager.animationsEnabled &&
+                (forceAnimation || chosenAnim != null || hasExplicitAnim || (autoAnim && hasRealCommand))
+
+            val chain = if (forceAnimation && !hasRealCommand) {
+                effectiveActions + fallbackBanAction()
+            } else {
+                effectiveActions
+            }
             val dropLoot = chain.any { it.trim().lowercase(Locale.ROOT).startsWith("[ban]") }
             if (willAnimate && !hasExplicitAnim) {
-                plugin.banAnimationManager.playRandom(gp.player, dropLoot) {
-                    executeChain(gp, checkGroup, vl, verbose, chain, 0)
+                val cont = { executeChain(gp, checkGroup, vl, verbose, chain, 0) }
+                if (chosenAnim != null) {
+                    plugin.banAnimationManager.play(gp.player, chosenAnim, dropLoot, cont)
+                } else {
+                    plugin.banAnimationManager.playRandom(gp.player, dropLoot, cont)
                 }
             } else {
                 executeChain(gp, checkGroup, vl, verbose, chain, 0)

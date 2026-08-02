@@ -139,7 +139,11 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
             }
         }
 
-        val resolved = (type?.trim()?.lowercase()?.ifBlank { null }) ?: TYPES.random()
+        val resolved = resolveType(type) ?: run {
+
+            warnUnknownType(type)
+            TYPES.random()
+        }
         when (resolved) {
             "pig"       -> playPig(player, finishWith)
             "explode"   -> playExplode(player, finishWith)
@@ -148,9 +152,18 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
             "vortex"    -> playVortex(player, finishWith)
             "meteor"    -> playMeteor(player, finishWith)
             "cage"      -> playCage(player, finishWith)
-            "endrod", "end_rod", "rod" -> playEndRod(player, finishWith)
+            "endrod"    -> playEndRod(player, finishWith)
             else        -> finishWith(player.location.clone())
         }
+    }
+
+    private fun warnUnknownType(type: String?) {
+        val raw = type?.trim().orEmpty()
+        if (raw.isEmpty() || !missingWarned.add("type:$raw")) return
+        plugin.logger.warning(
+            "[Animation] Unknown animation \"$raw\" - playing a random one instead. " +
+            "Available: ${TYPES.joinToString(" | ")}"
+        )
     }
 
     private class Freeze(val restore: () -> Unit)
@@ -695,16 +708,37 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
             .onFailure { world.spawnParticle(particle, loc, count, dx, dy, dz, speed) }
     }
 
-    private companion object {
+    companion object {
+
         val TYPES = listOf("pig", "explode", "particles", "lightning", "vortex", "meteor", "cage", "endrod")
 
-        const val ANIM_TAG = "guardac_anim"
-        const val RISE_SPEED = 0.35
+        const val RANDOM = "random"
 
-        const val ROD_SEGMENTS = 3
-        const val ROD_TOP_OFFSET = -0.3
-        const val ROD_GROW_TICKS = 8
+        private val ALIASES = mapOf(
+            "end_rod" to "endrod",
+            "rod"     to "endrod",
+            "endrod"  to "endrod",
+        )
 
-        const val WITHER_PITCH = 1.8f
+        fun resolveType(raw: String?): String? {
+            val key = raw?.trim()?.lowercase(java.util.Locale.ROOT)?.ifBlank { null } ?: return null
+            if (key == RANDOM) return TYPES.random()
+            ALIASES[key]?.let { return it }
+            return if (key in TYPES) key else null
+        }
+
+        fun isKnownType(raw: String?): Boolean {
+            val key = raw?.trim()?.lowercase(java.util.Locale.ROOT)?.ifBlank { null } ?: return false
+            return key == RANDOM || key in ALIASES || key in TYPES
+        }
+
+        private const val ANIM_TAG = "guardac_anim"
+        private const val RISE_SPEED = 0.35
+
+        private const val ROD_SEGMENTS = 3
+        private const val ROD_TOP_OFFSET = -0.3
+        private const val ROD_GROW_TICKS = 8
+
+        private const val WITHER_PITCH = 1.8f
     }
 }
