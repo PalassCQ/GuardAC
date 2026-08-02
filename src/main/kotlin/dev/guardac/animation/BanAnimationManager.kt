@@ -133,7 +133,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         }
 
         val lift = if (resolved == "pig") null
-                   else beginLift(player, cfg.animationDurationTicks, if (resolved == "endrod") PISTON_PULSES else 0)
+                   else beginLift(player, cfg.animationDurationTicks, if (resolved == "endrod") endRodPulses(cfg.animationPigHeight) else 0)
 
         val finishWith: (Location) -> Unit = { loc ->
             if (done.compareAndSet(false, true)) {
@@ -205,15 +205,23 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
     private fun liftProfile(t: Int, duration: Int, height: Double, pulses: Int): Double {
         if (pulses <= 0) return height * (t.toDouble() / duration).coerceIn(0.0, 1.0)
 
-        val cycle = (duration / pulses).coerceAtLeast(1)
-        val push  = (cycle * PUSH_FRACTION).toInt().coerceAtLeast(1)
-        val step  = height / pulses
+        val cycle = (duration.toDouble() / pulses).coerceAtLeast(1.0)
+        val push  = (cycle * PUSH_FRACTION).coerceAtLeast(1.0)
 
-        val index = (t / cycle).coerceIn(0, pulses - 1)
+        val first = if (pulses == 1) height else FIRST_STEP.coerceAtMost(height)
+        val rest  = if (pulses > 1) (height - first) / (pulses - 1) else 0.0
+
+        val index = (t / cycle).toInt().coerceIn(0, pulses - 1)
         val into  = t - index * cycle
-        val frac  = (into.toDouble() / push).coerceIn(0.0, 1.0)
-        return (step * index + step * frac).coerceAtMost(height)
+        val frac  = (into / push).coerceIn(0.0, 1.0)
+
+        val done = if (index == 0) 0.0 else first + rest * (index - 1)
+        val step = if (index == 0) first else rest
+        return (done + step * frac).coerceAtMost(height)
     }
+
+    private fun endRodPulses(height: Double): Int =
+        (1 + Math.ceil((height - FIRST_STEP).coerceAtLeast(0.0) / STEP_BLOCKS).toInt()).coerceIn(1, 40)
 
     private class Freeze(val restore: () -> Unit)
 
@@ -588,7 +596,8 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
                 val lift = base.y - lastY
                 lastY = base.y
 
-                val cycleTicks  = (duration.toDouble() / PISTON_PULSES).coerceAtLeast(1.0)
+                val cycleTicks  = (duration.toDouble() / endRodPulses(plugin.configManager.animationPigHeight))
+                    .coerceAtLeast(1.0)
                 val strokeTicks = (cycleTicks / ROD_STROKES_PER_CYCLE).coerceAtLeast(1.0)
                 val phase       = (t / strokeTicks) * 2.0 * Math.PI
                 val stroke      = ROD_STROKE * (1.0 - Math.cos(phase)) * 0.5
@@ -820,7 +829,8 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
 
         private const val ROD_JUMP_DIST_SQ = 9.0
 
-        private const val PISTON_PULSES = 5
+        private const val FIRST_STEP = 2.0
+        private const val STEP_BLOCKS = 1.0
         private const val PUSH_EPSILON = 0.005
         private const val PUSH_FRACTION = 0.3
 
@@ -828,7 +838,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
 
         private const val ROD_STROKE = 0.45
 
-        private const val ROD_STROKES_PER_CYCLE = 3.0
+        private const val ROD_STROKES_PER_CYCLE = 1.0
 
         private const val MOUNT_RIDE_OFFSET = 0.9
 
