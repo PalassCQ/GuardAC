@@ -52,7 +52,8 @@ class GuardPlayer(
     private val tickBuffer   = ArrayDeque<AimSample>(plugin.configManager.aiSequence * 2)
 
     private val deepBuffer = ArrayDeque<AimSample>(DEEP_WINDOW_TICKS + 32)
-    private var activeShortWindows = 0
+    private var deepFreshTicks    = 0
+    private var lastJudgeAttacks  = 0
 
     private var ticksSinceLastSend = 0
 
@@ -164,9 +165,9 @@ class GuardPlayer(
         while (tickBuffer.size > sequenceSize * 2) tickBuffer.removeFirst()
         ticksSinceLastSend++
 
-        val judgeWindow = DEEP_WINDOW_TICKS
         deepBuffer.addLast(tick)
-        while (deepBuffer.size > judgeWindow) deepBuffer.removeFirst()
+        while (deepBuffer.size > DEEP_WINDOW_TICKS) deepBuffer.removeFirst()
+        if (deepFreshTicks < DEEP_WINDOW_TICKS) deepFreshTicks++
     }
 
     fun pollSequence(): Array<AimSample>? {
@@ -178,9 +179,15 @@ class GuardPlayer(
 
     fun pollDeepSequence(): Array<AimSample>? {
         if (deepBuffer.size < DEEP_WINDOW_TICKS) return null
-        activeShortWindows++
-        if (activeShortWindows < DEEP_TRIGGER_EVERY) return null
-        activeShortWindows = 0
+
+        val attacks = combat.totalAttacks
+        if (attacks < lastJudgeAttacks) lastJudgeAttacks = attacks
+        if (attacks - lastJudgeAttacks < DEEP_TRIGGER_ATTACKS) return null
+
+        if (deepFreshTicks < DEEP_WINDOW_TICKS) return null
+
+        lastJudgeAttacks = attacks
+        deepFreshTicks   = 0
         return deepBuffer.toTypedArray()
     }
 
@@ -468,7 +475,7 @@ class GuardPlayer(
         const val FP_THROTTLE_MS           = 30_000L
 
         const val DEEP_WINDOW_TICKS        = 160
-        const val DEEP_TRIGGER_EVERY       = 5
+        const val DEEP_TRIGGER_ATTACKS     = 5
         const val DEEP_VERDICT_TTL_MS      = 20_000L
     }
 }

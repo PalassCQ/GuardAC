@@ -67,7 +67,7 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
                 judgeDisabledUntilMs = 0L
                 judgeState = JudgeState.ACTIVE
                 gp.recordJudgeVerdict(result.probability)
-                plugin.alertManager.dispatchMonitorHit(gp, result.probability, result.model)
+                plugin.alertManager.dispatchMonitorHit(gp, result.probability, result.model, bypassThrottle = true)
             } else {
                 judgeDisabledUntilMs = System.currentTimeMillis() + JUDGE_PROBE_INTERVAL_MS
                 judgeState = JudgeState.UNAVAILABLE
