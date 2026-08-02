@@ -518,7 +518,11 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         }.getOrNull()
         mount?.let { runCatching { it.addPassenger(player) } }
 
-        var rod: Entity? = material?.let { spawnRodSegment(rodLocation(player.location), it) }
+        val height    = plugin.configManager.animationPigHeight
+        val targetY   = player.location.y + height
+        val riseSpeed = riseSpeedFor(height, duration)
+
+        var rod: Entity? = material?.let { spawnRodSegment(rodLocation(player.location, riseSpeed), it) }
         val solid = rod != null
         val cleanup = {
             rod?.let { seg -> spawned.remove(seg); runCatching { seg.remove() } }
@@ -529,10 +533,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
             }
         }
 
-        val height    = plugin.configManager.animationPigHeight
-        val targetY   = player.location.y + height
-        val riseSpeed = riseSpeedFor(height, duration)
-        burst(world, particle("END_ROD", "CRIT"), rodLocation(player.location), 14, 0.18, 0.2, 0.18, 0.04)
+        burst(world, particle("END_ROD", "CRIT"), rodLocation(player.location), 24, 0.25, 0.3, 0.25, 0.05)
 
         var t = 0
         plugin.scheduler.entityTimer(
@@ -553,7 +554,6 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
                 }
 
                 val base = player.location
-                val seat = rodLocation(base)
 
                 runCatching { player.isSneaking = true }
 
@@ -568,41 +568,54 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
                     anchors[player.uniqueId] = mount.location.clone()
                 }
 
+                val seat = rodLocation(base, lift)
                 val current = rod
                 if (current != null) {
 
-                    current.velocity = Vector(0.0, lift, 0.0)
-                    if (current.location.distanceSquared(seat) > ROD_RESYNC_DIST_SQ) {
+                    val delta = seat.toVector().subtract(current.location.toVector())
+                    if (delta.lengthSquared() > ROD_JUMP_DIST_SQ) {
                         plugin.scheduler.teleport(current, seat)
+                        current.velocity = Vector(0.0, 0.0, 0.0)
+                    } else {
+                        current.velocity = delta
                     }
                 } else {
 
                     var y = 0.0
                     while (y <= 0.9) {
-                        burst(world, particle("END_ROD", "CRIT"), seat.clone().add(0.0, y, 0.0), 1)
-                        y += 0.3
+                        burst(world, particle("END_ROD", "CRIT"), seat.clone().add(0.0, y, 0.0), 2)
+                        y += 0.25
                     }
                 }
 
-                burst(world, particle("END_ROD", "CRIT"), seat, 2, 0.07, 0.04, 0.07, 0.02)
                 burst(
                     world, particle("LARGE_SMOKE", "SMOKE_LARGE", "SMOKE"),
-                    seat.clone().add(0.0, -0.2, 0.0), 2, 0.1, 0.05, 0.1, 0.01,
+                    seat.clone().add(0.0, -0.15, 0.0), 6, 0.14, 0.06, 0.14, 0.02,
                 )
+                burst(world, particle("END_ROD", "CRIT"), seat, 5, 0.1, 0.06, 0.1, 0.03)
 
-                for (arm in 0 until 2) {
-                    val ang = t * 0.28 + arm * Math.PI
-                    val y = 0.2 + ((t * 0.08 + arm * 0.9) % 1.9)
+                for (arm in 0 until 3) {
+                    val ang = t * 0.3 + arm * (Math.PI * 2.0 / 3.0)
+                    val y   = ((t * 0.09 + arm * 0.75) % 2.3) - 0.6
                     burst(
                         world, particle("END_ROD", "CRIT"),
-                        base.clone().add(Math.cos(ang) * 0.65, y, Math.sin(ang) * 0.65), 1,
+                        base.clone().add(Math.cos(ang) * 0.85, y, Math.sin(ang) * 0.85), 2, 0.03, 0.03, 0.03, 0.0,
                     )
                 }
-                val swirl = -t * 0.19
-                burst(
-                    world, particle("PORTAL"),
-                    base.clone().add(Math.cos(swirl) * 0.85, 1.0, Math.sin(swirl) * 0.85), 3, 0.05, 0.3, 0.05, 0.02,
-                )
+
+                for (i in 0 until 6) {
+                    val ang = -t * 0.22 + i * (Math.PI / 3.0)
+                    burst(
+                        world, particle("PORTAL"),
+                        base.clone().add(Math.cos(ang) * 1.05, 1.1, Math.sin(ang) * 1.05), 2, 0.05, 0.45, 0.05, 0.04,
+                    )
+                }
+                if (t % 4 == 0) {
+                    burst(
+                        world, particle("CRIT"),
+                        base.clone().add(0.0, 0.9, 0.0), 8, 0.45, 0.5, 0.45, 0.05,
+                    )
+                }
                 if (t % 25 == 0) {
                     playAnySound(
                         base, 0.4f, 1.3f,
@@ -631,8 +644,8 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         return (height / riseTicks).coerceIn(MIN_RISE_SPEED, RISE_SPEED)
     }
 
-    private fun rodLocation(base: Location): Location =
-        base.clone().add(0.0, ROD_OFFSET_Y, 0.0).apply { yaw = 0f; pitch = 0f }
+    private fun rodLocation(base: Location, lift: Double = 0.0): Location =
+        base.clone().add(0.0, ROD_OFFSET_Y + lift, 0.0).apply { yaw = 0f; pitch = 0f }
 
     private fun rodMaterial(): Material? = runCatching { Material.valueOf("END_ROD") }.getOrNull()
 
@@ -753,11 +766,11 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         private const val RISE_SPEED = 0.35
         private const val MIN_RISE_SPEED = 0.02
 
-        private const val RISE_FRACTION = 0.85
+        private const val RISE_FRACTION = 1.0
 
-        private const val ROD_RESYNC_DIST_SQ = 0.25
+        private const val ROD_JUMP_DIST_SQ = 9.0
 
-        private const val ROD_OFFSET_Y = -0.75
+        private const val ROD_OFFSET_Y = -1.0
 
         private const val WITHER_PITCH = 1.8f
     }
