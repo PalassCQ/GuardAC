@@ -100,7 +100,6 @@ class AlertManager(private val plugin: GuardAC) {
 
     private class HitDigest {
         var lastHitMs = 0L
-        var creditedUntilMs = 0L
         var episodeHits = 0
         var batchMax = 0.0
         var model = "[AI]"
@@ -112,7 +111,6 @@ class AlertManager(private val plugin: GuardAC) {
         val cfg = plugin.configManager
         val minHits = cfg.alertMinHits.coerceAtLeast(1)
         val minConfidence = cfg.alertMinConfidence
-        val momentMs = cfg.aiSequence.toLong() * MS_PER_TICK
         val episodeIdleMs = cfg.alertWindowSeconds * 1000L
         val d = digests.computeIfAbsent(gp.uuid) { HitDigest() }
         var announceCount = 0
@@ -125,24 +123,17 @@ class AlertManager(private val plugin: GuardAC) {
             if (now - d.lastHitMs > episodeIdleMs) {
                 d.episodeHits = 0
                 d.batchMax = 0.0
-                d.creditedUntilMs = 0L
             }
-
-            val from = maxOf(d.creditedUntilMs, now - momentMs)
-            val fresh = gp.combat.attacksBetween(from, now).coerceAtMost(MAX_HITS_PER_VERDICT)
-            d.creditedUntilMs = now
-            if (fresh <= 0) return false
 
             d.lastHitMs = now
             if (probability > d.batchMax) d.batchMax = probability
             d.model = model
 
-            val previous = d.episodeHits
-            d.episodeHits += fresh
-            if (d.episodeHits / minHits > previous / minHits) {
+            d.episodeHits += 1
+            if (d.episodeHits % minHits == 0) {
                 announceCount = d.episodeHits
                 announceMax = d.batchMax
-                firstOfEpisode = previous < minHits
+                firstOfEpisode = d.episodeHits == minHits
                 d.batchMax = 0.0
             }
         }
@@ -445,7 +436,6 @@ class AlertManager(private val plugin: GuardAC) {
     companion object {
         const val MS_PER_TICK         = 50L
         const val MONITOR_THROTTLE_MS = 1_000L
-        const val MAX_HITS_PER_VERDICT = 8
         const val ALERT_THROTTLE_MS   = 1_000L
         const val SUSPICIOUS_THROTTLE_MS = 15_000L
 
