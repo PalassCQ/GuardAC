@@ -33,10 +33,20 @@ class CombatState {
     @Volatile var lastAttackMs: Long = 0L
         private set
 
+    private val attackTimes = ArrayDeque<Long>()
+
     fun recordAttack() {
         ticksSinceAttack = 0
         totalAttacks++
         lastAttackMs = System.currentTimeMillis()
+        synchronized(attackTimes) {
+            attackTimes.addLast(lastAttackMs)
+            while (attackTimes.size > ATTACK_HISTORY) attackTimes.removeFirst()
+        }
+    }
+
+    fun attacksBetween(afterMs: Long, untilMs: Long): Int = synchronized(attackTimes) {
+        attackTimes.count { it > afterMs && it <= untilMs }
     }
 
     fun tickElapsed() {
@@ -55,5 +65,10 @@ class CombatState {
         ticksSinceAttack = Int.MAX_VALUE / 2
         totalAttacks     = 0
         lastAttackMs     = 0L
+        synchronized(attackTimes) { attackTimes.clear() }
+    }
+
+    companion object {
+        private const val ATTACK_HISTORY = 64
     }
 }

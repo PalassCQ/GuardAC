@@ -181,52 +181,35 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
 
         if (player.isInsideVehicle) runCatching { player.leaveVehicle() }
 
-        val mount = runCatching {
-            track(player.world.spawn(player.location, Pig::class.java).apply {
-                setGravity(false)
-                isSilent = true
-                isInvulnerable = true
-                removeWhenFarAway = true
-                Compat.potion("INVISIBILITY")?.let {
-                    addPotionEffect(PotionEffect(it, duration + 40, 0, false, false))
-                }
-            })
-        }.getOrNull() ?: return Lift { }
-
-        runCatching { mount.addPassenger(player) }
-
         var t = 0
+        var liftedY = player.location.y
         val task = plugin.scheduler.entityTimer(player, 1L, 1L) { handle ->
             try {
-                if (!player.isOnline || !mount.isValid || t >= duration) {
+                if (!player.isOnline || t >= duration) {
                     handle.cancel()
                     return@entityTimer
-                }
-                if (!mount.passengers.contains(player)) {
-                    plugin.scheduler.teleport(player, mount.location)
-                    runCatching { mount.addPassenger(player) }
                 }
                 val speed = if (piston && t < PISTON_TICKS) {
                     PISTON_SPEED
                 } else {
-                    val left = targetY - mount.location.y
+                    val left = targetY - liftedY
                     if (left <= 0.0) 0.0
                     else (left / (duration - t).coerceAtLeast(1)).coerceIn(0.0, PISTON_SPEED)
                 }
-                mount.velocity = Vector(0.0, speed, 0.0)
-                anchors[player.uniqueId] = mount.location.clone()
+                liftedY = (liftedY + speed).coerceAtMost(targetY)
+
+                val here = player.location
+                if (kotlin.math.abs(liftedY - here.y) > 1.0e-4) {
+                    plugin.scheduler.teleport(player, here.clone().apply { y = liftedY })
+                }
+                anchors[player.uniqueId] = player.location.clone()
                 t++
             } catch (e: Exception) {
                 handle.cancel()
             }
         }
 
-        return Lift {
-            runCatching { task.cancel() }
-            runCatching { mount.removePassenger(player) }
-            spawned.remove(mount)
-            runCatching { mount.remove() }
-        }
+        return Lift { runCatching { task.cancel() } }
     }
 
     private class Freeze(val restore: () -> Unit)
