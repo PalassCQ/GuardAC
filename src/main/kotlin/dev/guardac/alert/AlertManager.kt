@@ -100,6 +100,7 @@ class AlertManager(private val plugin: GuardAC) {
 
     private class HitDigest {
         var lastHitMs = 0L
+        var lastCountedMs = 0L
         var episodeHits = 0
         var batchMax = 0.0
         var model = "[AI]"
@@ -116,6 +117,7 @@ class AlertManager(private val plugin: GuardAC) {
         var announceCount = 0
         var announceMax = 0.0
         var firstOfEpisode = false
+        val momentMs = cfg.aiSequence.toLong() * 50L
         synchronized(d) {
             if (probability * 100.0 < minConfidence) return false
             val now = System.currentTimeMillis()
@@ -123,11 +125,15 @@ class AlertManager(private val plugin: GuardAC) {
             if (now - d.lastHitMs > episodeIdleMs) {
                 d.episodeHits = 0
                 d.batchMax = 0.0
+                d.lastCountedMs = 0L
             }
 
             d.lastHitMs = now
             if (probability > d.batchMax) d.batchMax = probability
             d.model = model
+
+            if (d.lastCountedMs != 0L && now - d.lastCountedMs < momentMs) return false
+            d.lastCountedMs = now
 
             d.episodeHits += 1
             if (d.episodeHits % minHits == 0) {
