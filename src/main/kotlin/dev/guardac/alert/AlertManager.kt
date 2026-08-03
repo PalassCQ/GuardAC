@@ -101,7 +101,6 @@ class AlertManager(private val plugin: GuardAC) {
     private class HitDigest {
         var lastHitMs = 0L
         var lastCountedMs = 0L
-        var creditedUntilMs = 0L
         var episodeHits = 0
         var batchMax = 0.0
         var model = "[AI]"
@@ -109,7 +108,7 @@ class AlertManager(private val plugin: GuardAC) {
 
     private val digests = ConcurrentHashMap<UUID, HitDigest>()
 
-    fun recordVerdict(gp: GuardPlayer, probability: Double, model: String, windowEndMs: Long): Int {
+    fun recordVerdict(gp: GuardPlayer, probability: Double, model: String): Boolean {
         val cfg = plugin.configManager
         val minHits = cfg.alertMinHits.coerceAtLeast(1)
         val minConfidence = cfg.alertMinConfidence
@@ -118,48 +117,37 @@ class AlertManager(private val plugin: GuardAC) {
         var announceCount = 0
         var announceMax = 0.0
         var firstOfEpisode = false
-        var steps = 0
         val momentMs = cfg.aiSequence.toLong() * 50L
         synchronized(d) {
-            if (probability * 100.0 < minConfidence) return 0
+            if (probability * 100.0 < minConfidence) return false
             val now = System.currentTimeMillis()
 
             if (now - d.lastHitMs > episodeIdleMs) {
                 d.episodeHits = 0
                 d.batchMax = 0.0
                 d.lastCountedMs = 0L
-                d.creditedUntilMs = 0L
             }
 
             d.lastHitMs = now
             if (probability > d.batchMax) d.batchMax = probability
             d.model = model
 
-            val gained = if (gp.combat.lastAttackMs == 0L) {
-                if (d.lastCountedMs == 0L || now - d.lastCountedMs >= momentMs) 1 else 0
-            } else {
-                val from = maxOf(d.creditedUntilMs, windowEndMs - momentMs * 2L)
-                gp.combat.attacksBetween(from, windowEndMs).coerceAtMost(minHits)
-            }
-            d.creditedUntilMs = maxOf(d.creditedUntilMs, windowEndMs)
-            if (gained <= 0) return 0
-
+            if (d.lastCountedMs != 0L && now - d.lastCountedMs < momentMs) return false
             d.lastCountedMs = now
-            val before = d.episodeHits
-            d.episodeHits += gained
-            steps = d.episodeHits / minHits - before / minHits
-            if (steps > 0) {
-                announceCount = (d.episodeHits / minHits) * minHits
+
+            d.episodeHits += 1
+            if (d.episodeHits % minHits == 0) {
+                announceCount = d.episodeHits
                 announceMax = d.batchMax
-                firstOfEpisode = before < minHits
+                firstOfEpisode = d.episodeHits == minHits
                 d.batchMax = 0.0
             }
         }
         if (announceCount > 0) {
             sendCountAlert(gp, announceCount, announceMax, model, withSound = firstOfEpisode)
-            return steps
+            return true
         }
-        return 0
+        return false
     }
 
     private fun sendCountAlert(gp: GuardPlayer, count: Int, maxProb: Double, model: String, withSound: Boolean) {
