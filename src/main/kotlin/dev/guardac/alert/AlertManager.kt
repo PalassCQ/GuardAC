@@ -112,10 +112,6 @@ class AlertManager(private val plugin: GuardAC) {
         val cfg = plugin.configManager
         val minHits = cfg.alertMinHits.coerceAtLeast(1)
         val minConfidence = cfg.alertMinConfidence
-        // One counted hit per window length, never per second: windows are
-        // ai.sequence ticks long but leave every ai.step ticks, so neighbours
-        // overlap by 75% and a single movement lands in four of them. Counting
-        // faster than the window scrolls hands one moment several hits.
         val momentMs = cfg.aiSequence.toLong() * MS_PER_TICK
         val episodeIdleMs = cfg.alertWindowSeconds * 1000L
         val d = digests.computeIfAbsent(gp.uuid) { HitDigest() }

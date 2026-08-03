@@ -328,9 +328,6 @@ class ConfigManager(private val plugin: GuardAC) {
         const val ANIM_DURATION_TICKS = 100
 
         const val ALERT_MIN_CONFIDENCE = 85.0
-        // How long a counted hit keeps the series alive. Hits further apart than
-        // this start a fresh xN series, so scattered one-off flags never add up
-        // into a punishment the way a sustained episode does.
         const val ALERT_WINDOW_SECONDS = 20L
         const val VL_DECAY_INTERVAL_SECONDS = 3600
     }
