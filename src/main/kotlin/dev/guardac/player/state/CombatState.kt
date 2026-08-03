@@ -33,10 +33,24 @@ class CombatState {
     @Volatile var lastAttackMs: Long = 0L
         private set
 
+    private val attackTimes = LongArray(ATTACK_HISTORY)
+    private var attackIndex = 0
+
+    @Synchronized
     fun recordAttack() {
         ticksSinceAttack = 0
         totalAttacks++
-        lastAttackMs = System.currentTimeMillis()
+        val now = System.currentTimeMillis()
+        lastAttackMs = now
+        attackTimes[attackIndex] = now
+        attackIndex = (attackIndex + 1) % ATTACK_HISTORY
+    }
+
+    @Synchronized
+    fun attacksBetween(fromMs: Long, toMs: Long): Int {
+        var found = 0
+        for (t in attackTimes) if (t > fromMs && t <= toMs) found++
+        return found
     }
 
     fun tickElapsed() {
@@ -51,9 +65,16 @@ class CombatState {
         return last != 0L && System.currentTimeMillis() - last <= seconds * 1000L
     }
 
+    @Synchronized
     fun reset() {
         ticksSinceAttack = Int.MAX_VALUE / 2
         totalAttacks     = 0
         lastAttackMs     = 0L
+        attackTimes.fill(0L)
+        attackIndex      = 0
+    }
+
+    companion object {
+        private const val ATTACK_HISTORY = 64
     }
 }

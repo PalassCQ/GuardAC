@@ -50,8 +50,9 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
         val minTps = cfg.aiMinTpsAnalyze
         if (minTps > 0.0 && plugin.tpsMonitor.tps < minTps) return
 
+        val capturedMs = System.currentTimeMillis()
         plugin.aiTransport.infer(ticks, false)
-            .thenAccept { result -> handleResult(gp, result, lagDistorted, ticks) }
+            .thenAccept { result -> handleResult(gp, result, lagDistorted, ticks, capturedMs) }
 
         pollJudge(gp)
     }
@@ -94,6 +95,7 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
 
     private fun handleResult(
         gp: GuardPlayer, result: InferenceResult, lagDistorted: Boolean, ticks: Array<AimSample>,
+        capturedMs: Long,
     ) {
         when (result) {
             is InferenceResult.Disabled -> return
@@ -139,8 +141,9 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
                 }
                 plugin.alertManager.dispatchMonitorHit(gp, prob, result.model)
 
-                val batchAnnounced = plugin.alertManager.recordVerdict(gp, prob, modelTag(result.sources))
-                val flagged        = batchAnnounced && gp.creditAiViolation()
+                val steps   = plugin.alertManager.recordVerdict(gp, prob, modelTag(result.sources), capturedMs)
+                var flagged = false
+                repeat(steps) { flagged = gp.creditAiViolation() }
                 val isolatedAfter  = gp.isIsolated
 
                 plugin.scheduler.entity(gp.player, Runnable {
