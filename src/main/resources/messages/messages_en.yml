@@ -95,6 +95,7 @@ overhead-hidden: "&#FFC857● &7Data above players is &8hidden&7 &8- &7nothing i
 punish-success: "&#4ADE80✔ &7Punishment applied to &#AEB8C4{player}&7."
 punish-success-animated: "&#4ADE80✔ &7Punishment applied to &#AEB8C4{player}&7. Animation&8: &#22D3EE{animation}&7."
 punish-unknown-animation: "&#FF4D6D✖ &7Unknown animation &#AEB8C4{animation}&7. Available&8: &#AEB8C4{list}&7."
+punish-disabled-animation: "&#FF4D6D✖ &7Animation &#AEB8C4{animation}&7 is switched off in the config. Available&8: &#AEB8C4{list}&7."
 punish-no-data: "&#FF4D6D✖ &7Player data not found."
 unsafe-name-kick: "&cYou have been removed from the server."
 

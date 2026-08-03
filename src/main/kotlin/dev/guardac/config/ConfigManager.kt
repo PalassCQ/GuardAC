@@ -270,6 +270,13 @@ class ConfigManager(private val plugin: GuardAC) {
 
     val animationAutoOnBan: Boolean  get() = cfg.getBoolean("animations.auto-on-ban", true)
 
+    fun animationTypeEnabled(type: String): Boolean =
+        cfg.getBoolean("animations.types.$type.enabled", true)
+    fun animationTypeParticles(type: String): Boolean =
+        cfg.getBoolean("animations.types.$type.particles", true)
+    fun animationTypeSound(type: String): Boolean =
+        animationSound && cfg.getBoolean("animations.types.$type.sound", true)
+
     val animationFallbackBanTime: String get() =
         cfg.getString("animations.fallback-ban-time", "30d")!!.trim()
     val animationFallbackBanReason: String get() =

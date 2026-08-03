@@ -103,7 +103,7 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
                     "remove", "status" -> online.filter { it.startsWith(args[2], ignoreCase = true) }
                     else -> emptyList()
                 }
-                "punish" -> (listOf(BanAnimationManager.RANDOM) + BanAnimationManager.TYPES)
+                "punish" -> (listOf(BanAnimationManager.RANDOM) + plugin.banAnimationManager.availableTypes())
                     .filter { it.startsWith(args[2].lowercase()) }
                 else -> emptyList()
             }
@@ -336,6 +336,16 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
         }
 
         val animation = BanAnimationManager.resolveType(requested)
+        if (animation != null && animation != BanAnimationManager.RANDOM &&
+            !plugin.configManager.animationTypeEnabled(animation)
+        ) {
+            sender.sendMessage(plugin.locale.get(
+                Message.PUNISH_DISABLED_ANIMATION,
+                "animation", animation,
+                "list",      animationList(),
+            ))
+            return
+        }
 
         plugin.logger.info(
             "[Punish] Manual punish by ${sender.name} on ${target.name} " +
@@ -359,7 +369,8 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
     }
 
     private fun animationList(): String =
-        (listOf(BanAnimationManager.RANDOM) + BanAnimationManager.TYPES).joinToString("&8, &#AEB8C4")
+        (listOf(BanAnimationManager.RANDOM) + plugin.banAnimationManager.availableTypes())
+            .joinToString("&8, &#AEB8C4")
 
     private fun handleStats(sender: CommandSender, args: Array<out String>) {
         val periodLabel = args.getOrNull(1)?.lowercase(Locale.ROOT) ?: "24h"

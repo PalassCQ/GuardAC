@@ -6,7 +6,7 @@
 # below switches everything the plugin SAYS (staff alerts, command output,
 # player messages) between languages.
 
-config-version: 42
+config-version: 43
 
 # Language of all plugin messages: en | ru
 locale: "en"
@@ -88,6 +88,51 @@ animations:
   # The sped-up wither "kill" sound at the very end of every show.
   # Set to false to keep the show but drop that final sting.
   kill-sound: true
+  # Settings for one animation at a time. The switches above still apply to all
+  # of them, these only narrow things down further.
+  #
+  #   enabled   - false drops the type completely: it is never picked at random,
+  #               and an "[animation] <type>" line asking for it plays another
+  #               enabled type instead (a warning is written to the console).
+  #   particles - false keeps the animation but removes every particle from it,
+  #               including the closing burst. The movement and the sounds stay.
+  #   sound     - false mutes this one type. "sound: false" above mutes all.
+  #
+  # Turning "particles" and "sound" off at once leaves a quiet show where the
+  # player is only lifted into the air before the punishment lands.
+  types:
+    pig:
+      enabled: true
+      particles: true
+      sound: true
+    explode:
+      enabled: true
+      particles: true
+      sound: true
+    particles:
+      enabled: true
+      particles: true
+      sound: true
+    lightning:
+      enabled: true
+      particles: true
+      sound: true
+    vortex:
+      enabled: true
+      particles: true
+      sound: true
+    meteor:
+      enabled: true
+      particles: true
+      sound: true
+    cage:
+      enabled: true
+      particles: true
+      sound: true
+    endrod:
+      enabled: true
+      particles: true
+      sound: true
   # Used only by /guard punish and forced animations: if that level has no ban
   # command of its own, this ban is issued after the show. 30d / 12h / 45m; "" = permanent.
   fallback-ban-time: "30d"

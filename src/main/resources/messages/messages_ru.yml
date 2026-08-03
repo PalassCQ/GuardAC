@@ -94,6 +94,7 @@ overhead-hidden: "&#FFC857● &7Данные над игроками &8скры�
 punish-success: "&#4ADE80✔ &7Наказание применено к &#AEB8C4{player}&7."
 punish-success-animated: "&#4ADE80✔ &7Наказание применено к &#AEB8C4{player}&7. Анимация&8: &#22D3EE{animation}&7."
 punish-unknown-animation: "&#FF4D6D✖ &7Неизвестная анимация &#AEB8C4{animation}&7. Доступны&8: &#AEB8C4{list}&7."
+punish-disabled-animation: "&#FF4D6D✖ &7Анимация &#AEB8C4{animation}&7 выключена в конфиге. Доступны&8: &#AEB8C4{list}&7."
 punish-no-data: "&#FF4D6D✖ &7Данные игрока не найдены."
 unsafe-name-kick: "&cВы были исключены с сервера."
 

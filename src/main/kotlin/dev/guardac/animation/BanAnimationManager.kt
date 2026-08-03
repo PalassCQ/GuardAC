@@ -108,12 +108,16 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         }
     }
 
+    fun availableTypes(): List<String> = TYPES.filter { plugin.configManager.animationTypeEnabled(it) }
+
     fun playRandom(player: Player, dropLoot: Boolean, onComplete: () -> Unit) =
-        play(player, TYPES.random(), dropLoot, onComplete)
+        play(player, null, dropLoot, onComplete)
 
     fun play(player: Player, type: String?, dropLoot: Boolean, onComplete: () -> Unit) {
         val cfg = plugin.configManager
         if (!cfg.animationsEnabled || !player.isOnline) { onComplete(); return }
+
+        val resolved = pickType(type) ?: run { onComplete(); return }
 
         if (!animating.add(player.uniqueId)) {
             pendingCompletions.computeIfAbsent(player.uniqueId) {
@@ -122,15 +126,10 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
             return
         }
 
+        val fx = Effects(resolved)
         val lifted = freeze(player)
         val restore = lifted.restore
         val done = AtomicBoolean(false)
-
-        val resolved = resolveType(type) ?: run {
-
-            warnUnknownType(type)
-            TYPES.random()
-        }
 
         val lift = if (resolved == "pig") null
         else beginLift(player, cfg.animationDurationTicks, resolved == "endrod")
@@ -141,9 +140,9 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
                 animating.remove(player.uniqueId)
                 anchors.remove(player.uniqueId)
                 restore()
-                if (dropLoot) dropResources(player, loc)
-                explode(loc)
-                playKillSound(player, loc)
+                if (dropLoot) dropResources(player, fx, loc)
+                fx.explode(loc)
+                fx.killSound(player, loc)
                 onComplete()
                 pendingCompletions.remove(player.uniqueId)?.forEach { queued ->
                     runCatching { queued() }
@@ -152,16 +151,28 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         }
 
         when (resolved) {
-            "pig"       -> playPig(player, finishWith)
-            "explode"   -> playExplode(player, finishWith)
-            "particles" -> playParticles(player, finishWith)
-            "lightning" -> playLightning(player, finishWith)
-            "vortex"    -> playVortex(player, finishWith)
-            "meteor"    -> playMeteor(player, finishWith)
-            "cage"      -> playCage(player, finishWith)
-            "endrod"    -> playEndRod(player, finishWith)
+            "pig"       -> playPig(player, fx, finishWith)
+            "explode"   -> playExplode(player, fx, finishWith)
+            "particles" -> playParticles(player, fx, finishWith)
+            "lightning" -> playLightning(player, fx, finishWith)
+            "vortex"    -> playVortex(player, fx, finishWith)
+            "meteor"    -> playMeteor(player, fx, finishWith)
+            "cage"      -> playCage(player, fx, finishWith)
+            "endrod"    -> playEndRod(player, fx, finishWith)
             else        -> finishWith(player.location.clone())
         }
+    }
+
+    private fun pickType(requested: String?): String? {
+        val pool = availableTypes()
+        val canonical = resolveType(requested)
+        if (canonical != null && canonical != RANDOM) {
+            if (canonical in pool) return canonical
+            warnDisabledType(canonical)
+        } else if (canonical == null && !requested.isNullOrBlank()) {
+            warnUnknownType(requested)
+        }
+        return pool.randomOrNull()
     }
 
     private fun warnUnknownType(type: String?) {
@@ -170,6 +181,14 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         plugin.logger.warning(
             "[Animation] Unknown animation \"$raw\" - playing a random one instead. " +
                     "Available: ${TYPES.joinToString(" | ")}"
+        )
+    }
+
+    private fun warnDisabledType(type: String) {
+        if (!missingWarned.add("disabled:$type")) return
+        plugin.logger.warning(
+            "[Animation] Animation \"$type\" is switched off in config.yml " +
+                    "(animations.types.$type.enabled) - playing another one instead."
         )
     }
 
@@ -262,10 +281,10 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         })
     }
 
-    private fun playPig(player: Player, finishWith: (Location) -> Unit) {
+    private fun playPig(player: Player, fx: Effects, finishWith: (Location) -> Unit) {
         val world = player.world
         if (player.isInsideVehicle) runCatching { player.leaveVehicle() }
-        playSound(player.location, "ENTITY_PIG_AMBIENT", 1f, 1f)
+        fx.sound(player.location, "ENTITY_PIG_AMBIENT", 1f, 1f)
 
         val targetY = player.location.y + plugin.configManager.animationPigHeight
 
@@ -311,7 +330,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
                     runCatching { pig.addPassenger(player) }
                 }
                 pig.velocity = if (pig.location.y < targetY) Vector(0.0, riseSpeed, 0.0) else Vector(0.0, 0.0, 0.0)
-                if (t % 3 == 0) burst(world, particle("CLOUD"), pig.location, 6, 0.3, 0.1, 0.3)
+                if (t % 3 == 0) fx.burst(world, particle("CLOUD"), pig.location, 6, 0.3, 0.1, 0.3)
                 if (++t >= duration) {
                     handle.cancel()
                     val loc = pig.location.clone()
@@ -333,10 +352,10 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         runCatching { pig.remove() }
     }
 
-    private fun playExplode(player: Player, finishWith: (Location) -> Unit) {
+    private fun playExplode(player: Player, fx: Effects, finishWith: (Location) -> Unit) {
         val world = player.world
         val duration = plugin.configManager.animationDurationTicks
-        playSound(player.location, "BLOCK_FIRE_AMBIENT", 1f, 0.5f)
+        fx.sound(player.location, "BLOCK_FIRE_AMBIENT", 1f, 0.5f)
 
         var t = 0
         plugin.scheduler.entityTimer(
@@ -352,17 +371,17 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
                 val points = 10
                 for (i in 0 until points) {
                     val ang = t * 0.35 + Math.PI * 2 * i / points
-                    burst(
+                    fx.burst(
                         world, particle("FLAME"),
                         base.clone().add(Math.cos(ang) * radius, 0.4 + progress * 1.4, Math.sin(ang) * radius),
                         2, 0.05, 0.05, 0.05,
                     )
                 }
-                burst(
+                fx.burst(
                     world, particle("LARGE_SMOKE", "SMOKE_LARGE", "SMOKE"),
                     base.clone().add(0.0, 1.0, 0.0), 3, 0.3, 0.5, 0.3, 0.01,
                 )
-                if (t % 10 == 0) playSound(base, "BLOCK_FIRE_AMBIENT", 1f, 0.5f + progress.toFloat())
+                if (t % 10 == 0) fx.sound(base, "BLOCK_FIRE_AMBIENT", 1f, 0.5f + progress.toFloat())
                 if (++t >= duration) { handle.cancel(); finishWith(base.clone()) }
             } catch (e: Exception) {
                 handle.cancel()
@@ -371,7 +390,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         }
     }
 
-    private fun playParticles(player: Player, finishWith: (Location) -> Unit) {
+    private fun playParticles(player: Player, fx: Effects, finishWith: (Location) -> Unit) {
         val world = player.world
         val cfg = plugin.configManager
         val duration = cfg.animationDurationTicks
@@ -392,7 +411,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
                     val ang = t * 0.25 + Math.PI * 2 * i / points
                     val x = Math.cos(ang) * 1.2
                     val z = Math.sin(ang) * 1.2
-                    burst(world, particle, center.clone().add(x, 0.0, z), each)
+                    fx.burst(world, particle, center.clone().add(x, 0.0, z), each)
                 }
                 if (++t >= duration) {
                     handle.cancel()
@@ -407,7 +426,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         }
     }
 
-    private fun playLightning(player: Player, finishWith: (Location) -> Unit) {
+    private fun playLightning(player: Player, fx: Effects, finishWith: (Location) -> Unit) {
         val duration = plugin.configManager.animationDurationTicks
         val strikes = 5
         val gap = (duration / strikes).coerceAtLeast(1).toLong()
@@ -416,7 +435,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
             plugin.scheduler.entityDelayed(player, gap * i, Runnable {
                 if (!player.isOnline) return@Runnable
                 runCatching { player.world.strikeLightningEffect(player.location) }
-                burst(
+                fx.burst(
                     player.world, particle("ELECTRIC_SPARK", "CRIT"),
                     player.location.clone().add(0.0, 1.0, 0.0), 25, 0.5, 0.8, 0.5, 0.05,
                 )
@@ -428,10 +447,10 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         )
     }
 
-    private fun playVortex(player: Player, finishWith: (Location) -> Unit) {
+    private fun playVortex(player: Player, fx: Effects, finishWith: (Location) -> Unit) {
         val world = player.world
         val duration = plugin.configManager.animationDurationTicks
-        playSound(player.location, "ENTITY_PHANTOM_FLAP", 1f, 0.6f)
+        fx.sound(player.location, "ENTITY_PHANTOM_FLAP", 1f, 0.6f)
 
         var t = 0
         plugin.scheduler.entityTimer(
@@ -445,12 +464,12 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
                     val ang = t * 0.5 + arm * Math.PI
                     val r = 1.6 - (t.toDouble() / duration) * 0.7
                     val y = (t.toDouble() / duration) * 2.8
-                    burst(
+                    fx.burst(
                         world, particle("CLOUD"),
                         base.clone().add(Math.cos(ang) * r, y, Math.sin(ang) * r),
                         3, 0.05, 0.05, 0.05,
                     )
-                    burst(
+                    fx.burst(
                         world, particle("END_ROD", "CRIT"),
                         base.clone().add(Math.cos(ang + 0.7) * r, y * 0.6, Math.sin(ang + 0.7) * r),
                         1,
@@ -464,11 +483,11 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         }
     }
 
-    private fun playMeteor(player: Player, finishWith: (Location) -> Unit) {
+    private fun playMeteor(player: Player, fx: Effects, finishWith: (Location) -> Unit) {
         val world = player.world
         val duration = plugin.configManager.animationDurationTicks
         val fall = duration.coerceAtLeast(15)
-        playSound(player.location, "ENTITY_GHAST_SHOOT", 1f, 0.5f)
+        fx.sound(player.location, "ENTITY_GHAST_SHOOT", 1f, 0.5f)
 
         var t = 0
         plugin.scheduler.entityTimer(
@@ -483,15 +502,15 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
                     remaining * 15.0 + 1.0,
                     remaining * 5.0,
                 )
-                burst(world, particle("FLAME"), pos, 12, 0.25, 0.25, 0.25, 0.01)
-                burst(world, particle("LAVA"), pos, 2, 0.1, 0.1, 0.1)
-                burst(world, particle("LARGE_SMOKE", "SMOKE_LARGE", "SMOKE"), pos, 5, 0.2, 0.2, 0.2, 0.01)
-                if (t % 5 == 0) playSound(pos, "BLOCK_FIRE_AMBIENT", 1f, 0.6f)
+                fx.burst(world, particle("FLAME"), pos, 12, 0.25, 0.25, 0.25, 0.01)
+                fx.burst(world, particle("LAVA"), pos, 2, 0.1, 0.1, 0.1)
+                fx.burst(world, particle("LARGE_SMOKE", "SMOKE_LARGE", "SMOKE"), pos, 5, 0.2, 0.2, 0.2, 0.01)
+                if (t % 5 == 0) fx.sound(pos, "BLOCK_FIRE_AMBIENT", 1f, 0.6f)
                 if (++t >= fall) {
                     handle.cancel()
                     val impact = player.location.clone()
-                    burst(world, particle("FLAME"), impact, 70, 1.4, 0.5, 1.4, 0.08)
-                    burst(world, particle("LAVA"), impact, 12, 1.0, 0.4, 1.0)
+                    fx.burst(world, particle("FLAME"), impact, 70, 1.4, 0.5, 1.4, 0.08)
+                    fx.burst(world, particle("LAVA"), impact, 12, 1.0, 0.4, 1.0)
                     finishWith(impact)
                 }
             } catch (e: Exception) {
@@ -501,10 +520,10 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         }
     }
 
-    private fun playCage(player: Player, finishWith: (Location) -> Unit) {
+    private fun playCage(player: Player, fx: Effects, finishWith: (Location) -> Unit) {
         val world = player.world
         val duration = plugin.configManager.animationDurationTicks
-        playSound(player.location, "BLOCK_ANVIL_LAND", 0.6f, 0.5f)
+        fx.sound(player.location, "BLOCK_ANVIL_LAND", 0.6f, 0.5f)
 
         var t = 0
         plugin.scheduler.entityTimer(
@@ -522,16 +541,16 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
                     val z = Math.sin(ang) * radius
                     var y = 0.0
                     while (y <= 2.4) {
-                        burst(world, particle("END_ROD", "CRIT"), base.clone().add(x, y, z), 1)
+                        fx.burst(world, particle("END_ROD", "CRIT"), base.clone().add(x, y, z), 1)
                         y += 0.5
                     }
                 }
 
-                burst(
+                fx.burst(
                     world, particle("END_ROD", "CRIT"),
                     base.clone().add(0.0, 2.6, 0.0), 4, radius * 0.4, 0.05, radius * 0.4,
                 )
-                if (t % 12 == 0) playSound(base, "BLOCK_AMETHYST_BLOCK_CHIME", 1f, 0.6f)
+                if (t % 12 == 0) fx.sound(base, "BLOCK_AMETHYST_BLOCK_CHIME", 1f, 0.6f)
                 if (++t >= duration) { handle.cancel(); finishWith(base.clone()) }
             } catch (e: Exception) {
                 handle.cancel()
@@ -540,14 +559,14 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         }
     }
 
-    private fun playEndRod(player: Player, finishWith: (Location) -> Unit) {
+    private fun playEndRod(player: Player, fx: Effects, finishWith: (Location) -> Unit) {
         val world = player.world
         val duration = plugin.configManager.animationDurationTicks
         val material = rodMaterial()
 
         if (player.isInsideVehicle) runCatching { player.leaveVehicle() }
         runCatching { player.isSneaking = true }
-        playAnySound(player.location, 0.9f, 0.7f, "ENTITY_ENDERMAN_TELEPORT", "ENTITY_ENDERMEN_TELEPORT")
+        fx.anySound(player.location, 0.9f, 0.7f, "ENTITY_ENDERMAN_TELEPORT", "ENTITY_ENDERMEN_TELEPORT")
 
         var rod: Entity? = null
         val solid = material != null
@@ -556,7 +575,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
             rod = null
         }
 
-        burst(world, particle("END_ROD", "CRIT"), rodLocation(player, player.location), 24, 0.25, 0.3, 0.25, 0.05)
+        fx.burst(world, particle("END_ROD", "CRIT"), rodLocation(player, player.location), 24, 0.25, 0.3, 0.25, 0.05)
 
         var lastY = player.location.y
         var t = 0
@@ -589,15 +608,15 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
                 if (rod == null && material != null && t == 0) {
 
                     rod = spawnRodSegment(rodLocation(player, base), material)
-                    playAnySound(seat, 1f, 0.55f, "BLOCK_PISTON_EXTEND", "BLOCK_PISTON_OUT")
-                    burst(
+                    fx.anySound(seat, 1f, 0.55f, "BLOCK_PISTON_EXTEND", "BLOCK_PISTON_OUT")
+                    fx.burst(
                         world, particle("LARGE_SMOKE", "SMOKE_LARGE", "SMOKE"),
                         seat.clone().add(0.0, -0.1, 0.0), 30, 0.35, 0.1, 0.35, 0.09,
                     )
-                    burst(world, particle("CRIT"), seat, 20, 0.3, 0.15, 0.3, 0.25)
+                    fx.burst(world, particle("CRIT"), seat, 20, 0.3, 0.15, 0.3, 0.25)
                 }
                 if (t == PISTON_TICKS) {
-                    playAnySound(base, 0.8f, 1.4f, "BLOCK_PISTON_CONTRACT", "BLOCK_PISTON_IN")
+                    fx.anySound(base, 0.8f, 1.4f, "BLOCK_PISTON_CONTRACT", "BLOCK_PISTON_IN")
                 }
 
                 val current = rod
@@ -617,22 +636,22 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
 
                     var y = 0.0
                     while (y <= 0.9) {
-                        burst(world, particle("END_ROD", "CRIT"), seat.clone().add(0.0, y, 0.0), 2)
+                        fx.burst(world, particle("END_ROD", "CRIT"), seat.clone().add(0.0, y, 0.0), 2)
                         y += 0.25
                     }
                 }
 
                 val thrust = if (t < PISTON_TICKS) 3 else 1
-                burst(
+                fx.burst(
                     world, particle("LARGE_SMOKE", "SMOKE_LARGE", "SMOKE"),
                     seat.clone().add(0.0, -0.15, 0.0), 6 * thrust, 0.14, 0.06, 0.14, 0.02 + lift * 0.15,
                 )
-                burst(world, particle("END_ROD", "CRIT"), seat, 5, 0.1, 0.06, 0.1, 0.03)
+                fx.burst(world, particle("END_ROD", "CRIT"), seat, 5, 0.1, 0.06, 0.1, 0.03)
 
                 for (arm in 0 until 3) {
                     val ang = t * 0.3 + arm * (Math.PI * 2.0 / 3.0)
                     val y   = ((t * 0.09 + arm * 0.75) % 2.3) - 0.6
-                    burst(
+                    fx.burst(
                         world, particle("END_ROD", "CRIT"),
                         base.clone().add(Math.cos(ang) * 0.85, y, Math.sin(ang) * 0.85), 2, 0.03, 0.03, 0.03, 0.0,
                     )
@@ -640,19 +659,19 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
 
                 for (i in 0 until 6) {
                     val ang = -t * 0.22 + i * (Math.PI / 3.0)
-                    burst(
+                    fx.burst(
                         world, particle("PORTAL"),
                         base.clone().add(Math.cos(ang) * 1.05, 1.1, Math.sin(ang) * 1.05), 2, 0.05, 0.45, 0.05, 0.04,
                     )
                 }
                 if (t % 4 == 0) {
-                    burst(
+                    fx.burst(
                         world, particle("CRIT"),
                         base.clone().add(0.0, 0.9, 0.0), 8, 0.45, 0.5, 0.45, 0.05,
                     )
                 }
                 if (t % 25 == 0) {
-                    playAnySound(
+                    fx.anySound(
                         base, 0.4f, 1.3f,
                         "BLOCK_AMETHYST_BLOCK_CHIME", "BLOCK_NOTE_BLOCK_CHIME", "BLOCK_BEACON_AMBIENT",
                     )
@@ -663,7 +682,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
                     val loc = base.clone()
                     val burstAt = seat.clone()
                     cleanup()
-                    shatterRod(world, burstAt, if (solid) material else null)
+                    shatterRod(fx, world, burstAt, if (solid) material else null)
                     finishWith(loc)
                 }
             } catch (e: Exception) {
@@ -700,24 +719,15 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         return track<FallingBlock>(block)
     }
 
-    private fun shatterRod(world: org.bukkit.World, seat: Location, material: Material?) {
+    private fun shatterRod(fx: Effects, world: org.bukkit.World, seat: Location, material: Material?) {
         val at = seat.clone().add(0.0, 0.5, 0.0)
-        playAnySound(seat, 1f, 0.8f, "BLOCK_GLASS_BREAK")
-        if (material != null) blockBurst(world, at, material, 24)
-        burst(world, particle("END_ROD", "CRIT"), at, 20, 0.28, 0.25, 0.28, 0.12)
-        burst(world, particle("PORTAL"), at, 24, 0.3, 0.5, 0.3, 0.2)
+        fx.anySound(seat, 1f, 0.8f, "BLOCK_GLASS_BREAK")
+        if (material != null) fx.blockBurst(world, at, material, 24)
+        fx.burst(world, particle("END_ROD", "CRIT"), at, 20, 0.28, 0.25, 0.28, 0.12)
+        fx.burst(world, particle("PORTAL"), at, 24, 0.3, 0.5, 0.3, 0.2)
     }
 
-    private fun blockBurst(world: org.bukkit.World, loc: Location, material: Material, count: Int) {
-        val dust = Compat.particle("BLOCK_CRACK", "BLOCK")
-        runCatching {
-            world.spawnParticle(dust, loc, count, 0.22, 0.4, 0.22, 0.06, material.createBlockData(), true)
-        }.onFailure {
-            burst(world, particle("END_ROD", "CRIT"), loc, count, 0.22, 0.4, 0.22, 0.06)
-        }
-    }
-
-    private fun dropResources(player: Player, loc: Location) {
+    private fun dropResources(player: Player, fx: Effects, loc: Location) {
         if (!plugin.configManager.animationDropInventory) return
         if (!player.isOnline) return
         val inv = player.inventory
@@ -727,37 +737,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
             }
         }
         inv.clear()
-        playSound(loc, "ENTITY_ITEM_PICKUP", 0.8f, 0.6f)
-    }
-
-    private fun explode(loc: Location) {
-        val w = loc.world ?: return
-        burst(w, particle("EXPLOSION_EMITTER", "EXPLOSION_HUGE", "EXPLOSION"), loc, 1)
-        playSound(loc, "ENTITY_GENERIC_EXPLODE", 1f, 1f)
-    }
-
-    private fun playSound(loc: Location, name: String, volume: Float, pitch: Float) {
-        if (!plugin.configManager.animationSound) return
-        val sound = Compat.sound(name) ?: return
-        loc.world?.playSound(loc, sound, volume, pitch)
-    }
-
-    private fun playAnySound(loc: Location, volume: Float, pitch: Float, vararg names: String) {
-        if (!plugin.configManager.animationSound) return
-        val sound = Compat.sound(*names) ?: return
-        loc.world?.playSound(loc, sound, volume, pitch)
-    }
-
-    private fun playKillSound(player: Player, loc: Location) {
-        if (!plugin.configManager.animationSound) return
-        if (!plugin.configManager.animationKillSound) return
-        val sound = Compat.sound("ENTITY_WITHER_DEATH")
-        if (sound == null) {
-            warnUnavailable("sound", "ENTITY_WITHER_DEATH")
-            return
-        }
-        runCatching { player.playSound(player.location, sound, 1f, WITHER_PITCH) }
-        loc.world?.playSound(loc, sound, 4f, WITHER_PITCH)
+        fx.sound(loc, "ENTITY_ITEM_PICKUP", 0.8f, 0.6f)
     }
 
     private fun warnUnavailable(kind: String, name: String) {
@@ -770,12 +750,58 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
 
     private fun particle(vararg names: String): Particle = Compat.particle(*names)
 
-    private fun burst(
-        world: org.bukkit.World, particle: Particle, loc: Location,
-        count: Int, dx: Double = 0.0, dy: Double = 0.0, dz: Double = 0.0, speed: Double = 0.0,
-    ) {
-        runCatching { world.spawnParticle(particle, loc, count, dx, dy, dz, speed, null, true) }
-            .onFailure { world.spawnParticle(particle, loc, count, dx, dy, dz, speed) }
+    private inner class Effects(val type: String) {
+
+        private val particlesOn = plugin.configManager.animationTypeParticles(type)
+        private val soundsOn    = plugin.configManager.animationTypeSound(type)
+
+        fun burst(
+            world: org.bukkit.World, particle: Particle, loc: Location,
+            count: Int, dx: Double = 0.0, dy: Double = 0.0, dz: Double = 0.0, speed: Double = 0.0,
+        ) {
+            if (!particlesOn) return
+            runCatching { world.spawnParticle(particle, loc, count, dx, dy, dz, speed, null, true) }
+                .onFailure { world.spawnParticle(particle, loc, count, dx, dy, dz, speed) }
+        }
+
+        fun blockBurst(world: org.bukkit.World, loc: Location, material: Material, count: Int) {
+            if (!particlesOn) return
+            val dust = Compat.particle("BLOCK_CRACK", "BLOCK")
+            runCatching {
+                world.spawnParticle(dust, loc, count, 0.22, 0.4, 0.22, 0.06, material.createBlockData(), true)
+            }.onFailure {
+                burst(world, particle("END_ROD", "CRIT"), loc, count, 0.22, 0.4, 0.22, 0.06)
+            }
+        }
+
+        fun explode(loc: Location) {
+            val world = loc.world ?: return
+            burst(world, particle("EXPLOSION_EMITTER", "EXPLOSION_HUGE", "EXPLOSION"), loc, 1)
+            sound(loc, "ENTITY_GENERIC_EXPLODE", 1f, 1f)
+        }
+
+        fun sound(loc: Location, name: String, volume: Float, pitch: Float) {
+            if (!soundsOn) return
+            val sound = Compat.sound(name) ?: return
+            loc.world?.playSound(loc, sound, volume, pitch)
+        }
+
+        fun anySound(loc: Location, volume: Float, pitch: Float, vararg names: String) {
+            if (!soundsOn) return
+            val sound = Compat.sound(*names) ?: return
+            loc.world?.playSound(loc, sound, volume, pitch)
+        }
+
+        fun killSound(player: Player, loc: Location) {
+            if (!soundsOn || !plugin.configManager.animationKillSound) return
+            val sound = Compat.sound("ENTITY_WITHER_DEATH")
+            if (sound == null) {
+                warnUnavailable("sound", "ENTITY_WITHER_DEATH")
+                return
+            }
+            runCatching { player.playSound(player.location, sound, 1f, WITHER_PITCH) }
+            loc.world?.playSound(loc, sound, 4f, WITHER_PITCH)
+        }
     }
 
     companion object {
@@ -792,7 +818,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
 
         fun resolveType(raw: String?): String? {
             val key = raw?.trim()?.lowercase(java.util.Locale.ROOT)?.ifBlank { null } ?: return null
-            if (key == RANDOM) return TYPES.random()
+            if (key == RANDOM) return RANDOM
             ALIASES[key]?.let { return it }
             return if (key in TYPES) key else null
         }

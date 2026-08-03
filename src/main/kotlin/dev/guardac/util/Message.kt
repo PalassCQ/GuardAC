@@ -97,6 +97,7 @@ enum class Message(val key: String) {
     PUNISH_SUCCESS("punish-success"),
     PUNISH_SUCCESS_ANIMATED("punish-success-animated"),
     PUNISH_UNKNOWN_ANIMATION("punish-unknown-animation"),
+    PUNISH_DISABLED_ANIMATION("punish-disabled-animation"),
     PUNISH_NO_DATA("punish-no-data"),
     UNSAFE_NAME_KICK("unsafe-name-kick"),
 
