@@ -175,7 +175,7 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
                             plugin.logger.info(
                                 "[GuardAC] Punishment for ${gp.player.name} delayed: TPS ${"%.1f".format(tps)} < $minTps (lag gate)."
                             )
-                        } else if (!plugin.configManager.aiOnlyAlert) {
+                        } else if (!plugin.configManager.aiOnlyAlert && gp.judgeApproves()) {
                             plugin.punishmentManager.handle(gp, CHECK_NAME, gp.aiViolationLevel, verbose)
                         }
                     }

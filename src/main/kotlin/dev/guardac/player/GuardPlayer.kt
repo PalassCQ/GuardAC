@@ -156,7 +156,10 @@ class GuardPlayer(
 
         if (!plugin.configManager.aiContinuous && !recordForAi) {
             if (tickBuffer.isNotEmpty()) tickBuffer.clear()
-            if (deepBuffer.isNotEmpty()) deepBuffer.clear()
+            if (deepBuffer.isNotEmpty()) {
+                deepBuffer.clear()
+                deepFreshTicks = 0
+            }
             ticksSinceLastSend = 0
             return
         }
@@ -167,7 +170,6 @@ class GuardPlayer(
 
         deepBuffer.addLast(tick)
         while (deepBuffer.size > DEEP_WINDOW_TICKS) deepBuffer.removeFirst()
-        if (deepFreshTicks < DEEP_WINDOW_TICKS) deepFreshTicks++
     }
 
     fun pollSequence(): Array<AimSample>? {
@@ -178,6 +180,9 @@ class GuardPlayer(
     }
 
     fun pollDeepSequence(): Array<AimSample>? {
+        if (deepFreshTicks < DEEP_WINDOW_TICKS) {
+            deepFreshTicks += plugin.configManager.aiStep
+        }
         if (deepBuffer.size < DEEP_WINDOW_TICKS) return null
 
         val attacks = combat.totalAttacks

@@ -119,7 +119,7 @@ class AlertManager(private val plugin: GuardAC) {
         var announceMax = 0.0
         var firstOfEpisode = false
         synchronized(d) {
-            if (probability * 100.0 < minConfidence || !gp.judgeApproves()) return false
+            if (probability * 100.0 < minConfidence) return false
             val now = System.currentTimeMillis()
 
             if (now - d.lastHitMs > episodeIdleMs) {
