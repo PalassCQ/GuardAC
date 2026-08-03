@@ -101,6 +101,7 @@ class AlertManager(private val plugin: GuardAC) {
     private class HitDigest {
         var lastHitMs = 0L
         var lastCountedMs = 0L
+        var lastCountedAttacks = -1
         var episodeHits = 0
         var batchMax = 0.0
         var model = "[AI]"
@@ -126,14 +127,23 @@ class AlertManager(private val plugin: GuardAC) {
                 d.episodeHits = 0
                 d.batchMax = 0.0
                 d.lastCountedMs = 0L
+                d.lastCountedAttacks = -1
             }
 
             d.lastHitMs = now
             if (probability > d.batchMax) d.batchMax = probability
             d.model = model
 
-            if (d.lastCountedMs != 0L && now - d.lastCountedMs < momentMs) return false
+            val attacks = gp.combat.totalAttacks
+            val counts = if (gp.combat.lastAttackMs == 0L) {
+                d.lastCountedMs == 0L || now - d.lastCountedMs >= momentMs
+            } else {
+                d.lastCountedAttacks < 0 || attacks != d.lastCountedAttacks
+            }
+            if (!counts) return false
+
             d.lastCountedMs = now
+            d.lastCountedAttacks = attacks
 
             d.episodeHits += 1
             if (d.episodeHits % minHits == 0) {
