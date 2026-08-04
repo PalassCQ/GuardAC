@@ -335,7 +335,7 @@ class ConfigManager(private val plugin: GuardAC) {
         const val ANIM_DURATION_TICKS = 100
 
         const val ALERT_MIN_CONFIDENCE = 85.0
-        const val ALERT_WINDOW_SECONDS = 20L
+        const val ALERT_WINDOW_SECONDS = 60L
         const val VL_DECAY_INTERVAL_SECONDS = 3600
     }
 }

@@ -98,56 +98,22 @@ class AlertManager(private val plugin: GuardAC) {
         deliverAlert(msg, consoleLine, playerName, withSound = true)
     }
 
-    private class HitDigest {
-        var lastHitMs = 0L
-        var lastCountedMs = 0L
-        var episodeHits = 0
-        var batchMax = 0.0
-        var model = "[AI]"
-    }
-
-    private val digests = ConcurrentHashMap<UUID, HitDigest>()
+    private val digests = ConcurrentHashMap<UUID, AlertDigest>()
 
     fun recordVerdict(gp: GuardPlayer, probability: Double, model: String): Boolean {
         val cfg = plugin.configManager
-        val minHits = cfg.alertMinHits.coerceAtLeast(1)
-        val minConfidence = cfg.alertMinConfidence
-        val episodeIdleMs = cfg.alertWindowSeconds * 1000L
-        val d = digests.computeIfAbsent(gp.uuid) { HitDigest() }
-        var announceCount = 0
-        var announceMax = 0.0
-        var firstOfEpisode = false
-        val momentMs = cfg.aiSequence.toLong() * 50L
-        synchronized(d) {
-            if (probability * 100.0 < minConfidence) return false
-            val now = System.currentTimeMillis()
+        if (probability * 100.0 < cfg.alertMinConfidence) return false
 
-            if (now - d.lastHitMs > episodeIdleMs) {
-                d.episodeHits = 0
-                d.batchMax = 0.0
-                d.lastCountedMs = 0L
-            }
+        val batch = digests.computeIfAbsent(gp.uuid) { AlertDigest() }.record(
+            nowMs       = System.currentTimeMillis(),
+            probability = probability,
+            minHits     = cfg.alertMinHits,
+            idleMs      = cfg.alertWindowSeconds * 1000L,
+            momentMs    = cfg.aiSequence.toLong() * MS_PER_TICK,
+        ) ?: return false
 
-            d.lastHitMs = now
-            if (probability > d.batchMax) d.batchMax = probability
-            d.model = model
-
-            if (d.lastCountedMs != 0L && now - d.lastCountedMs < momentMs) return false
-            d.lastCountedMs = now
-
-            d.episodeHits += 1
-            if (d.episodeHits % minHits == 0) {
-                announceCount = d.episodeHits
-                announceMax = d.batchMax
-                firstOfEpisode = d.episodeHits == minHits
-                d.batchMax = 0.0
-            }
-        }
-        if (announceCount > 0) {
-            sendCountAlert(gp, announceCount, announceMax, model, withSound = firstOfEpisode)
-            return true
-        }
-        return false
+        sendCountAlert(gp, batch.count, batch.max, model, withSound = batch.firstOfEpisode)
+        return true
     }
 
     private fun sendCountAlert(gp: GuardPlayer, count: Int, maxProb: Double, model: String, withSound: Boolean) {
