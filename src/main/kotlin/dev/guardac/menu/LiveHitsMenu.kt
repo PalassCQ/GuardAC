@@ -24,6 +24,7 @@ package dev.guardac.menu
 
 import dev.guardac.GuardAC
 import dev.guardac.player.GuardPlayer
+import dev.guardac.player.HitFeed
 import dev.guardac.util.Colors
 import dev.guardac.util.Message
 import dev.guardac.util.SafeName
@@ -83,14 +84,14 @@ class LiveHitsMenu(
         HandlerList.unregisterAll(this)
     }
 
-    private fun activePlayers(): List<Pair<GuardPlayer, List<GuardPlayer.HitSample>>> =
+    private fun activePlayers(): List<Pair<GuardPlayer, List<HitFeed.Sample>>> =
         plugin.playerDataManager.getAll()
             .asSequence()
             .filter { it.player.isOnline }
             .map { it to it.getHitFeed() }
             .filter { (_, feed) -> feed.isNotEmpty() }
             .sortedWith(
-                compareByDescending<Pair<GuardPlayer, List<GuardPlayer.HitSample>>> { (_, feed) ->
+                compareByDescending<Pair<GuardPlayer, List<HitFeed.Sample>>> { (_, feed) ->
                     feed.maxOf { it.probability }
                 }.thenByDescending { (_, feed) -> feed.last().epochMillis }
             )
@@ -121,7 +122,7 @@ class LiveHitsMenu(
         buildControls(hasPrev = page > 0, hasNext = page < totalPages, total = active.size)
     }
 
-    private fun buildHead(gp: GuardPlayer, feed: List<GuardPlayer.HitSample>): ItemStack {
+    private fun buildHead(gp: GuardPlayer, feed: List<HitFeed.Sample>): ItemStack {
         val skull = ItemStack(Material.PLAYER_HEAD)
         val meta  = skull.itemMeta as? SkullMeta ?: return skull
         runCatching { meta.owningPlayer = Bukkit.getOfflinePlayer(gp.uuid) }

@@ -132,20 +132,18 @@ class GuardPlayer(
     var highProbCount: Int = 0
         private set
 
-    data class HitSample(val probability: Double, val epochMillis: Long)
-
-    private val hitHistory = ArrayDeque<HitSample>(HIT_HISTORY_SIZE)
+    private val hitHistory = HitFeed(HIT_HISTORY_SIZE)
     private var lastFeedMs = 0L
     private var lastGainMs = 0L
 
     @Synchronized
-    fun getHitProbHistory(): List<Double> = hitHistory.map { it.probability }
+    fun getHitProbHistory(): List<Double> = hitHistory.probabilities()
 
     @Synchronized
-    fun getHitFeed(): List<HitSample> = hitHistory.toList()
+    fun getHitFeed(): List<HitFeed.Sample> = hitHistory.samples()
 
     @Synchronized
-    fun lastHitMs(): Long = hitHistory.lastOrNull()?.epochMillis ?: 0L
+    fun lastHitMs(): Long = hitHistory.lastEpochMillis()
 
     fun onTick(tick: AimSample, recordForAi: Boolean) {
         totalTickCount++
@@ -243,14 +241,8 @@ class GuardPlayer(
         val windowMs = cfg.aiSequence.toLong() * MS_PER_TICK
         val now = System.currentTimeMillis()
 
-        if (hitHistory.isNotEmpty() && now - lastFeedMs < windowMs) {
-            val last = hitHistory.removeLast()
-            hitHistory.addLast(HitSample(max(last.probability, probability), now))
-        } else {
-            hitHistory.addLast(HitSample(probability, now))
-            lastFeedMs = now
-        }
-        while (hitHistory.size > HIT_HISTORY_SIZE) hitHistory.removeFirst()
+        hitHistory.record(now, probability, combat.totalAttacks, windowMs)
+        lastFeedMs = now
 
         aiBuffer = when {
             probability > CHEAT_THRESHOLD -> {
@@ -377,17 +369,11 @@ class GuardPlayer(
         return localJudgeMean() >= JUDGE_THRESHOLD
     }
 
-    private fun localJudgeMean(): Double {
-        if (hitHistory.isEmpty()) return 0.0
-        val from = (hitHistory.size - JUDGE_SAMPLE_SIZE).coerceAtLeast(0)
-        var sum = 0.0
-        for (i in from until hitHistory.size) sum += hitHistory[i].probability
-        return sum / (hitHistory.size - from)
-    }
+    private fun localJudgeMean(): Double = hitHistory.mean(JUDGE_SAMPLE_SIZE)
 
     @Synchronized
     fun flagConfidence(): Double {
-        if (hitHistory.isNotEmpty()) return localJudgeMean()
+        if (!hitHistory.isEmpty()) return localJudgeMean()
         return lastAiProbability
     }
 
