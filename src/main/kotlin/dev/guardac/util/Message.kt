@@ -60,7 +60,6 @@ enum class Message(val key: String) {
     DEBUG_DELTA("debug-delta"),
     DEBUG_ACCEL("debug-accel"),
     DEBUG_JERK("debug-jerk"),
-    DEBUG_WINDOWS("debug-windows"),
     DEBUG_GCD("debug-gcd"),
     DEBUG_MODE_XY("debug-mode-xy"),
     DEBUG_AI_BUFFER("debug-ai-buffer"),

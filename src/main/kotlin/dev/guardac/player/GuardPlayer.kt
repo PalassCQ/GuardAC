@@ -110,12 +110,6 @@ class GuardPlayer(
         return (nowNanos - last) / 1_000_000 >= STALE_GAP_MIN_MS
     }
 
-    val windowsSent    = AtomicInteger(0)
-    val windowsDead    = AtomicInteger(0)
-    val samplesStale   = AtomicInteger(0)
-    val samplesWarmup  = AtomicInteger(0)
-    val bufferResets   = AtomicInteger(0)
-
     fun consumeUnstableTicks(): Int {
         val v = unstableTicks
         unstableTicks = 0
@@ -158,10 +152,7 @@ class GuardPlayer(
         }
 
         if (!plugin.configManager.aiContinuous && !recordForAi) {
-            if (tickBuffer.isNotEmpty()) {
-                tickBuffer.clear()
-                bufferResets.incrementAndGet()
-            }
+            if (tickBuffer.isNotEmpty()) tickBuffer.clear()
             if (deepBuffer.isNotEmpty()) {
                 deepBuffer.clear()
                 judgeGate.reset()
@@ -182,7 +173,6 @@ class GuardPlayer(
         if (ticksSinceLastSend < plugin.configManager.aiStep) return null
         if (tickBuffer.size < sequenceSize) return null
         ticksSinceLastSend = 0
-        windowsSent.incrementAndGet()
         return tickBuffer.takeLast(sequenceSize).toTypedArray()
     }
 

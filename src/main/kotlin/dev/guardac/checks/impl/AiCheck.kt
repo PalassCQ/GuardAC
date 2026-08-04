@@ -47,10 +47,7 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
         val unstable = gp.consumeUnstableTicks()
         val lagDistorted = unstable >= UNSTABLE_TICKS_MIN && gp.player.ping >= UNSTABLE_PING_MIN
 
-        if (isDeadWindow(ticks, activeThreshold(gp, cfg.aiDeadZone), cfg.aiMinActiveTicks)) {
-            gp.windowsDead.incrementAndGet()
-            return
-        }
+        if (isDeadWindow(ticks, activeThreshold(gp, cfg.aiDeadZone), cfg.aiMinActiveTicks)) return
 
         val minTps = cfg.aiMinTpsAnalyze
         if (minTps > 0.0 && plugin.tpsMonitor.tps < minTps) return

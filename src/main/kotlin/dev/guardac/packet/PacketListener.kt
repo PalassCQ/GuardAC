@@ -98,14 +98,10 @@ class PacketListener(private val plugin: GuardAC) :
         if (gp.isStaleSample(now, active)) {
 
             gp.rotation.clearState()
-            gp.samplesStale.incrementAndGet()
             return
         }
 
-        if (gp.rotation.consumeWarmup()) {
-            gp.samplesWarmup.incrementAndGet()
-            return
-        }
+        if (gp.rotation.consumeWarmup()) return
 
         plugin.checkRegistry.rotationChecks.forEach { it.onRotation(gp) }
 
