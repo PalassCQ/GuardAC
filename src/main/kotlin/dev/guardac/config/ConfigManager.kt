@@ -199,6 +199,9 @@ class ConfigManager(private val plugin: GuardAC) {
 
     val aiJudgeEnabled: Boolean get() = cfg.getBoolean("ai.judge", true)
 
+    val aiCombatWindowTicks: Int get() =
+        aiSequence * cfg.getInt("ai.combat-window-factor", COMBAT_WINDOW_FACTOR).coerceIn(1, 20)
+
     val aiBufferFlag: Double        get() = cfg.getDouble("ai.buffer.flag", 30.0)
     val aiBufferResetOnFlag: Double get() = cfg.getDouble("ai.buffer.reset-on-flag", 10.0)
     val aiBufferMultiplier: Double  get() = cfg.getDouble("ai.buffer.multiplier", 100.0)
@@ -334,6 +337,7 @@ class ConfigManager(private val plugin: GuardAC) {
 
         const val ANIM_DURATION_TICKS = 100
 
+        const val COMBAT_WINDOW_FACTOR = 3
         const val ALERT_MIN_CONFIDENCE = 85.0
         const val ALERT_WINDOW_SECONDS = 60L
         const val VL_DECAY_INTERVAL_SECONDS = 3600

@@ -245,6 +245,14 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
         sender.sendMessage(plugin.locale.get(Message.DEBUG_GCD,   "gcd_yaw", "%.4f".format(rot.gcdErrorYaw), "gcd_pitch", "%.4f".format(rot.gcdErrorPitch)))
         sender.sendMessage(plugin.locale.get(Message.DEBUG_MODE_XY, "mx", "%.4f".format(rot.modeX), "my", "%.4f".format(rot.modeY)))
         sender.sendMessage(plugin.locale.get(Message.DEBUG_AI_BUFFER, "buffer", "%.4f".format(gp.aiBuffer)))
+        sender.sendMessage(plugin.locale.get(
+            Message.DEBUG_WINDOWS,
+            "sent",    gp.windowsSent.get().toString(),
+            "dead",    gp.windowsDead.get().toString(),
+            "stale",   gp.samplesStale.get().toString(),
+            "warmup",  gp.samplesWarmup.get().toString(),
+            "resets",  gp.bufferResets.get().toString(),
+        ))
         sender.sendMessage(plugin.locale.get(Message.DEBUG_RIDING, "riding", if (gp.isRiding) plugin.locale.get(Message.COMMON_YES) else plugin.locale.get(Message.COMMON_NO)))
         sender.sendMessage(plugin.locale.get(
             Message.DEBUG_IDLE,

@@ -98,20 +98,25 @@ class PacketListener(private val plugin: GuardAC) :
         if (gp.isStaleSample(now, active)) {
 
             gp.rotation.clearState()
+            gp.samplesStale.incrementAndGet()
             return
         }
 
-        if (gp.rotation.consumeWarmup()) return
+        if (gp.rotation.consumeWarmup()) {
+            gp.samplesWarmup.incrementAndGet()
+            return
+        }
 
         plugin.checkRegistry.rotationChecks.forEach { it.onRotation(gp) }
 
         gp.combat.tickElapsed()
-        val recordForAi = !gp.isRiding && gp.combat.isInCombatWindow(plugin.configManager.aiSequence)
+        val cfg = plugin.configManager
+        val recordForAi = !gp.isRiding && gp.combat.isInCombatWindow(cfg.aiCombatWindowTicks)
 
         val tick = buildTick(gp)
         gp.onTick(tick, recordForAi)
 
-        if (recordForAi) {
+        if (!gp.isRiding && gp.combat.isInCombatWindow(cfg.aiSequence)) {
             plugin.recorder.offer(gp.uuid, tick)
         }
 
