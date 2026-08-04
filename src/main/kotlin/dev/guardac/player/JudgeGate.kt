@@ -22,7 +22,11 @@
 
 package dev.guardac.player
 
-class JudgeGate(private val windowTicks: Int, private val triggerAttacks: Int) {
+class JudgeGate(
+    private val windowTicks: Int,
+    private val triggerAttacks: Int,
+    private val refreshTicks: Int = windowTicks,
+) {
 
     private var freshTicks  = 0
     private var lastAttacks = 0
@@ -32,14 +36,14 @@ class JudgeGate(private val windowTicks: Int, private val triggerAttacks: Int) {
     }
 
     fun poll(bufferSize: Int, attacks: Int, step: Int): Boolean {
-        if (freshTicks < windowTicks) {
+        if (freshTicks < refreshTicks) {
             freshTicks += step.coerceAtLeast(1)
         }
         if (bufferSize < windowTicks) return false
 
         if (attacks < lastAttacks) lastAttacks = attacks
         if (attacks - lastAttacks < triggerAttacks) return false
-        if (freshTicks < windowTicks) return false
+        if (freshTicks < refreshTicks) return false
 
         lastAttacks = attacks
         freshTicks  = 0

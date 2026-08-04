@@ -52,7 +52,7 @@ class GuardPlayer(
     private val tickBuffer   = ArrayDeque<AimSample>(plugin.configManager.aiSequence * 2)
 
     private val deepBuffer = ArrayDeque<AimSample>(DEEP_WINDOW_TICKS + 32)
-    private val judgeGate  = JudgeGate(DEEP_WINDOW_TICKS, DEEP_TRIGGER_ATTACKS)
+    private val judgeGate  = JudgeGate(DEEP_WINDOW_TICKS, DEEP_TRIGGER_ATTACKS, DEEP_REFRESH_TICKS)
 
     private var ticksSinceLastSend = 0
 
@@ -461,6 +461,7 @@ class GuardPlayer(
 
         const val DEEP_WINDOW_TICKS        = 160
         const val DEEP_TRIGGER_ATTACKS     = 3
+        const val DEEP_REFRESH_TICKS       = DEEP_WINDOW_TICKS / 2
         const val DEEP_VERDICT_TTL_MS      = 20_000L
     }
 }
