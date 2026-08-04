@@ -169,6 +169,13 @@ class GuardPlayer(
         while (deepBuffer.size > DEEP_WINDOW_TICKS) deepBuffer.removeFirst()
     }
 
+    fun beginCombatEpisode() {
+        tickBuffer.clear()
+        deepBuffer.clear()
+        judgeGate.reset()
+        ticksSinceLastSend = 0
+    }
+
     fun pollSequence(): Array<AimSample>? {
         if (ticksSinceLastSend < plugin.configManager.aiStep) return null
         if (tickBuffer.size < sequenceSize) return null

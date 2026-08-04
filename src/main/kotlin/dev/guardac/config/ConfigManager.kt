@@ -199,8 +199,7 @@ class ConfigManager(private val plugin: GuardAC) {
 
     val aiJudgeEnabled: Boolean get() = cfg.getBoolean("ai.judge", true)
 
-    val aiCombatWindowTicks: Int get() =
-        aiSequence * cfg.getInt("ai.combat-window-factor", COMBAT_WINDOW_FACTOR).coerceIn(1, 20)
+    val aiCombatWindowTicks: Int get() = aiSequence * COMBAT_WINDOW_FACTOR
 
     val aiBufferFlag: Double        get() = cfg.getDouble("ai.buffer.flag", 30.0)
     val aiBufferResetOnFlag: Double get() = cfg.getDouble("ai.buffer.reset-on-flag", 10.0)

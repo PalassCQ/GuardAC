@@ -126,6 +126,10 @@ class PacketListener(private val plugin: GuardAC) :
         if (targetUuid == player.uniqueId) return
 
         if (targetUuid == null && plugin.recorder.captureOf(gp.uuid) == null) return
+
+        if (!gp.combat.foughtWithinSeconds(COMBAT_EPISODE_SECONDS)) {
+            gp.beginCombatEpisode()
+        }
         gp.combat.recordAttack()
     }
 
@@ -145,5 +149,6 @@ class PacketListener(private val plugin: GuardAC) :
 
     private companion object {
         const val MAX_ROTATION_MAGNITUDE = 1.0e6f
+        const val COMBAT_EPISODE_SECONDS = 10L
     }
 }
