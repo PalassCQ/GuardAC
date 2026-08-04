@@ -100,7 +100,9 @@ class AlertManager(private val plugin: GuardAC) {
 
     private val digests = ConcurrentHashMap<UUID, AlertDigest>()
 
-    fun recordVerdict(gp: GuardPlayer, probability: Double, model: String): Boolean {
+    fun recordVerdict(
+        gp: GuardPlayer, probability: Double, model: String, independent: Boolean = false,
+    ): Boolean {
         val cfg = plugin.configManager
         if (probability * 100.0 < cfg.alertMinConfidence) return false
 
@@ -110,6 +112,7 @@ class AlertManager(private val plugin: GuardAC) {
             minHits     = cfg.alertMinHits,
             idleMs      = cfg.alertWindowSeconds * 1000L,
             momentMs    = cfg.aiSequence.toLong() * MS_PER_TICK,
+            independent = independent,
         ) ?: return false
 
         sendCountAlert(gp, batch.count, batch.max, model, withSound = batch.firstOfEpisode)

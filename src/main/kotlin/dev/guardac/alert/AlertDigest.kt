@@ -38,6 +38,7 @@ class AlertDigest {
         minHits: Int,
         idleMs: Long,
         momentMs: Long,
+        independent: Boolean = false,
     ): Batch? {
         val step = minHits.coerceAtLeast(1)
         decay(nowMs, step, idleMs)
@@ -45,8 +46,8 @@ class AlertDigest {
         lastHitMs = nowMs
         if (probability > batchMax) batchMax = probability
 
-        if (lastCountedMs != 0L && nowMs - lastCountedMs < momentMs) return null
-        lastCountedMs = nowMs
+        if (!independent && lastCountedMs != 0L && nowMs - lastCountedMs < momentMs) return null
+        if (!independent) lastCountedMs = nowMs
 
         hits += 1
         if (hits % step != 0) return null
