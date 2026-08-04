@@ -30,6 +30,8 @@ import dev.guardac.event.GuardAiPredictionEvent
 import dev.guardac.player.GuardPlayer
 import org.bukkit.Bukkit
 import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.min
 
 class AiCheck(private val plugin: GuardAC) : SequenceCheck {
 
@@ -45,7 +47,7 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
         val unstable = gp.consumeUnstableTicks()
         val lagDistorted = unstable >= UNSTABLE_TICKS_MIN && gp.player.ping >= UNSTABLE_PING_MIN
 
-        if (isDeadWindow(ticks, cfg.aiDeadZone, cfg.aiMinActiveTicks)) return
+        if (isDeadWindow(ticks, activeThreshold(gp, cfg.aiDeadZone), cfg.aiMinActiveTicks)) return
 
         val minTps = cfg.aiMinTpsAnalyze
         if (minTps > 0.0 && plugin.tpsMonitor.tps < minTps) return
@@ -79,6 +81,12 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
                 }
             }
         }
+    }
+
+    private fun activeThreshold(gp: GuardPlayer, configured: Double): Double {
+        val quantum = max(gp.rotation.modeX, gp.rotation.modeY)
+        if (quantum <= 0.0) return configured
+        return min(configured, max(quantum * ACTIVE_QUANTA, MIN_ACTIVE_THRESHOLD))
     }
 
     private fun isDeadWindow(ticks: Array<AimSample>, deadZone: Double, minActive: Int): Boolean {
@@ -193,6 +201,9 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
 
     companion object {
         private const val CHECK_NAME = "AI"
+        private const val ACTIVE_QUANTA = 4.0
+        private const val MIN_ACTIVE_THRESHOLD = 0.05
+
         private const val UNSTABLE_TICKS_MIN = 3
         private const val UNSTABLE_PING_MIN  = 100
 
