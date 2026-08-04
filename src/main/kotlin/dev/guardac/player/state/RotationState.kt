@@ -49,6 +49,8 @@ class RotationState {
     private var lastAbsDeltaYaw: Double = 0.0
     private var lastAbsDeltaPitch: Double = 0.0
 
+    private var warmupLeft: Int = WARMUP_SAMPLES
+
     var modeX: Double = 0.0
         private set
     var modeY: Double = 0.0
@@ -103,6 +105,13 @@ class RotationState {
         prevAccelPitch = 0f
         lastAbsDeltaYaw   = 0.0
         lastAbsDeltaPitch = 0.0
+        warmupLeft = WARMUP_SAMPLES
+    }
+
+    fun consumeWarmup(): Boolean {
+        if (warmupLeft <= 0) return false
+        warmupLeft--
+        return true
     }
 
     private fun updateGcd() {
@@ -145,6 +154,7 @@ class RotationState {
 
     private companion object {
         val MINIMUM_DIVISOR: Double = 0.2f.pow(3) * 8 * 0.15 - 1e-3
+        const val WARMUP_SAMPLES        = 2
         const val MAX_DELTA_FOR_GCD     = 5.0
         const val SIGNIFICANT_SAMPLES   = 15
         const val TOTAL_SAMPLES         = 80

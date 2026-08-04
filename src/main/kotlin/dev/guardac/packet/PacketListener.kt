@@ -101,6 +101,8 @@ class PacketListener(private val plugin: GuardAC) :
             return
         }
 
+        if (gp.rotation.consumeWarmup()) return
+
         plugin.checkRegistry.rotationChecks.forEach { it.onRotation(gp) }
 
         gp.combat.tickElapsed()
