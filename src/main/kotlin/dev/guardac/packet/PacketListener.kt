@@ -68,15 +68,20 @@ class PacketListener(private val plugin: GuardAC) :
             PacketType.Play.Client.PLAYER_ROTATION -> {
                 val w = WrapperPlayClientPlayerRotation(event)
                 gp.combat.tickElapsed()
+                gp.onServerTick()
                 handleRotation(gp, w.yaw, w.pitch)
             }
             PacketType.Play.Client.PLAYER_POSITION_AND_ROTATION -> {
                 val w = WrapperPlayClientPlayerPositionAndRotation(event)
                 gp.combat.tickElapsed()
+                gp.onServerTick()
                 handleRotation(gp, w.yaw, w.pitch)
             }
             PacketType.Play.Client.PLAYER_POSITION,
-            PacketType.Play.Client.PLAYER_FLYING -> gp.combat.tickElapsed()
+            PacketType.Play.Client.PLAYER_FLYING -> {
+                gp.combat.tickElapsed()
+                gp.onServerTick()
+            }
             PacketType.Play.Client.INTERACT_ENTITY -> {
                 val w = WrapperPlayClientInteractEntity(event)
                 if (w.action == WrapperPlayClientInteractEntity.InteractAction.ATTACK) {
@@ -106,9 +111,7 @@ class PacketListener(private val plugin: GuardAC) :
 
         val active = abs(dyaw) + abs(dpitch) >= plugin.configManager.aiDeadZone
         if (gp.isStaleSample(now, active)) {
-
-            gp.rotation.clearState()
-            return
+            gp.rotation.seedRest()
         }
 
         if (gp.rotation.consumeWarmup()) return

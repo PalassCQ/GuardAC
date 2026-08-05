@@ -54,7 +54,8 @@ class GuardPlayer(
     private val deepBuffer = ArrayDeque<AimSample>(DEEP_WINDOW_TICKS + 32)
     private val judgeGate  = JudgeGate(DEEP_WINDOW_TICKS, DEEP_TRIGGER_ATTACKS, DEEP_REFRESH_TICKS)
 
-    private var ticksSinceLastSend = 0
+    private var samplesSinceSend   = 0
+    @Volatile private var ticksSinceSend = 0
     private var lastSendSamples    = 0
     private var lastSendMs         = 0L
 
@@ -167,13 +168,13 @@ class GuardPlayer(
                 deepBuffer.clear()
                 judgeGate.reset()
             }
-            ticksSinceLastSend = 0
+            samplesSinceSend = 0
             return
         }
 
         tickBuffer.addLast(tick)
         while (tickBuffer.size > sequenceSize * 2) tickBuffer.removeFirst()
-        ticksSinceLastSend++
+        samplesSinceSend++
 
         deepBuffer.addLast(tick)
         while (deepBuffer.size > DEEP_WINDOW_TICKS) deepBuffer.removeFirst()
@@ -183,18 +184,23 @@ class GuardPlayer(
         judgeGate.reset()
     }
 
+    fun onServerTick() {
+        if (ticksSinceSend < Int.MAX_VALUE) ticksSinceSend++
+    }
+
     fun pollSequence(): Array<AimSample>? = takeSequence(plugin.configManager.aiStep, 0L)
 
-    fun pollAttackSequence(): Array<AimSample>? =
-        takeSequence(minOf(ATTACK_MIN_STEP, plugin.configManager.aiStep), ATTACK_MIN_GAP_MS)
+    fun pollAttackSequence(): Array<AimSample>? = takeSequence(1, ATTACK_MIN_GAP_MS)
 
-    private fun takeSequence(minStep: Int, minGapMs: Long): Array<AimSample>? {
-        if (ticksSinceLastSend < minStep) return null
+    private fun takeSequence(minTicks: Int, minGapMs: Long): Array<AimSample>? {
+        if (ticksSinceSend < minTicks) return null
+        if (samplesSinceSend < 1) return null
         if (tickBuffer.size < sequenceSize) return null
         val now = System.currentTimeMillis()
         if (minGapMs > 0L && now - lastSendMs < minGapMs) return null
-        lastSendSamples    = ticksSinceLastSend
-        ticksSinceLastSend = 0
+        lastSendSamples  = samplesSinceSend
+        samplesSinceSend = 0
+        ticksSinceSend   = 0
         lastSendMs = now
         return tickBuffer.takeLast(sequenceSize).toTypedArray()
     }
@@ -452,7 +458,6 @@ class GuardPlayer(
             || plugin.exemptManager.isGloballyExempt(player.name)
 
     private companion object {
-        const val ATTACK_MIN_STEP          = 2
         const val ATTACK_MIN_GAP_MS        = 250L
         const val UNSTABLE_GAP_MIN_MS      = 15L
         const val STALE_GAP_MIN_MS         = 120L

@@ -96,6 +96,13 @@ class RotationState {
         updateGcd()
     }
 
+    fun seedRest() {
+        prevDeltaYaw   = deltaYaw
+        prevDeltaPitch = deltaPitch
+        prevAccelYaw   = 0f
+        prevAccelPitch = 0f
+    }
+
     fun clearState() {
         prevYaw        = yaw
         prevPitch      = pitch
