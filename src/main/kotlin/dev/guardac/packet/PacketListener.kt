@@ -121,8 +121,10 @@ class PacketListener(private val plugin: GuardAC) :
             plugin.recorder.offer(gp.uuid, tick)
         }
 
-        gp.pollSequence()?.let { seq ->
-            plugin.checkRegistry.sequenceChecks.forEach { it.onSequence(gp, seq) }
+        if (cfg.aiContinuous || gp.combat.isInCombatWindow(cfg.aiSequence)) {
+            gp.pollSequence()?.let { seq ->
+                plugin.checkRegistry.sequenceChecks.forEach { it.onSequence(gp, seq) }
+            }
         }
     }
 
