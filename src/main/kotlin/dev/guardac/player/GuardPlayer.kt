@@ -63,8 +63,14 @@ class GuardPlayer(
     var totalTickCount: Int = 0
         private set
 
+    @Volatile private var riding: Boolean = false
+
     val isRiding: Boolean
-        get() = player.isInsideVehicle
+        get() = riding
+
+    fun setRiding(value: Boolean) {
+        riding = value
+    }
 
     private enum class TeleportPhase { NONE, WAITING, JUST_CONFIRMED }
     @Volatile private var teleportPhase: TeleportPhase = TeleportPhase.NONE

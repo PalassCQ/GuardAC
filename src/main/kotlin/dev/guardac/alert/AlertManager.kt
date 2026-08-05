@@ -24,6 +24,7 @@ package dev.guardac.alert
 
 import dev.guardac.GuardAC
 import dev.guardac.combat.SuppressionStage
+import dev.guardac.history.PunishmentHistory
 import dev.guardac.player.GuardPlayer
 import dev.guardac.util.Colors
 import dev.guardac.util.Message
@@ -52,19 +53,47 @@ class AlertManager(private val plugin: GuardAC) {
 
     fun setOverhead(uuid: UUID, enabled: Boolean) {
         if (enabled) overheadHidden.remove(uuid) else overheadHidden.add(uuid)
+        savePrefs(uuid)
     }
     fun hasOverhead(uuid: UUID): Boolean = !overheadHidden.contains(uuid)
 
     fun reload() {}
     fun toggleAlerts(uuid: UUID): Boolean =
-        if (alertsMuted.remove(uuid)) true else { alertsMuted.add(uuid); false }
+        (if (alertsMuted.remove(uuid)) true else { alertsMuted.add(uuid); false })
+            .also { savePrefs(uuid) }
     fun hasAlerts(uuid: UUID): Boolean = !alertsMuted.contains(uuid)
     fun toggleMonitor(uuid: UUID): Boolean =
-        if (monitorReceivers.remove(uuid)) false else monitorReceivers.add(uuid)
+        (if (monitorReceivers.remove(uuid)) false else monitorReceivers.add(uuid))
+            .also { savePrefs(uuid) }
     fun hasMonitor(uuid: UUID): Boolean = monitorReceivers.contains(uuid)
     fun toggleCrossServer(uuid: UUID): Boolean =
-        if (crossServerEnabled.remove(uuid)) false else crossServerEnabled.add(uuid)
+        (if (crossServerEnabled.remove(uuid)) false else crossServerEnabled.add(uuid))
+            .also { savePrefs(uuid) }
     fun hasCrossServer(uuid: UUID): Boolean = crossServerEnabled.contains(uuid)
+
+    private fun savePrefs(uuid: UUID) {
+        plugin.punishmentHistory.saveStaffPrefs(
+            uuid,
+            PunishmentHistory.StaffPrefs(
+                alerts      = hasAlerts(uuid),
+                monitor     = hasMonitor(uuid),
+                overhead    = hasOverhead(uuid),
+                crossServer = hasCrossServer(uuid),
+            ),
+        )
+    }
+
+    fun restorePrefs(player: Player) {
+        if (!player.hasPermission("guardac.alerts")) return
+        val uuid = player.uniqueId
+        plugin.scheduler.async(Runnable {
+            val prefs = plugin.punishmentHistory.loadStaffPrefs(uuid) ?: return@Runnable
+            if (prefs.alerts) alertsMuted.remove(uuid) else alertsMuted.add(uuid)
+            if (prefs.monitor) monitorReceivers.add(uuid) else monitorReceivers.remove(uuid)
+            if (prefs.overhead) overheadHidden.remove(uuid) else overheadHidden.add(uuid)
+            if (prefs.crossServer) crossServerEnabled.add(uuid) else crossServerEnabled.remove(uuid)
+        })
+    }
     fun sendAlert(gp: GuardPlayer, checkName: String, vl: Int, verbose: String, model: String = "[AI]") {
         val now = System.currentTimeMillis()
         val last = gp.lastAlertMs.get()
@@ -149,6 +178,9 @@ class AlertManager(private val plugin: GuardAC) {
     fun onPlayerQuit(uuid: UUID) {
         digests.remove(uuid)
         overheadHidden.remove(uuid)
+        alertsMuted.remove(uuid)
+        monitorReceivers.remove(uuid)
+        crossServerEnabled.remove(uuid)
     }
 
     private fun detailed(p: Double): String = "%.12f".format(java.util.Locale.ROOT, p)

@@ -39,6 +39,8 @@ class PlayerDataManager(private val plugin: GuardAC) : Listener {
 
     private val entityIdToUuid = ConcurrentHashMap<Int, UUID>()
 
+    private val playerVehicle = ConcurrentHashMap<UUID, Int>()
+
     private class Carry(val buffer: Double, val vl: Int, val epochMillis: Long)
 
     private val carryOver = ConcurrentHashMap<UUID, Carry>()
@@ -52,6 +54,7 @@ class PlayerDataManager(private val plugin: GuardAC) : Listener {
     fun onJoin(event: PlayerJoinEvent) {
         val gp = add(event.player)
         plugin.banAnimationManager.onJoin(event.player)
+        plugin.alertManager.restorePrefs(event.player)
         restorePersistedBuffer(gp)
         checkReputation(gp)
     }
@@ -89,7 +92,28 @@ class PlayerDataManager(private val plugin: GuardAC) : Listener {
         plugin.punishmentManager.onPlayerQuit(uuid)
         plugin.banAnimationManager.onQuit(uuid)
         entityIdToUuid.remove(player.entityId)
+        playerVehicle.remove(uuid)
         remove(uuid)
+    }
+
+    fun updatePassengers(vehicleId: Int, passengers: IntArray) {
+        val riders = ArrayList<UUID>(passengers.size)
+        for (id in passengers) {
+            entityIdToUuid[id]?.let { riders.add(it) }
+        }
+
+        playerVehicle.entries.removeIf { entry ->
+            if (entry.value == vehicleId && !riders.contains(entry.key)) {
+                players[entry.key]?.setRiding(false)
+                true
+            } else {
+                false
+            }
+        }
+        for (uuid in riders) {
+            playerVehicle[uuid] = vehicleId
+            players[uuid]?.setRiding(true)
+        }
     }
 
     private fun restorePersistedBuffer(gp: GuardPlayer) {
@@ -112,6 +136,7 @@ class PlayerDataManager(private val plugin: GuardAC) : Listener {
     private fun applyPersisted(gp: GuardPlayer, buffer: Double, vl: Int, savedAtMs: Long) {
         val cfg = plugin.configManager
         val ageMinutes = (System.currentTimeMillis() - savedAtMs) / 60000.0
+        if (ageMinutes < 0.0) return
         if (ageMinutes > cfg.persistBufferTtlMinutes) return
 
         val hoursBeyondGrace =
@@ -139,6 +164,7 @@ class PlayerDataManager(private val plugin: GuardAC) : Listener {
         val gp = GuardPlayer(player.uniqueId, player, plugin)
         players[player.uniqueId] = gp
         entityIdToUuid[player.entityId] = player.uniqueId
+        gp.setRiding(player.isInsideVehicle)
         return gp
     }
 

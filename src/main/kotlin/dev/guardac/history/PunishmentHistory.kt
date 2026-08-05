@@ -98,6 +98,18 @@ class PunishmentHistory(private val plugin: GuardAC) {
 
                     st.execute(
                         """
+                        CREATE TABLE IF NOT EXISTS staff_prefs (
+                            uuid        TEXT    PRIMARY KEY,
+                            alerts      INTEGER NOT NULL,
+                            monitor     INTEGER NOT NULL,
+                            overhead    INTEGER NOT NULL,
+                            crossserver INTEGER NOT NULL
+                        )
+                        """.trimIndent()
+                    )
+
+                    st.execute(
+                        """
                         CREATE TABLE IF NOT EXISTS results (
                             id    INTEGER PRIMARY KEY AUTOINCREMENT,
                             uuid  TEXT    NOT NULL,
@@ -255,6 +267,66 @@ class PunishmentHistory(private val plugin: GuardAC) {
         } catch (e: SQLException) {
             plugin.logger.warning("[History] Failed to clear buffer: ${e.message}")
         }
+    }
+
+    class StaffPrefs(
+        val alerts: Boolean,
+        val monitor: Boolean,
+        val overhead: Boolean,
+        val crossServer: Boolean,
+    )
+
+    fun saveStaffPrefs(uuid: UUID, prefs: StaffPrefs) {
+        if (connection == null) return
+        val write = Runnable {
+            try {
+                synchronized(lock) {
+                    val conn = connection ?: return@Runnable
+                    conn.prepareStatement(
+                        "INSERT INTO staff_prefs (uuid, alerts, monitor, overhead, crossserver) " +
+                            "VALUES (?, ?, ?, ?, ?) ON CONFLICT(uuid) DO UPDATE SET " +
+                            "alerts=excluded.alerts, monitor=excluded.monitor, " +
+                            "overhead=excluded.overhead, crossserver=excluded.crossserver"
+                    ).use { ps ->
+                        ps.setString(1, uuid.toString())
+                        ps.setInt(2, if (prefs.alerts) 1 else 0)
+                        ps.setInt(3, if (prefs.monitor) 1 else 0)
+                        ps.setInt(4, if (prefs.overhead) 1 else 0)
+                        ps.setInt(5, if (prefs.crossServer) 1 else 0)
+                        ps.executeUpdate()
+                    }
+                }
+            } catch (e: SQLException) {
+                plugin.logger.warning("[History] Failed to save staff preferences: ${e.message}")
+            }
+        }
+        if (!plugin.isEnabled) write.run() else plugin.scheduler.async(write)
+    }
+
+    fun loadStaffPrefs(uuid: UUID): StaffPrefs? {
+        try {
+            synchronized(lock) {
+                val conn = connection ?: return null
+                conn.prepareStatement(
+                    "SELECT alerts, monitor, overhead, crossserver FROM staff_prefs WHERE uuid = ?"
+                ).use { ps ->
+                    ps.setString(1, uuid.toString())
+                    ps.executeQuery().use { rs ->
+                        if (rs.next()) {
+                            return StaffPrefs(
+                                alerts      = rs.getInt("alerts") != 0,
+                                monitor     = rs.getInt("monitor") != 0,
+                                overhead    = rs.getInt("overhead") != 0,
+                                crossServer = rs.getInt("crossserver") != 0,
+                            )
+                        }
+                    }
+                }
+            }
+        } catch (e: SQLException) {
+            plugin.logger.warning("[History] Failed to load staff preferences: ${e.message}")
+        }
+        return null
     }
 
     fun recordResult(uuid: UUID, name: String, model: String, probability: Double) {

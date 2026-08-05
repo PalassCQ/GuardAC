@@ -87,6 +87,7 @@ class GuardAC : JavaPlugin() {
     private var runtimeStarted = false
     private var vlDecayTask: TaskHandle? = null
     private var combatResetTask: TaskHandle? = null
+    private var ridingSyncTask: TaskHandle? = null
     private var packetListener: PacketListener? = null
 
     override fun onEnable() {
@@ -161,6 +162,7 @@ class GuardAC : JavaPlugin() {
         server.pluginManager.registerEvents(DamageListener(this), this)
         startVlDecayTask()
         startCombatResetTask()
+        startRidingSyncTask()
         hologramManager.start()
         playerDataManager.adoptOnline()
 
@@ -203,6 +205,18 @@ class GuardAC : JavaPlugin() {
         }
     }
 
+    private fun startRidingSyncTask() {
+        ridingSyncTask?.cancel()
+        ridingSyncTask = scheduler.globalTimer(RIDING_SYNC_TICKS, RIDING_SYNC_TICKS) {
+            playerDataManager.getAll().forEach { gp ->
+                if (!gp.isRiding || !gp.player.isOnline) return@forEach
+                scheduler.entity(gp.player, Runnable {
+                    if (gp.player.isOnline && !gp.player.isInsideVehicle) gp.setRiding(false)
+                })
+            }
+        }
+    }
+
     fun startCombatResetTask() {
         combatResetTask?.cancel()
         combatResetTask = null
@@ -229,6 +243,8 @@ class GuardAC : JavaPlugin() {
         vlDecayTask = null
         combatResetTask?.cancel()
         combatResetTask = null
+        ridingSyncTask?.cancel()
+        ridingSyncTask = null
         runCatching {
             packetListener?.let { PacketEvents.getAPI().eventManager.unregisterListener(it) }
         }
@@ -297,5 +313,6 @@ class GuardAC : JavaPlugin() {
             private set
 
         const val COMBAT_RESET_CHECK_TICKS = 20L
+        const val RIDING_SYNC_TICKS        = 100L
     }
 }

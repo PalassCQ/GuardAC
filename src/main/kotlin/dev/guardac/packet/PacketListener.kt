@@ -32,6 +32,7 @@ import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientPl
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientPlayerRotation
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientTeleportConfirm
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerPlayerPositionAndLook
+import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSetPassengers
 import dev.guardac.GuardAC
 import dev.guardac.sample.AimSample
 import dev.guardac.player.GuardPlayer
@@ -42,6 +43,11 @@ class PacketListener(private val plugin: GuardAC) :
     PacketListenerAbstract(PacketListenerPriority.LOW) {
 
     override fun onPacketSend(event: PacketSendEvent) {
+        if (event.packetType == PacketType.Play.Server.SET_PASSENGERS) {
+            val w = WrapperPlayServerSetPassengers(event)
+            plugin.playerDataManager.updatePassengers(w.entityId, w.passengers)
+            return
+        }
         if (event.packetType != PacketType.Play.Server.PLAYER_POSITION_AND_LOOK) return
         val player = event.player as? Player ?: return
         val gp     = plugin.playerDataManager.get(player) ?: return
