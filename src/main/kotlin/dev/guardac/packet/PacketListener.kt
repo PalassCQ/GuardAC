@@ -131,6 +131,12 @@ class PacketListener(private val plugin: GuardAC) :
             gp.beginCombatEpisode()
         }
         gp.combat.recordAttack()
+
+        if (!gp.isRiding) {
+            gp.pollAttackSequence()?.let { seq ->
+                plugin.checkRegistry.sequenceChecks.forEach { it.onSequence(gp, seq) }
+            }
+        }
     }
 
     private fun isSaneRotation(v: Float): Boolean =

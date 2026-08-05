@@ -55,6 +55,8 @@ class GuardPlayer(
     private val judgeGate  = JudgeGate(DEEP_WINDOW_TICKS, DEEP_TRIGGER_ATTACKS, DEEP_REFRESH_TICKS)
 
     private var ticksSinceLastSend = 0
+    private var lastSendSamples    = 0
+    private var lastSendMs         = 0L
 
     var idleTickCount: Int = 0
         private set
@@ -176,15 +178,24 @@ class GuardPlayer(
         ticksSinceLastSend = 0
     }
 
-    fun pollSequence(): Array<AimSample>? {
-        if (ticksSinceLastSend < plugin.configManager.aiStep) return null
+    fun pollSequence(): Array<AimSample>? = takeSequence(plugin.configManager.aiStep, 0L)
+
+    fun pollAttackSequence(): Array<AimSample>? =
+        takeSequence(minOf(ATTACK_MIN_STEP, plugin.configManager.aiStep), ATTACK_MIN_GAP_MS)
+
+    private fun takeSequence(minStep: Int, minGapMs: Long): Array<AimSample>? {
+        if (ticksSinceLastSend < minStep) return null
         if (tickBuffer.size < sequenceSize) return null
+        val now = System.currentTimeMillis()
+        if (minGapMs > 0L && now - lastSendMs < minGapMs) return null
+        lastSendSamples    = ticksSinceLastSend
         ticksSinceLastSend = 0
+        lastSendMs = now
         return tickBuffer.takeLast(sequenceSize).toTypedArray()
     }
 
     fun pollDeepSequence(): Array<AimSample>? {
-        if (!judgeGate.poll(deepBuffer.size, combat.totalAttacks, plugin.configManager.aiStep)) return null
+        if (!judgeGate.poll(deepBuffer.size, combat.totalAttacks, lastSendSamples)) return null
         return deepBuffer.toTypedArray()
     }
 
@@ -436,6 +447,8 @@ class GuardPlayer(
             || plugin.exemptManager.isGloballyExempt(player.name)
 
     private companion object {
+        const val ATTACK_MIN_STEP          = 2
+        const val ATTACK_MIN_GAP_MS        = 250L
         const val UNSTABLE_GAP_MIN_MS      = 15L
         const val STALE_GAP_MIN_MS         = 120L
         const val MS_PER_TICK              = 50L
