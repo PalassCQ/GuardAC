@@ -67,12 +67,16 @@ class PacketListener(private val plugin: GuardAC) :
             }
             PacketType.Play.Client.PLAYER_ROTATION -> {
                 val w = WrapperPlayClientPlayerRotation(event)
+                gp.combat.tickElapsed()
                 handleRotation(gp, w.yaw, w.pitch)
             }
             PacketType.Play.Client.PLAYER_POSITION_AND_ROTATION -> {
                 val w = WrapperPlayClientPlayerPositionAndRotation(event)
+                gp.combat.tickElapsed()
                 handleRotation(gp, w.yaw, w.pitch)
             }
+            PacketType.Play.Client.PLAYER_POSITION,
+            PacketType.Play.Client.PLAYER_FLYING -> gp.combat.tickElapsed()
             PacketType.Play.Client.INTERACT_ENTITY -> {
                 val w = WrapperPlayClientInteractEntity(event)
                 if (w.action == WrapperPlayClientInteractEntity.InteractAction.ATTACK) {
@@ -110,7 +114,6 @@ class PacketListener(private val plugin: GuardAC) :
 
         plugin.checkRegistry.rotationChecks.forEach { it.onRotation(gp) }
 
-        gp.combat.tickElapsed()
         val cfg = plugin.configManager
         val tick = buildTick(gp)
         gp.onTick(tick, !gp.isRiding)
