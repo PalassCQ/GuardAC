@@ -140,7 +140,7 @@ class PacketListener(private val plugin: GuardAC) :
 
         if (!gp.isRiding) {
             gp.pollAttackSequence()?.let { seq ->
-                plugin.checkRegistry.sequenceChecks.forEach { it.onSequence(gp, seq) }
+                plugin.checkRegistry.sequenceChecks.forEach { it.onSequence(gp, seq, true) }
             }
         }
     }

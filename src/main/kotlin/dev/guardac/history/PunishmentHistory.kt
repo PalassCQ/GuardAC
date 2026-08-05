@@ -269,6 +269,8 @@ class PunishmentHistory(private val plugin: GuardAC) {
         }
     }
 
+    val isAvailable: Boolean get() = connection != null
+
     class StaffPrefs(
         val alerts: Boolean,
         val monitor: Boolean,

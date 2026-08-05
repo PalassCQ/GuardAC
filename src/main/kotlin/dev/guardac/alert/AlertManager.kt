@@ -84,10 +84,10 @@ class AlertManager(private val plugin: GuardAC) {
     }
 
     fun restorePrefs(player: Player) {
-        if (!player.hasPermission("guardac.alerts")) return
         val uuid = player.uniqueId
         plugin.scheduler.async(Runnable {
             val prefs = plugin.punishmentHistory.loadStaffPrefs(uuid) ?: return@Runnable
+            if (!player.isOnline) return@Runnable
             if (prefs.alerts) alertsMuted.remove(uuid) else alertsMuted.add(uuid)
             if (prefs.monitor) monitorReceivers.add(uuid) else monitorReceivers.remove(uuid)
             if (prefs.overhead) overheadHidden.remove(uuid) else overheadHidden.add(uuid)
@@ -177,6 +177,8 @@ class AlertManager(private val plugin: GuardAC) {
 
     fun onPlayerQuit(uuid: UUID) {
         digests.remove(uuid)
+        if (!plugin.punishmentHistory.isAvailable) return
+
         overheadHidden.remove(uuid)
         alertsMuted.remove(uuid)
         monitorReceivers.remove(uuid)

@@ -124,6 +124,8 @@ class GuardPlayer(
         return v
     }
 
+    fun peekUnstableTicks(): Int = unstableTicks
+
     val lastMonitorHitMs: AtomicLong = AtomicLong(0L)
     val lastAlertMs: AtomicLong      = AtomicLong(0L)
     val lastSuspiciousMs: AtomicLong = AtomicLong(0L)

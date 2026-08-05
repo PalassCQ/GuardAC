@@ -35,7 +35,7 @@ import kotlin.math.min
 
 class AiCheck(private val plugin: GuardAC) : SequenceCheck {
 
-    override fun onSequence(gp: GuardPlayer, ticks: Array<AimSample>) {
+    override fun onSequence(gp: GuardPlayer, ticks: Array<AimSample>, fromAttack: Boolean) {
         val cfg = plugin.configManager
         if (!cfg.aiEnabled) return
         if (gp.isRiding) return
@@ -44,7 +44,7 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
 
         if (plugin.worldGuardCompat.shouldBypass(gp.player)) return
 
-        val unstable = gp.consumeUnstableTicks()
+        val unstable = if (fromAttack) gp.peekUnstableTicks() else gp.consumeUnstableTicks()
         val lagDistorted = unstable >= UNSTABLE_TICKS_MIN && gp.player.ping >= UNSTABLE_PING_MIN
 
         if (isDeadWindow(ticks, activeThreshold(gp, cfg.aiDeadZone), cfg.aiMinActiveTicks)) return

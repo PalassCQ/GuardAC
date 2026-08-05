@@ -26,7 +26,7 @@ import dev.guardac.sample.AimSample
 import dev.guardac.player.GuardPlayer
 
 interface SequenceCheck {
-    fun onSequence(gp: GuardPlayer, ticks: Array<AimSample>)
+    fun onSequence(gp: GuardPlayer, ticks: Array<AimSample>, fromAttack: Boolean = false)
 }
 
 interface RotationCheck {
