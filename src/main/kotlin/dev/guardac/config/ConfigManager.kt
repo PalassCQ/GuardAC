@@ -26,12 +26,75 @@ import dev.guardac.GuardAC
 import org.bukkit.configuration.file.FileConfiguration
 import org.bukkit.configuration.file.YamlConfiguration
 import java.io.File
+import java.util.concurrent.ConcurrentHashMap
 
 class ConfigManager(private val plugin: GuardAC) {
 
     private lateinit var cfg: FileConfiguration
     lateinit var punishments: YamlConfiguration
         private set
+
+    private val warnedPaths = ConcurrentHashMap.newKeySet<String>()
+
+    private fun warnClamped(path: String, raw: Any, used: Any, min: Any, max: Any) {
+        if (!warnedPaths.add(path)) return
+        plugin.logger.warning(
+            "[GuardAC] $path is set to $raw, which is outside the allowed range $min..$max. " +
+                "Using $used instead - fix the value in config.yml."
+        )
+    }
+
+    private fun clampedInt(path: String, def: Int, min: Int, max: Int): Int {
+        val raw = cfg.getInt(path, def)
+        val used = raw.coerceIn(min, max)
+        if (used != raw) warnClamped(path, raw, used, min, max)
+        return used
+    }
+
+    private fun clampedLong(path: String, def: Long, min: Long, max: Long): Long {
+        val raw = cfg.getLong(path, def)
+        val used = raw.coerceIn(min, max)
+        if (used != raw) warnClamped(path, raw, used, min, max)
+        return used
+    }
+
+    private fun clampedDouble(path: String, def: Double, min: Double, max: Double): Double {
+        val raw = cfg.getDouble(path, def)
+        val used = raw.coerceIn(min, max)
+        if (used != raw) warnClamped(path, raw, used, min, max)
+        return used
+    }
+
+    private fun validateValues() {
+        warnedPaths.clear()
+        aiSequence
+        aiStep
+        aiTimeoutSeconds
+        alertMinConfidence
+        alertMinHits
+        alertWindowSeconds
+        crossServerPollSeconds
+        webCommandsPollSeconds
+        vlDecayIntervalSeconds
+        vlDecayAmount
+        animationDurationTicks
+        animationParticleCount
+        animationPigHeight
+        combatResetAfterSeconds
+        punishCooldownMs
+        punishMinTps
+        validateChoice("web-commands.ban-bridge", banBridge, BAN_BRIDGE_MODES, "auto")
+    }
+
+    private fun validateChoice(path: String, value: String, allowed: Set<String>, fallback: String) {
+        if (value in allowed) return
+        if (!warnedPaths.add(path)) return
+        plugin.logger.warning(
+            "[GuardAC] $path is set to \"$value\", which is not one of " +
+                "${allowed.joinToString(", ")}. Falling back to \"$fallback\" - " +
+                "fix the value in config.yml."
+        )
+    }
 
     fun load() {
         plugin.saveDefaultConfig()
@@ -40,6 +103,7 @@ class ConfigManager(private val plugin: GuardAC) {
         mergeMissingKeys()
         loadPunishments()
         ensureFolders()
+        validateValues()
         if (aiServer.trim().startsWith("http://", ignoreCase = true)) {
             plugin.logger.warning(
                 "[GuardAC] ai.server uses http:// - traffic to the backend is not encrypted " +
@@ -183,9 +247,9 @@ class ConfigManager(private val plugin: GuardAC) {
     }
 
     val aiInferBatchUrl: String get() = aiBaseUrl + INFER_BATCH_PATH
-    val aiSequence: Int        get() = cfg.getInt("ai.sequence", 40).coerceIn(8, 400)
-    val aiStep: Int            get() = cfg.getInt("ai.step", 10).coerceIn(1, 400)
-    val aiTimeoutSeconds: Long get() = cfg.getLong("ai.timeout-seconds", 5).coerceIn(1L, 60L)
+    val aiSequence: Int        get() = clampedInt("ai.sequence", 40, 8, 400)
+    val aiStep: Int            get() = clampedInt("ai.step", 10, 1, 400)
+    val aiTimeoutSeconds: Long get() = clampedLong("ai.timeout-seconds", 5L, 1L, 60L)
     val aiContinuous: Boolean  get() = cfg.getBoolean("ai.continuous", false)
 
     val aiBinaryWire: Boolean  get() = cfg.getBoolean("ai.binary-wire", true)
@@ -209,10 +273,10 @@ class ConfigManager(private val plugin: GuardAC) {
     val alertsToConsole: Boolean get() = cfg.getBoolean("alerts.print-to-console", true)
 
     val alertMinConfidence: Double get() =
-        cfg.getDouble("alerts.min-hit-confidence", ALERT_MIN_CONFIDENCE).coerceIn(0.0, 100.0)
-    val alertMinHits: Int          get() = cfg.getInt("alerts.min-hits", 3).coerceIn(1, 1000)
+        clampedDouble("alerts.min-hit-confidence", ALERT_MIN_CONFIDENCE, 0.0, 100.0)
+    val alertMinHits: Int          get() = clampedInt("alerts.min-hits", 3, 1, 1000)
     val alertWindowSeconds: Long   get() =
-        cfg.getLong("alerts.window-seconds", ALERT_WINDOW_SECONDS).coerceIn(1L, 3600L)
+        clampedLong("alerts.window-seconds", ALERT_WINDOW_SECONDS, 1L, 3600L)
 
     val suspiciousAlertsEnabled: Boolean get() = cfg.getBoolean("alerts.suspicious.enabled", true)
     val suspiciousAlertBuffer: Double   get() = cfg.getDouble("alerts.suspicious.buffer", 15.0)
@@ -223,7 +287,7 @@ class ConfigManager(private val plugin: GuardAC) {
     val alertSoundPitch: Float     get() = cfg.getDouble("alerts.sound.pitch", 1.5).toFloat()
 
     val crossServerEnabled: Boolean get() = cfg.getBoolean("cross-server.enabled", false)
-    val crossServerPollSeconds: Long get() = cfg.getLong("cross-server.poll-seconds", 10L).coerceIn(3L, 300L)
+    val crossServerPollSeconds: Long get() = clampedLong("cross-server.poll-seconds", 10L, 3L, 300L)
 
     val serverName: String
         get() = cfg.getString("server-name", "")!!.ifBlank {
@@ -231,7 +295,7 @@ class ConfigManager(private val plugin: GuardAC) {
         }
 
     val webCommandsEnabled: Boolean    get() = cfg.getBoolean("web-commands.enabled", true)
-    val webCommandsPollSeconds: Long   get() = cfg.getLong("web-commands.poll-seconds", 15L).coerceIn(5L, 300L)
+    val webCommandsPollSeconds: Long   get() = clampedLong("web-commands.poll-seconds", 15L, 5L, 300L)
     val banBridge: String              get() = cfg.getString("web-commands.ban-bridge", "auto")!!.lowercase()
     val banBridgeBanCommand: String    get() = cfg.getString("web-commands.ban-command", "")!!
     val banBridgeTempbanCommand: String get() = cfg.getString("web-commands.tempban-command", "")!!
@@ -251,24 +315,24 @@ class ConfigManager(private val plugin: GuardAC) {
 
     val vlDecayEnabled: Boolean      get() = cfg.getBoolean("vl-decay.enabled", true)
     val vlDecayIntervalSeconds: Int  get() =
-        cfg.getInt("vl-decay.interval-seconds", VL_DECAY_INTERVAL_SECONDS).coerceIn(10, 86_400)
-    val vlDecayAmount: Int           get() = cfg.getInt("vl-decay.amount", 1).coerceIn(1, 100)
+        clampedInt("vl-decay.interval-seconds", VL_DECAY_INTERVAL_SECONDS, 10, 86_400)
+    val vlDecayAmount: Int           get() = clampedInt("vl-decay.amount", 1, 1, 100)
     val vlDecaySkipInCombat: Boolean get() = cfg.getBoolean("vl-decay.skip-in-combat", true)
 
-    val punishCooldownMs: Long get() = cfg.getLong("punishment.cooldown-ms", 5000L)
+    val punishCooldownMs: Long get() = clampedLong("punishment.cooldown-ms", 5000L, 0L, 600_000L)
 
-    val punishMinTps: Double get() = cfg.getDouble("punishment.min-tps", 16.0)
+    val punishMinTps: Double get() = clampedDouble("punishment.min-tps", 16.0, 0.0, 20.0)
 
     val animationsEnabled: Boolean   get() = cfg.getBoolean("animations.enabled", true)
     val animationDurationTicks: Int  get() =
-        cfg.getInt("animations.duration-ticks", ANIM_DURATION_TICKS).coerceIn(1, 600)
+        clampedInt("animations.duration-ticks", ANIM_DURATION_TICKS, 1, 600)
     val animationParticle: String    get() = cfg.getString("animations.particle", "FLAME")!!
-    val animationParticleCount: Int  get() = cfg.getInt("animations.particle-count", 30).coerceIn(1, 500)
+    val animationParticleCount: Int  get() = clampedInt("animations.particle-count", 30, 1, 500)
     val animationDropInventory: Boolean get() = cfg.getBoolean("animations.drop-inventory", true)
     val animationSound: Boolean      get() = cfg.getBoolean("animations.sound", true)
 
     val animationKillSound: Boolean  get() = cfg.getBoolean("animations.kill-sound", true)
-    val animationPigHeight: Double   get() = cfg.getDouble("animations.pig-height", 10.0).coerceIn(1.0, 60.0)
+    val animationPigHeight: Double   get() = clampedDouble("animations.pig-height", 10.0, 1.0, 60.0)
 
     val animationAutoOnBan: Boolean  get() = cfg.getBoolean("animations.auto-on-ban", true)
 
@@ -312,7 +376,7 @@ class ConfigManager(private val plugin: GuardAC) {
 
     val combatResetEnabled: Boolean      get() = cfg.getBoolean("combat-reset.enabled", true)
     val combatResetAfterSeconds: Long    get() =
-        cfg.getLong("combat-reset.after-seconds", 60L).coerceIn(1L, 86_400L)
+        clampedLong("combat-reset.after-seconds", 60L, 1L, 86_400L)
 
     val suppressionEnabled: Boolean              get() = cfg.getBoolean("combat-suppression.enabled", false)
     val suppressionStartProbability: Double      get() = cfg.getDouble("combat-suppression.penalty.start-probability", 0.75)
@@ -335,6 +399,8 @@ class ConfigManager(private val plugin: GuardAC) {
         const val DEFAULT_AI_SERVER = "https://guardac.net"
 
         const val ANIM_DURATION_TICKS = 100
+
+        val BAN_BRIDGE_MODES = setOf("auto", "vanilla", "litebans", "advancedban", "command")
 
         const val COMBAT_WINDOW_FACTOR = 3
         const val ALERT_MIN_CONFIDENCE = 85.0
