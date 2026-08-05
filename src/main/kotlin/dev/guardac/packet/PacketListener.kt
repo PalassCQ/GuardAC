@@ -112,10 +112,8 @@ class PacketListener(private val plugin: GuardAC) :
 
         gp.combat.tickElapsed()
         val cfg = plugin.configManager
-        val recordForAi = !gp.isRiding && gp.combat.isInCombatWindow(cfg.aiCombatWindowTicks)
-
         val tick = buildTick(gp)
-        gp.onTick(tick, recordForAi)
+        gp.onTick(tick, !gp.isRiding)
 
         if (!gp.isRiding && gp.combat.isInCombatWindow(cfg.aiSequence)) {
             plugin.recorder.offer(gp.uuid, tick)
@@ -129,10 +127,7 @@ class PacketListener(private val plugin: GuardAC) :
     }
 
     private fun handleAttack(gp: GuardPlayer, entityId: Int, player: Player) {
-        val targetUuid = plugin.playerDataManager.uuidByEntityId(entityId)
-        if (targetUuid == player.uniqueId) return
-
-        if (targetUuid == null && plugin.recorder.captureOf(gp.uuid) == null) return
+        if (plugin.playerDataManager.uuidByEntityId(entityId) == player.uniqueId) return
 
         if (!gp.combat.foughtWithinSeconds(COMBAT_EPISODE_SECONDS)) {
             gp.beginCombatEpisode()

@@ -153,13 +153,13 @@ class GuardPlayer(
     @Synchronized
     fun lastHitMs(): Long = hitHistory.lastEpochMillis()
 
-    fun onTick(tick: AimSample, recordForAi: Boolean) {
+    fun onTick(tick: AimSample, collect: Boolean) {
         totalTickCount++
         if (abs(tick.deltaYaw) < IDLE_DELTA_THRESHOLD && abs(tick.deltaPitch) < IDLE_DELTA_THRESHOLD) {
             idleTickCount++
         }
 
-        if (!plugin.configManager.aiContinuous && !recordForAi) {
+        if (!collect) {
             if (tickBuffer.isNotEmpty()) tickBuffer.clear()
             if (deepBuffer.isNotEmpty()) {
                 deepBuffer.clear()
@@ -178,10 +178,7 @@ class GuardPlayer(
     }
 
     fun beginCombatEpisode() {
-        tickBuffer.clear()
-        deepBuffer.clear()
         judgeGate.reset()
-        ticksSinceLastSend = 0
     }
 
     fun pollSequence(): Array<AimSample>? = takeSequence(plugin.configManager.aiStep, 0L)
