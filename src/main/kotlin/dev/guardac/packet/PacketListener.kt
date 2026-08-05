@@ -100,8 +100,7 @@ class PacketListener(private val plugin: GuardAC) :
 
         if (dyaw == 0f && dpitch == 0f) return
 
-        val active = abs(dyaw) + abs(dpitch) >= plugin.configManager.aiDeadZone
-        if (gp.isStaleSample(now, active)) {
+        if (gp.isStaleSample()) {
 
             gp.rotation.clearState()
             return
