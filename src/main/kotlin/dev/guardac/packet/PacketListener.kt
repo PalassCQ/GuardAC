@@ -130,7 +130,10 @@ class PacketListener(private val plugin: GuardAC) :
     }
 
     private fun handleAttack(gp: GuardPlayer, entityId: Int, player: Player) {
-        if (plugin.playerDataManager.uuidByEntityId(entityId) == player.uniqueId) return
+        val targetUuid = plugin.playerDataManager.uuidByEntityId(entityId)
+        if (targetUuid == player.uniqueId) return
+
+        if (targetUuid == null && plugin.recorder.captureOf(gp.uuid) == null) return
 
         if (!gp.combat.foughtWithinSeconds(COMBAT_EPISODE_SECONDS)) {
             gp.beginCombatEpisode()
