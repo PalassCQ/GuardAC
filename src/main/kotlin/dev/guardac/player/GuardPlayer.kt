@@ -27,6 +27,7 @@ import dev.guardac.combat.SuppressionStage
 import dev.guardac.sample.AimSample
 import dev.guardac.player.state.CombatState
 import dev.guardac.player.state.RotationState
+import dev.guardac.player.state.SampleTiming
 import dev.guardac.util.GeyserUtil
 import org.bukkit.entity.Player
 import java.util.UUID
@@ -96,9 +97,8 @@ class GuardPlayer(
     }
 
     @Volatile private var lastRotationNanos: Long = 0L
-    @Volatile private var lastActiveNanos: Long = 0L
-    @Volatile private var lastSampleActive: Boolean = false
     @Volatile private var unstableTicks: Int = 0
+    private val sampleTiming = SampleTiming()
 
     fun recordRotationTiming(nowNanos: Long) {
         val last = lastRotationNanos
@@ -109,15 +109,8 @@ class GuardPlayer(
         if (gapMs < UNSTABLE_GAP_MIN_MS) unstableTicks++
     }
 
-    fun isStaleSample(nowNanos: Long, active: Boolean): Boolean {
-        val hadMotion = lastSampleActive
-        val last = lastActiveNanos
-        lastSampleActive = active
-        if (active) lastActiveNanos = nowNanos
-
-        if (!active || !hadMotion || last == 0L) return false
-        return (nowNanos - last) / 1_000_000 >= STALE_GAP_MIN_MS
-    }
+    fun isStaleSample(nowNanos: Long, active: Boolean): Boolean =
+        sampleTiming.isStale(nowNanos, active)
 
     fun consumeUnstableTicks(): Int {
         val v = unstableTicks
@@ -186,6 +179,7 @@ class GuardPlayer(
 
     fun onServerTick() {
         if (ticksSinceSend < Int.MAX_VALUE) ticksSinceSend++
+        sampleTiming.onPacket()
     }
 
     fun pollSequence(): Array<AimSample>? = takeSequence(plugin.configManager.aiStep, 0L)
@@ -460,7 +454,6 @@ class GuardPlayer(
     private companion object {
         const val ATTACK_MIN_GAP_MS        = 250L
         const val UNSTABLE_GAP_MIN_MS      = 15L
-        const val STALE_GAP_MIN_MS         = 120L
         const val MS_PER_TICK              = 50L
         const val CHEAT_THRESHOLD          = 0.90
         const val LEGIT_THRESHOLD          = 0.10
