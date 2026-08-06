@@ -22,36 +22,41 @@ class SampleTiming {
 
     @Volatile private var lastActiveNanos: Long = 0L
     @Volatile private var lastSampleActive: Boolean = false
-    @Volatile private var packetsSinceActive: Int = 0
+    @Volatile private var ticksObserved: Int = 0
+    @Volatile private var lastSlotNanos: Long = 0L
 
-    fun onPacket() {
-        if (packetsSinceActive < Int.MAX_VALUE) packetsSinceActive++
+    fun onPacket(nowNanos: Long) {
+        if (lastSlotNanos != 0L && nowNanos - lastSlotNanos < TICK_NANOS) return
+        lastSlotNanos = nowNanos
+        if (ticksObserved < Int.MAX_VALUE) ticksObserved++
     }
 
     fun isStale(nowNanos: Long, active: Boolean): Boolean {
         val hadMotion = lastSampleActive
         val last = lastActiveNanos
-        val delivered = packetsSinceActive
+        val observed = ticksObserved
         lastSampleActive = active
         if (active) {
             lastActiveNanos = nowNanos
-            packetsSinceActive = 0
+            ticksObserved = 0
         }
 
         if (!active || !hadMotion || last == 0L) return false
         val gapMs = (nowNanos - last) / 1_000_000
         if (gapMs < STALE_GAP_MIN_MS) return false
-        return delivered * 2 < gapMs / MS_PER_TICK
+        return observed * 2 * MS_PER_TICK < gapMs
     }
 
     fun reset() {
         lastActiveNanos = 0L
         lastSampleActive = false
-        packetsSinceActive = 0
+        ticksObserved = 0
+        lastSlotNanos = 0L
     }
 
     companion object {
         const val STALE_GAP_MIN_MS = 120L
         const val MS_PER_TICK = 50L
+        const val TICK_NANOS = MS_PER_TICK * 1_000_000L
     }
 }

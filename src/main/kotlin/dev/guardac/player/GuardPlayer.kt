@@ -177,9 +177,9 @@ class GuardPlayer(
         judgeGate.reset()
     }
 
-    fun onServerTick() {
+    fun onServerTick(nowNanos: Long) {
         if (ticksSinceSend < Int.MAX_VALUE) ticksSinceSend++
-        sampleTiming.onPacket()
+        sampleTiming.onPacket(nowNanos)
     }
 
     fun pollSequence(): Array<AimSample>? = takeSequence(plugin.configManager.aiStep, 0L)

@@ -67,20 +67,22 @@ class PacketListener(private val plugin: GuardAC) :
             }
             PacketType.Play.Client.PLAYER_ROTATION -> {
                 val w = WrapperPlayClientPlayerRotation(event)
+                val now = System.nanoTime()
                 gp.combat.tickElapsed()
-                gp.onServerTick()
-                handleRotation(gp, w.yaw, w.pitch)
+                gp.onServerTick(now)
+                handleRotation(gp, w.yaw, w.pitch, now)
             }
             PacketType.Play.Client.PLAYER_POSITION_AND_ROTATION -> {
                 val w = WrapperPlayClientPlayerPositionAndRotation(event)
+                val now = System.nanoTime()
                 gp.combat.tickElapsed()
-                gp.onServerTick()
-                handleRotation(gp, w.yaw, w.pitch)
+                gp.onServerTick(now)
+                handleRotation(gp, w.yaw, w.pitch, now)
             }
             PacketType.Play.Client.PLAYER_POSITION,
             PacketType.Play.Client.PLAYER_FLYING -> {
                 gp.combat.tickElapsed()
-                gp.onServerTick()
+                gp.onServerTick(System.nanoTime())
             }
             PacketType.Play.Client.INTERACT_ENTITY -> {
                 val w = WrapperPlayClientInteractEntity(event)
@@ -92,10 +94,9 @@ class PacketListener(private val plugin: GuardAC) :
         }
     }
 
-    private fun handleRotation(gp: GuardPlayer, yaw: Float, pitch: Float) {
+    private fun handleRotation(gp: GuardPlayer, yaw: Float, pitch: Float, now: Long) {
         if (!isSaneRotation(yaw) || !isSaneRotation(pitch)) return
 
-        val now = System.nanoTime()
         gp.recordRotationTiming(now)
         gp.rotation.update(yaw, pitch)
         if (gp.consumeTeleportGate()) {
@@ -111,7 +112,7 @@ class PacketListener(private val plugin: GuardAC) :
 
         val active = abs(dyaw) + abs(dpitch) >= plugin.configManager.aiDeadZone
         if (gp.isStaleSample(now, active)) {
-            gp.rotation.seedRest()
+            gp.rotation.clearState()
         }
 
         if (gp.rotation.consumeWarmup()) return

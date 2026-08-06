@@ -96,13 +96,6 @@ class RotationState {
         updateGcd()
     }
 
-    fun seedRest() {
-        prevDeltaYaw   = deltaYaw
-        prevDeltaPitch = deltaPitch
-        prevAccelYaw   = 0f
-        prevAccelPitch = 0f
-    }
-
     fun clearState() {
         prevYaw        = yaw
         prevPitch      = pitch
@@ -161,7 +154,7 @@ class RotationState {
 
     private companion object {
         val MINIMUM_DIVISOR: Double = 0.2f.pow(3) * 8 * 0.15 - 1e-3
-        const val WARMUP_SAMPLES        = 2
+        const val WARMUP_SAMPLES        = 3
         const val MAX_DELTA_FOR_GCD     = 5.0
         const val SIGNIFICANT_SAMPLES   = 15
         const val TOTAL_SAMPLES         = 80
