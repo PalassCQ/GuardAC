@@ -41,7 +41,7 @@ class AlertDigest {
         independent: Boolean = false,
     ): Batch? {
         val step = minHits.coerceAtLeast(1)
-        decay(nowMs, step, idleMs)
+        decay(nowMs, idleMs)
 
         lastHitMs = nowMs
         if (probability > batchMax) batchMax = probability
@@ -57,15 +57,14 @@ class AlertDigest {
         return batch
     }
 
-    private fun decay(nowMs: Long, step: Int, idleMs: Long) {
+    private fun decay(nowMs: Long, idleMs: Long) {
         if (hits <= 0 || lastHitMs == 0L || idleMs <= 0L) return
         val idle = nowMs - lastHitMs
         if (idle < idleMs) return
 
-        val steps = idle / idleMs
-        lastHitMs += steps * idleMs
+        val dropped = idle / idleMs
+        lastHitMs += dropped * idleMs
 
-        val dropped = steps * step
         hits = if (dropped >= hits) 0 else hits - dropped.toInt()
         batchMax = 0.0
         lastCountedMs = 0L

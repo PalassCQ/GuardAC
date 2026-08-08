@@ -722,11 +722,17 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         return (height / riseTicks).coerceIn(MIN_RISE_SPEED, RISE_SPEED)
     }
 
+    private fun rideBob(t: Int): Double {
+        val phase = (t - ROD_ENTER_TICKS - ROD_PUNCH_TICKS) * ROD_RIDE_SPEED
+        if (phase <= 0.0) return 0.0
+        return ROD_RIDE_BOB * (1.0 - Math.cos(phase)) * 0.5
+    }
+
     private fun rodStroke(t: Int, duration: Int): Double {
         val exitStart = duration - ROD_EXIT_TICKS
         if (exitStart > ROD_ENTER_TICKS && t >= exitStart) {
             val p = ((t - exitStart).toDouble() / ROD_EXIT_TICKS).coerceIn(0.0, 1.0)
-            return -ROD_TRAVEL * p * p
+            return rideBob(exitStart) * (1.0 - p) - ROD_TRAVEL * p * p
         }
         if (t < ROD_ENTER_TICKS) {
             val p = (t.toDouble() / ROD_ENTER_TICKS).coerceIn(0.0, 1.0)
@@ -737,7 +743,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
             val p = (t - ROD_ENTER_TICKS).toDouble() / ROD_PUNCH_TICKS
             return ROD_PUNCH_RISE * Math.sin(Math.PI * p)
         }
-        return 0.0
+        return rideBob(t)
     }
 
     private fun rodLocation(player: Player, base: Location, lift: Double = 0.0): Location {
@@ -892,6 +898,9 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
         private const val ROD_PUNCH_RISE = 0.18
         private const val ROD_EXIT_TICKS = 14
         private const val ROD_TRAVEL = 1.7
+
+        private const val ROD_RIDE_BOB = 0.32
+        private const val ROD_RIDE_SPEED = 0.22
 
         private const val SWAY_SPEED = 0.55
         private const val SWAY_AMPLITUDE = 0.035

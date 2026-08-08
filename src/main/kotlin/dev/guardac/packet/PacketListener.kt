@@ -58,7 +58,7 @@ class PacketListener(private val plugin: GuardAC) :
     override fun onPacketReceive(event: PacketReceiveEvent) {
         val player = event.player as? Player ?: return
         val gp     = plugin.playerDataManager.get(player) ?: return
-        if (gp.isExempt) return
+        if (!player.isOnline) return
 
         when (event.packetType) {
             PacketType.Play.Client.TELEPORT_CONFIRM -> {
@@ -117,15 +117,17 @@ class PacketListener(private val plugin: GuardAC) :
 
         if (gp.rotation.consumeWarmup()) return
 
-        plugin.checkRegistry.rotationChecks.forEach { it.onRotation(gp) }
-
         val cfg = plugin.configManager
         val tick = buildTick(gp)
-        gp.onTick(tick, !gp.isRiding)
 
         if (!gp.isRiding && gp.combat.isInCombatWindow(cfg.aiSequence)) {
             plugin.recorder.offer(gp.uuid, tick)
         }
+
+        if (gp.isExempt) return
+
+        plugin.checkRegistry.rotationChecks.forEach { it.onRotation(gp) }
+        gp.onTick(tick, !gp.isRiding)
 
         if (cfg.aiContinuous || gp.combat.isInCombatWindow(cfg.aiSequence)) {
             gp.pollSequence()?.let { seq ->
@@ -145,7 +147,7 @@ class PacketListener(private val plugin: GuardAC) :
         }
         gp.combat.recordAttack()
 
-        if (!gp.isRiding) {
+        if (!gp.isRiding && !gp.isExempt) {
             gp.pollAttackSequence()?.let { seq ->
                 plugin.checkRegistry.sequenceChecks.forEach { it.onSequence(gp, seq, true) }
             }
