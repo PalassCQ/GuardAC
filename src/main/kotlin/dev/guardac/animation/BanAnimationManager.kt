@@ -579,6 +579,7 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
 
         var lastY = player.location.y
         var t = 0
+        var respawns = 0
         plugin.scheduler.entityTimer(
             player, 1L, 1L,
             retired = Runnable {
@@ -605,29 +606,51 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
 
                 val seat = rodLocation(player, base, lift)
 
-                if (rod == null && material != null && t == 0) {
-
-                    rod = spawnRodSegment(rodLocation(player, base), material)
-                    fx.anySound(seat, 1f, 0.55f, "BLOCK_PISTON_EXTEND", "BLOCK_PISTON_OUT")
-                    fx.burst(
-                        world, particle("LARGE_SMOKE", "SMOKE_LARGE", "SMOKE"),
-                        seat.clone().add(0.0, -0.1, 0.0), 30, 0.35, 0.1, 0.35, 0.09,
+                if (rod == null && material != null && respawns <= ROD_MAX_RESPAWNS &&
+                    t < duration - ROD_EXIT_TICKS
+                ) {
+                    if (t > 0) respawns++
+                    rod = spawnRodSegment(
+                        rodLocation(player, base).add(0.0, rodStroke(t, duration), 0.0), material,
                     )
-                    fx.burst(world, particle("CRIT"), seat, 20, 0.3, 0.15, 0.3, 0.25)
+                    if (t == 0) {
+                        fx.anySound(seat, 1f, 0.55f, "BLOCK_PISTON_EXTEND", "BLOCK_PISTON_OUT")
+                        fx.burst(
+                            world, particle("LARGE_SMOKE", "SMOKE_LARGE", "SMOKE"),
+                            seat.clone().add(0.0, -0.1, 0.0), 30, 0.35, 0.1, 0.35, 0.09,
+                        )
+                        fx.burst(world, particle("CRIT"), seat, 20, 0.3, 0.15, 0.3, 0.25)
+                    }
                 }
-                if (t == PISTON_TICKS) {
-                    fx.anySound(base, 0.8f, 1.4f, "BLOCK_PISTON_CONTRACT", "BLOCK_PISTON_IN")
+                if (t == ROD_ENTER_TICKS) {
+                    fx.anySound(base, 0.9f, 1.4f, "BLOCK_PISTON_CONTRACT", "BLOCK_PISTON_IN")
+                    fx.burst(
+                        world, particle("CRIT"),
+                        seat.clone().add(0.0, 0.9, 0.0), 14, 0.28, 0.2, 0.28, 0.14,
+                    )
+                }
+                if (t == duration - ROD_EXIT_TICKS) {
+                    fx.anySound(base, 0.9f, 0.6f, "BLOCK_PISTON_CONTRACT", "BLOCK_PISTON_IN")
+                }
+
+                if (rod?.isValid == false) {
+                    spawned.remove(rod)
+                    rod = null
                 }
 
                 val current = rod
                 if (current != null) {
 
-                    val bob = Math.sin(t * BOB_SPEED) * BOB_AMPLITUDE
-                    val bobbedSeat = seat.clone().add(0.0, bob, 0.0)
+                    val sway = Math.sin(t * SWAY_SPEED) * SWAY_AMPLITUDE
+                    val target = seat.clone().add(
+                        Math.cos(t * SWAY_SPEED) * SWAY_AMPLITUDE,
+                        rodStroke(t, duration),
+                        sway,
+                    )
 
-                    val delta = bobbedSeat.toVector().subtract(current.location.toVector())
+                    val delta = target.toVector().subtract(current.location.toVector())
                     if (delta.lengthSquared() > ROD_JUMP_DIST_SQ) {
-                        plugin.scheduler.teleport(current, bobbedSeat)
+                        plugin.scheduler.teleport(current, target)
                         current.velocity = Vector(0.0, 0.0, 0.0)
                     } else {
                         current.velocity = delta
@@ -697,6 +720,24 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
     private fun riseSpeedFor(height: Double, durationTicks: Int): Double {
         val riseTicks = (durationTicks * RISE_FRACTION).toInt().coerceAtLeast(1)
         return (height / riseTicks).coerceIn(MIN_RISE_SPEED, RISE_SPEED)
+    }
+
+    private fun rodStroke(t: Int, duration: Int): Double {
+        val exitStart = duration - ROD_EXIT_TICKS
+        if (exitStart > ROD_ENTER_TICKS && t >= exitStart) {
+            val p = ((t - exitStart).toDouble() / ROD_EXIT_TICKS).coerceIn(0.0, 1.0)
+            return -ROD_TRAVEL * p * p
+        }
+        if (t < ROD_ENTER_TICKS) {
+            val p = (t.toDouble() / ROD_ENTER_TICKS).coerceIn(0.0, 1.0)
+            val eased = 1.0 - (1.0 - p) * (1.0 - p) * (1.0 - p)
+            return -ROD_TRAVEL * (1.0 - eased)
+        }
+        if (t < ROD_ENTER_TICKS + ROD_PUNCH_TICKS) {
+            val p = (t - ROD_ENTER_TICKS).toDouble() / ROD_PUNCH_TICKS
+            return ROD_PUNCH_RISE * Math.sin(Math.PI * p)
+        }
+        return 0.0
     }
 
     private fun rodLocation(player: Player, base: Location, lift: Double = 0.0): Location {
@@ -845,7 +886,14 @@ class BanAnimationManager(private val plugin: GuardAC) : Listener {
 
         private const val WITHER_PITCH = 1.8f
 
-        private const val BOB_SPEED = 1.0
-        private const val BOB_AMPLITUDE = 0.42
+        private const val ROD_MAX_RESPAWNS = 2
+        private const val ROD_ENTER_TICKS = 8
+        private const val ROD_PUNCH_TICKS = 6
+        private const val ROD_PUNCH_RISE = 0.18
+        private const val ROD_EXIT_TICKS = 14
+        private const val ROD_TRAVEL = 1.7
+
+        private const val SWAY_SPEED = 0.55
+        private const val SWAY_AMPLITUDE = 0.035
     }
 }

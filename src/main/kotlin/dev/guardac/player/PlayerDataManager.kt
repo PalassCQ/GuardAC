@@ -91,6 +91,7 @@ class PlayerDataManager(private val plugin: GuardAC) : Listener {
         plugin.alertManager.onPlayerQuit(uuid)
         plugin.punishmentManager.onPlayerQuit(uuid)
         plugin.banAnimationManager.onQuit(uuid)
+        plugin.worldGuardCompat.clearCache(uuid)
         entityIdToUuid.remove(player.entityId)
         playerVehicle.remove(uuid)
         remove(uuid)

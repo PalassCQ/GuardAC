@@ -63,16 +63,30 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
         val deepTicks = gp.pollDeepSequence() ?: return
         plugin.aiTransport.infer(deepTicks, false).thenAccept { result ->
             if (result !is InferenceResult.Success) return@thenAccept
+            plugin.dailyStats.recordRequest()
             if (result.deep) {
                 judgeDisabledUntilMs = 0L
                 judgeState = JudgeState.ACTIVE
                 gp.recordJudgeVerdict(result.probability)
+                plugin.punishmentHistory.recordResult(gp.uuid, gp.player.name, result.model, result.probability)
+                plugin.reputationClient.queueResult(gp.uuid, gp.player.name, result.probability, result.model)
                 plugin.alertManager.dispatchMonitorHit(gp, result.probability, result.model, bypassThrottle = true)
 
                 val announced = plugin.alertManager.recordVerdict(
                     gp, result.probability, modelTag(result.sources), independent = true,
                 )
-                if (announced) gp.creditAiViolation()
+                if (!announced) return@thenAccept
+                gp.creditAiViolation()
+
+                val buffer = gp.aiBuffer
+                val replay = replayWindow(deepTicks)
+                plugin.scheduler.entity(gp.player, Runnable {
+                    if (!gp.player.isOnline) return@Runnable
+                    if (!firePrediction(gp, result.probability, buffer, buffer, true, result.label ?: "AI")) {
+                        return@Runnable
+                    }
+                    executePunishment(gp, replay)
+                })
             } else {
                 judgeDisabledUntilMs = System.currentTimeMillis() + JUDGE_PROBE_INTERVAL_MS
                 judgeState = JudgeState.UNAVAILABLE
@@ -143,39 +157,57 @@ class AiCheck(private val plugin: GuardAC) : SequenceCheck {
                     if (!isolatedBefore && isolatedAfter) {
                         plugin.suppressionManager.notifyIsolate(gp)
                     }
-                    val event = GuardAiPredictionEvent(
-                        player         = gp.player,
-                        probability    = prob,
-                        bufferBefore   = bufferBefore,
-                        bufferAfter    = bufferAfter,
-                        violationLevel = gp.aiViolationLevel,
-                        flagged        = flagged,
-                        label          = label,
-                    )
-                    Bukkit.getPluginManager().callEvent(event)
-                    if (flagged && !event.isCancelled) {
-                        plugin.dailyStats.recordDetection()
-
-                        val confidence = gp.flagConfidence()
-                        val verbose = buildVerbose(confidence)
-
-                        plugin.reputationClient.report(
-                            gp.uuid, gp.player.name, confidence, gp.aiViolationLevel, verbose, ticks,
-                        )
-
-                        val tps = plugin.tpsMonitor.tps
-                        val minTps = plugin.configManager.punishMinTps
-                        if (minTps > 0.0 && tps < minTps) {
-                            plugin.logger.info(
-                                "[GuardAC] Punishment for ${gp.player.name} delayed: TPS ${"%.1f".format(tps)} < $minTps (lag gate)."
-                            )
-                        } else if (!plugin.configManager.aiOnlyAlert && gp.judgeApproves()) {
-                            plugin.punishmentManager.handle(gp, CHECK_NAME, gp.aiViolationLevel, verbose)
-                        }
-                    }
+                    val allowed = firePrediction(gp, prob, bufferBefore, bufferAfter, flagged, label)
+                    if (flagged && allowed) executePunishment(gp, ticks)
                 })
             }
         }
+    }
+
+    private fun firePrediction(
+        gp: GuardPlayer, prob: Double, bufferBefore: Double, bufferAfter: Double,
+        flagged: Boolean, label: String,
+    ): Boolean {
+        val event = GuardAiPredictionEvent(
+            player         = gp.player,
+            probability    = prob,
+            bufferBefore   = bufferBefore,
+            bufferAfter    = bufferAfter,
+            violationLevel = gp.aiViolationLevel,
+            flagged        = flagged,
+            label          = label,
+        )
+        Bukkit.getPluginManager().callEvent(event)
+        return !event.isCancelled
+    }
+
+    private fun executePunishment(gp: GuardPlayer, ticks: Array<AimSample>) {
+        plugin.dailyStats.recordDetection()
+
+        val confidence = gp.flagConfidence()
+        val verbose = buildVerbose(confidence)
+
+        plugin.reputationClient.report(
+            gp.uuid, gp.player.name, confidence, gp.aiViolationLevel, verbose, ticks,
+        )
+
+        val tps = plugin.tpsMonitor.tps
+        val minTps = plugin.configManager.punishMinTps
+        if (minTps > 0.0 && tps < minTps) {
+            plugin.logger.info(
+                "[GuardAC] Punishment for ${gp.player.name} delayed: TPS ${"%.1f".format(tps)} < $minTps (lag gate)."
+            )
+            return
+        }
+        if (!plugin.configManager.aiOnlyAlert && gp.judgeApproves()) {
+            plugin.punishmentManager.handle(gp, CHECK_NAME, gp.aiViolationLevel, verbose)
+        }
+    }
+
+    private fun replayWindow(ticks: Array<AimSample>): Array<AimSample> {
+        val keep = plugin.configManager.aiSequence
+        if (ticks.size <= keep) return ticks
+        return ticks.copyOfRange(ticks.size - keep, ticks.size)
     }
 
     private fun buildVerbose(prob: Double): String = "${"%.0f".format(prob * 100.0)}%"

@@ -75,15 +75,17 @@ class UpdateManager(private val plugin: GuardAC, private val pluginJar: File) {
         val tag = release.tag_name.trim()
         if (tag.isEmpty() || !TAG_PATTERN.matches(tag)) return
 
+        val asset = pickAsset(release.assets.orEmpty()) ?: return
+        val stamp = releaseStamp(tag, asset)
+
         val known = readState()
         if (known.isEmpty()) {
 
-            writeState(tag)
+            writeState(stamp)
             return
         }
-        if (known == tag) return
+        if (known == stamp) return
 
-        val asset = pickAsset(release.assets.orEmpty()) ?: return
         val bytes = download(asset) ?: return
         if (!looksLikeOurPlugin(bytes)) {
             plugin.logger.warning("[GuardAC] Auto-update: downloaded file for $tag failed validation, skipping.")
@@ -96,7 +98,7 @@ class UpdateManager(private val plugin: GuardAC, private val pluginJar: File) {
         val tmp = File(updateDir, pluginJar.name + ".download")
         tmp.writeBytes(bytes)
         Files.move(tmp.toPath(), staged.toPath(), StandardCopyOption.REPLACE_EXISTING)
-        writeState(tag)
+        writeState(stamp)
 
         plugin.logger.info("[GuardAC] Update $tag downloaded (${bytes.size / 1024} KB) - it will be applied on the next server restart.")
         if (plugin.configManager.autoUpdateNotifyStaff) {
@@ -159,6 +161,15 @@ class UpdateManager(private val plugin: GuardAC, private val pluginJar: File) {
         }
     }
 
+    private fun releaseStamp(tag: String, asset: AssetDto): String {
+        val mark = when {
+            asset.id > 0L               -> asset.id.toString()
+            asset.updated_at.isNotEmpty() -> asset.updated_at
+            else                        -> asset.size.toString()
+        }
+        return "$tag@$mark"
+    }
+
     private fun readState(): String =
         runCatching { stateFile.readText().trim() }.getOrDefault("")
 
@@ -195,5 +206,7 @@ private data class ReleaseDto @JsonCreator constructor(
 private data class AssetDto @JsonCreator constructor(
     @JsonProperty("name")                 val name: String = "",
     @JsonProperty("size")                 val size: Int = 0,
+    @JsonProperty("id")                   val id: Long = 0L,
+    @JsonProperty("updated_at")           val updated_at: String = "",
     @JsonProperty("browser_download_url") val browser_download_url: String = "",
 )
