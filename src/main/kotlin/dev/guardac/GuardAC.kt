@@ -33,6 +33,7 @@ import dev.guardac.brand.ClientBrandListener
 import dev.guardac.checks.CheckRegistry
 import dev.guardac.combat.DamageListener
 import dev.guardac.combat.SuppressionManager
+import dev.guardac.compat.Compat
 import dev.guardac.compat.WorldGuardCompat
 import dev.guardac.command.DataCollectCommand
 import dev.guardac.command.GuardCommand
@@ -43,6 +44,7 @@ import dev.guardac.dataset.RecorderService
 import dev.guardac.history.PunishmentHistory
 import dev.guardac.hologram.HologramConfig
 import dev.guardac.hologram.HologramManager
+import dev.guardac.packet.AttackPacketCompat
 import dev.guardac.packet.PacketListener
 import dev.guardac.player.ExemptManager
 import dev.guardac.player.PlayerDataManager
@@ -305,6 +307,13 @@ class GuardAC : JavaPlugin() {
                     "${configManager.aiServer} and paste it into config.yml - " +
                     "otherwise the backend will reject requests (401).")
             }
+        }
+
+        if (Compat.version.atLeast(26) && !AttackPacketCompat.supported) {
+            logger.warning("[GuardAC] PacketEvents on this server is too old for Minecraft " +
+                "${Compat.version.major}.${Compat.version.minor}: attacks are delivered in a new " +
+                "packet it does not know, so combat would never be analysed. Update PacketEvents " +
+                "to 2.13.0 or newer.")
         }
     }
 

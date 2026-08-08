@@ -90,7 +90,11 @@ class PacketListener(private val plugin: GuardAC) :
                     handleAttack(gp, w.entityId, player)
                 }
             }
-            else -> {}
+            else -> {
+                if (AttackPacketCompat.isAttack(event.packetType)) {
+                    AttackPacketCompat.entityIdOf(event)?.let { handleAttack(gp, it, player) }
+                }
+            }
         }
     }
 
