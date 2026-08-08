@@ -45,6 +45,16 @@ profile-riding: " &8▏ &7In vehicle&8: {riding}"
 profile-brand: " &8▏ &7Client&8: &f{brand}"
 profile-avg-prob: " &8▏ &7Avg probability&8: &#67E8F9{avg}% &8(peak&8: &#FF4D6D{peak}%&8)"
 # The judge verdict - this is what decides whether a hit counts toward VL.
+# Shown ONLY when a player is not being checked - it explains why there are no
+# results for them. In the normal case this line is absent from the profile.
+profile-not-checked: " &8| &#FF4D6DNot checked&8: &7{reason}"
+skip-ai-off: "checks are switched off in the config"
+skip-bypass: "has the guardac.bypass permission"
+skip-exempt: "added to exemptions with /guard exempt"
+skip-exempt-global: "on the network-wide exemption list"
+skip-bedrock: "joins from Bedrock"
+skip-region: "standing in a region without checks"
+skip-riding: "currently riding"
 profile-judge: " &8▏ &7Judge&8: &#A78BFA{verdict}"
 profile-judge-local: "&8from recent hits"
 # Placeholders: {stage} {penalty}

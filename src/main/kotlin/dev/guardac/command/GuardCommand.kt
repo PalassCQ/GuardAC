@@ -28,6 +28,7 @@ import dev.guardac.checks.impl.AiCheck
 import dev.guardac.combat.SuppressionStage
 import dev.guardac.menu.LiveHitsMenu
 import dev.guardac.menu.ResultsMenu
+import dev.guardac.player.GuardPlayer
 import dev.guardac.util.Colors
 import dev.guardac.util.Message
 import org.bukkit.Bukkit
@@ -214,6 +215,24 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
                 "stage",   suppressionStageTag(gp.suppressionStage),
                 "penalty", "%.0f".format(gp.currentAttackSpeedPenalty() * 100.0),
             ))
+        }
+        skipReason(gp)?.let { reason ->
+            sender.sendMessage(plugin.locale.get(Message.PROFILE_NOT_CHECKED, "reason", reason))
+        }
+    }
+
+    private fun skipReason(gp: GuardPlayer): String? {
+        val cfg = plugin.configManager
+        val p = gp.player
+        return when {
+            !cfg.aiEnabled -> plugin.locale.get(Message.SKIP_AI_OFF)
+            p.hasPermission("guardac.bypass") -> plugin.locale.get(Message.SKIP_BYPASS)
+            plugin.exemptManager.isExempt(gp.uuid) -> plugin.locale.get(Message.SKIP_EXEMPT)
+            plugin.exemptManager.isGloballyExempt(p.name) -> plugin.locale.get(Message.SKIP_EXEMPT_GLOBAL)
+            cfg.geyserExemptBedrock && gp.isBedrock -> plugin.locale.get(Message.SKIP_BEDROCK)
+            plugin.worldGuardCompat.shouldBypass(p) -> plugin.locale.get(Message.SKIP_REGION)
+            gp.isRiding -> plugin.locale.get(Message.SKIP_RIDING)
+            else -> null
         }
     }
 

@@ -44,6 +44,16 @@ profile-sensitivity: " &8▏ &7Чувствительность&8: &f{sens_x} &8
 profile-riding: " &8▏ &7В транспорте&8: {riding}"
 profile-brand: " &8▏ &7Клиент&8: &f{brand}"
 profile-avg-prob: " &8▏ &7Средняя вероятность&8: &#67E8F9{avg}% &8(пик&8: &#FF4D6D{peak}%&8)"
+# Показывается ТОЛЬКО когда игрока не проверяют - объясняет, почему по нему
+# нет результатов. В обычной ситуации этой строки в профиле нет.
+profile-not-checked: " &8▏ &#FF4D6DНе проверяется&8: &7{reason}"
+skip-ai-off: "проверка выключена в конфиге"
+skip-bypass: "есть право guardac.bypass"
+skip-exempt: "добавлен в исключения через /guard exempt"
+skip-exempt-global: "в глобальных исключениях сети"
+skip-bedrock: "заходит с Bedrock"
+skip-region: "находится в регионе без проверки"
+skip-riding: "сейчас в транспорте"
 # Вердикт судьи - именно он решает, засчитается ли удар в счётчик и в VL.
 profile-judge: " &8▏ &7Судья&8: &#A78BFA{verdict}"
 profile-judge-local: "&8по последним ударам"
