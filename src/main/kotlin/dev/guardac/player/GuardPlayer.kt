@@ -458,9 +458,9 @@ class GuardPlayer(
         const val CHEAT_THRESHOLD          = 0.90
         const val LEGIT_THRESHOLD          = 0.10
 
-        const val JUDGE_THRESHOLD          = 0.85
+        const val JUDGE_THRESHOLD          = 0.75
 
-        const val DEEP_JUDGE_THRESHOLD     = 0.85
+        const val DEEP_JUDGE_THRESHOLD     = 0.75
 
         const val LAG_GAIN_SCALE           = 0.5
         const val IDLE_DELTA_THRESHOLD     = 0.05f
