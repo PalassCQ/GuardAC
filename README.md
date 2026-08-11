@@ -33,6 +33,8 @@ of edge cases such as lag, teleports and reconnects.
 - Spigot, Paper or Folia - Minecraft 1.21.x
 - A GuardAC API key if the aim check is enabled
 
+No extra plugins are needed: the packet layer ships inside the jar.
+
 ## Installation
 
 1. Download the latest release from the Releases page.
@@ -100,6 +102,16 @@ The compiled plugin is written to `build/libs/GuardAC-<version>.jar`.
 
 When reporting a bug, please include your server and Java versions, the plugin
 version, the relevant configuration values, and any logs or stack traces.
+
+## Third-party components
+
+The released jar bundles these libraries:
+
+- [PacketEvents](https://github.com/retrooper/packetevents) (GPL-3.0)
+- [Adventure](https://github.com/KyoriPowered/adventure) (MIT), pulled in by PacketEvents
+- [Jackson](https://github.com/FasterXML/jackson) (Apache-2.0)
+- [sqlite-jdbc](https://github.com/xerial/sqlite-jdbc) (Apache-2.0)
+- [Kotlin standard library](https://github.com/JetBrains/kotlin) (Apache-2.0)
 
 ## License
 

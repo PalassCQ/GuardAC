@@ -17,7 +17,7 @@ repositories {
 
 dependencies {
     compileOnly("com.destroystokyo.paper:paper-api:1.16.5-R0.1-SNAPSHOT")
-    compileOnly("com.github.retrooper.packetevents:spigot:2.3.0")
+    implementation("com.github.retrooper:packetevents-spigot:2.13.0")
     implementation(kotlin("stdlib"))
     implementation("com.fasterxml.jackson.core:jackson-databind:2.17.1")
     implementation("org.xerial:sqlite-jdbc:3.45.3.0")
@@ -46,6 +46,9 @@ tasks {
         mergeServiceFiles()
         relocate("com.fasterxml.jackson", "dev.guardac.libs.jackson")
         relocate("org.jetbrains.kotlin", "dev.guardac.libs.kotlin")
+        relocate("com.github.retrooper.packetevents", "dev.guardac.libs.packetevents.api")
+        relocate("io.github.retrooper.packetevents", "dev.guardac.libs.packetevents.impl")
+        exclude("META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA")
     }
     build {
         dependsOn(shadowJar)

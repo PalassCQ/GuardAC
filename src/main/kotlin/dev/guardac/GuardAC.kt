@@ -23,6 +23,7 @@
 package dev.guardac
 
 import com.github.retrooper.packetevents.PacketEvents
+import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder
 import dev.guardac.ai.AiTransport
 import dev.guardac.ai.BatchingAiTransport
 import dev.guardac.ai.HttpAiTransport
@@ -87,10 +88,17 @@ class GuardAC : JavaPlugin() {
         private set
 
     private var runtimeStarted = false
+    private var packetEventsOwned = false
     private var vlDecayTask: TaskHandle? = null
     private var combatResetTask: TaskHandle? = null
     private var ridingSyncTask: TaskHandle? = null
     private var packetListener: PacketListener? = null
+
+    override fun onLoad() {
+        runCatching(::loadPacketEvents).onFailure {
+            logger.log(Level.SEVERE, "Packet layer failed to load.", it)
+        }
+    }
 
     override fun onEnable() {
         instance = this
@@ -99,6 +107,18 @@ class GuardAC : JavaPlugin() {
 
     override fun onDisable() {
         shutdownRuntime()
+        runCatching {
+            if (packetEventsOwned && PacketEvents.getAPI() != null) PacketEvents.getAPI().terminate()
+        }
+        packetEventsOwned = false
+    }
+
+    private fun loadPacketEvents() {
+        if (PacketEvents.getAPI() != null) return
+        PacketEvents.setAPI(SpigotPacketEventsBuilder.build(this))
+        PacketEvents.getAPI().settings.checkForUpdates(false).bStats(false)
+        PacketEvents.getAPI().load()
+        packetEventsOwned = true
     }
 
     fun reload() {
@@ -155,9 +175,11 @@ class GuardAC : JavaPlugin() {
         reputationClient      = ReputationClient(this)
         checkRegistry         = CheckRegistry(this)
 
+        loadPacketEvents()
         packetListener = PacketListener(this).also {
             PacketEvents.getAPI().eventManager.registerListener(it)
         }
+        if (packetEventsOwned) PacketEvents.getAPI().init()
 
         server.pluginManager.registerEvents(playerDataManager, this)
         server.pluginManager.registerEvents(banAnimationManager, this)
@@ -310,10 +332,9 @@ class GuardAC : JavaPlugin() {
         }
 
         if (Compat.version.atLeast(26) && !AttackPacketCompat.supported) {
-            logger.warning("[GuardAC] PacketEvents on this server is too old for Minecraft " +
-                "${Compat.version.major}.${Compat.version.minor}: attacks are delivered in a new " +
-                "packet it does not know, so combat would never be analysed. Update PacketEvents " +
-                "to 2.13.0 or newer.")
+            logger.warning("[GuardAC] The packet layer does not know the attack packet used by " +
+                "Minecraft ${Compat.version.major}.${Compat.version.minor}, so combat would never " +
+                "be analysed. Update GuardAC to the latest build.")
         }
     }
 

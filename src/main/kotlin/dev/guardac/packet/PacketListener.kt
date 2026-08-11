@@ -49,14 +49,14 @@ class PacketListener(private val plugin: GuardAC) :
             return
         }
         if (event.packetType != PacketType.Play.Server.PLAYER_POSITION_AND_LOOK) return
-        val player = event.player as? Player ?: return
+        val player = event.getPlayer<Any>() as? Player ?: return
         val gp     = plugin.playerDataManager.get(player) ?: return
         val w      = WrapperPlayServerPlayerPositionAndLook(event)
         gp.markTeleportSent(w.teleportId)
     }
 
     override fun onPacketReceive(event: PacketReceiveEvent) {
-        val player = event.player as? Player ?: return
+        val player = event.getPlayer<Any>() as? Player ?: return
         val gp     = plugin.playerDataManager.get(player) ?: return
         if (!player.isOnline) return
 

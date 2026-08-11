@@ -214,9 +214,8 @@ class HologramManager(private val plugin: GuardAC) {
         sendMeta(viewer, entityId, text)
     }
 
-    @Suppress("RAW_TYPES")
     private fun sendMeta(viewer: Player, entityId: Int, text: String) {
-        val meta = ArrayList<EntityData>()
+        val meta = ArrayList<EntityData<*>>()
         meta.add(EntityData(0, EntityDataTypes.BYTE, ENTITY_FLAG_INVISIBLE))
         meta.add(EntityData(2, EntityDataTypes.OPTIONAL_COMPONENT, Optional.of(text)))
         meta.add(EntityData(3, EntityDataTypes.BOOLEAN, true))
@@ -235,9 +234,8 @@ class HologramManager(private val plugin: GuardAC) {
         )
     }
 
-    @Suppress("RAW_TYPES")
     private fun updateText(viewer: Player, entityId: Int, text: String) {
-        val meta = ArrayList<EntityData>()
+        val meta = ArrayList<EntityData<*>>()
         meta.add(EntityData(2, EntityDataTypes.OPTIONAL_COMPONENT, Optional.of(text)))
         try {
             PacketEvents.getAPI().playerManager.sendPacket(viewer, WrapperPlayServerEntityMetadata(entityId, meta))
