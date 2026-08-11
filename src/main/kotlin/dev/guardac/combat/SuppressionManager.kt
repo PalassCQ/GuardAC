@@ -35,6 +35,9 @@ class SuppressionManager(private val plugin: GuardAC) {
 
     private var task: TaskHandle? = null
 
+    private val applied = java.util.concurrent.ConcurrentHashMap.newKeySet<UUID>()
+    private var lastEnabled: Boolean? = null
+
     fun start() {
         stop()
         task = plugin.scheduler.globalTimer(SYNC_INTERVAL_TICKS, SYNC_INTERVAL_TICKS) { syncAll() }
@@ -43,6 +46,7 @@ class SuppressionManager(private val plugin: GuardAC) {
     fun stop() {
         task?.cancel()
         task = null
+        lastEnabled = null
         plugin.playerDataManager.getAll().forEach { gp ->
             if (gp.player.isOnline) plugin.scheduler.entity(gp.player, Runnable { clearModifier(gp) })
         }
@@ -50,25 +54,38 @@ class SuppressionManager(private val plugin: GuardAC) {
 
     private fun syncAll() {
         val enabled = plugin.configManager.suppressionEnabled
+        if (!enabled) {
+            if (lastEnabled == false) return
+            lastEnabled = false
+            plugin.playerDataManager.getAll().forEach { gp ->
+                if (gp.player.isOnline) plugin.scheduler.entity(gp.player, Runnable { clearModifier(gp) })
+            }
+            return
+        }
+        lastEnabled = true
+
         plugin.playerDataManager.getAll().forEach { gp ->
             if (!gp.player.isOnline) return@forEach
+            val wants = gp.currentAttackSpeedPenalty() > 0.0
+            if (!wants && !applied.contains(gp.uuid)) return@forEach
 
-            plugin.scheduler.entity(gp.player, Runnable {
-                if (!enabled) clearModifier(gp) else syncOne(gp)
-            })
+            plugin.scheduler.entity(gp.player, Runnable { syncOne(gp) })
         }
     }
 
     private fun syncOne(gp: GuardPlayer) {
         val attr = Compat.attackSpeedAttribute()?.let { gp.player.getAttribute(it) } ?: return
         attr.modifiers.filter { it.uniqueId == MODIFIER_ID }.forEach { attr.removeModifier(it) }
+        applied.remove(gp.uuid)
         val penalty = gp.currentAttackSpeedPenalty()
         if (penalty > 0.0 && !gp.isExempt) {
             attr.addModifier(AttributeModifier(MODIFIER_ID, MODIFIER_NAME, -penalty, AttributeModifier.Operation.MULTIPLY_SCALAR_1))
+            applied.add(gp.uuid)
         }
     }
 
     private fun clearModifier(gp: GuardPlayer) {
+        applied.remove(gp.uuid)
         if (!gp.player.isOnline) return
         val attr = Compat.attackSpeedAttribute()?.let { gp.player.getAttribute(it) } ?: return
         attr.modifiers.filter { it.uniqueId == MODIFIER_ID }.forEach { attr.removeModifier(it) }

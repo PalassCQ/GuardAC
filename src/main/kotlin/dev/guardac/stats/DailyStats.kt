@@ -38,6 +38,7 @@ class DailyStats(private val plugin: GuardAC) {
     private val todayDetections = AtomicInteger(0)
     private val todayRequests   = AtomicInteger(0)
     private val lastRequestFlushMs = AtomicLong(System.currentTimeMillis())
+    private val lastDateCheckMs    = AtomicLong(0L)
     @Volatile private var currentDate: String = LocalDate.now().toString()
 
     fun initialize() {
@@ -106,6 +107,11 @@ class DailyStats(private val plugin: GuardAC) {
     fun getTodayRequests(): Int   = todayRequests.get()
 
     private fun checkDateRollover() {
+        val now = System.currentTimeMillis()
+        val lastCheck = lastDateCheckMs.get()
+        if (now - lastCheck < DATE_CHECK_INTERVAL_MS) return
+        if (!lastDateCheckMs.compareAndSet(lastCheck, now)) return
+
         val today = LocalDate.now().toString()
         if (today == currentDate) return
         synchronized(lock) {
@@ -151,6 +157,7 @@ class DailyStats(private val plugin: GuardAC) {
     }
 
     private companion object {
+        const val DATE_CHECK_INTERVAL_MS = 10_000L
         const val REQUEST_FLUSH_INTERVAL_MS = 60_000L
 
         val UPSERT_SQL = """

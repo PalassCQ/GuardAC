@@ -43,6 +43,15 @@ class RotationState {
     private var prevAccelYaw: Float = 0f
     private var prevAccelPitch: Float = 0f
 
+    private var curDeltaYaw: Float = 0f
+    private var curDeltaPitch: Float = 0f
+    private var curAccelYaw: Float = 0f
+    private var curAccelPitch: Float = 0f
+    private var curJerkYaw: Float = 0f
+    private var curJerkPitch: Float = 0f
+    private var curGcdErrorYaw: Float = 0f
+    private var curGcdErrorPitch: Float = 0f
+
     private val xRotMode = RunningMode(TOTAL_SAMPLES)
     private val yRotMode = RunningMode(TOTAL_SAMPLES)
 
@@ -56,26 +65,17 @@ class RotationState {
     var modeY: Double = 0.0
         private set
 
-    val deltaYaw: Float   get() = angleDiff(yaw, prevYaw)
-    val deltaPitch: Float get() = pitch - prevPitch
+    val deltaYaw: Float   get() = curDeltaYaw
+    val deltaPitch: Float get() = curDeltaPitch
 
-    val accelYaw: Float   get() = deltaYaw - prevDeltaYaw
-    val accelPitch: Float get() = deltaPitch - prevDeltaPitch
+    val accelYaw: Float   get() = curAccelYaw
+    val accelPitch: Float get() = curAccelPitch
 
-    val jerkYaw: Float   get() = accelYaw - prevAccelYaw
-    val jerkPitch: Float get() = accelPitch - prevAccelPitch
+    val jerkYaw: Float   get() = curJerkYaw
+    val jerkPitch: Float get() = curJerkPitch
 
-    val gcdErrorYaw: Float
-        get() = if (modeX > 0) {
-            val err = abs(deltaYaw.toDouble() % modeX)
-            minOf(err, modeX - err).toFloat()
-        } else 0f
-
-    val gcdErrorPitch: Float
-        get() = if (modeY > 0) {
-            val err = abs(deltaPitch.toDouble() % modeY)
-            minOf(err, modeY - err).toFloat()
-        } else 0f
+    val gcdErrorYaw: Float   get() = curGcdErrorYaw
+    val gcdErrorPitch: Float get() = curGcdErrorPitch
 
     val sensitivityX: Double
         get() = if (modeX > 0) convertToSensitivity(modeX) else 0.5
@@ -84,16 +84,26 @@ class RotationState {
         get() = if (modeY > 0) convertToSensitivity(modeY) else 0.5
 
     fun update(newYaw: Float, newPitch: Float) {
-        prevAccelYaw   = accelYaw
-        prevAccelPitch = accelPitch
-        prevDeltaYaw   = deltaYaw
-        prevDeltaPitch = deltaPitch
+        prevAccelYaw   = curAccelYaw
+        prevAccelPitch = curAccelPitch
+        prevDeltaYaw   = curDeltaYaw
+        prevDeltaPitch = curDeltaPitch
         prevYaw        = yaw
         prevPitch      = pitch
         yaw            = newYaw
         pitch          = newPitch
 
+        curDeltaYaw   = angleDiff(yaw, prevYaw)
+        curDeltaPitch = pitch - prevPitch
+        curAccelYaw   = curDeltaYaw - prevDeltaYaw
+        curAccelPitch = curDeltaPitch - prevDeltaPitch
+        curJerkYaw    = curAccelYaw - prevAccelYaw
+        curJerkPitch  = curAccelPitch - prevAccelPitch
+
         updateGcd()
+
+        curGcdErrorYaw   = gcdError(curDeltaYaw, modeX)
+        curGcdErrorPitch = gcdError(curDeltaPitch, modeY)
     }
 
     fun clearState() {
@@ -103,6 +113,14 @@ class RotationState {
         prevDeltaPitch = 0f
         prevAccelYaw   = 0f
         prevAccelPitch = 0f
+        curDeltaYaw    = 0f
+        curDeltaPitch  = 0f
+        curAccelYaw    = 0f
+        curAccelPitch  = 0f
+        curJerkYaw     = 0f
+        curJerkPitch   = 0f
+        curGcdErrorYaw   = 0f
+        curGcdErrorPitch = 0f
         lastAbsDeltaYaw   = 0.0
         lastAbsDeltaPitch = 0.0
         warmupLeft = WARMUP_SAMPLES
@@ -141,6 +159,12 @@ class RotationState {
             }
         }
         if (dPitch > 0) lastAbsDeltaPitch = dPitch
+    }
+
+    private fun gcdError(delta: Float, mode: Double): Float {
+        if (mode <= 0.0) return 0f
+        val err = abs(delta.toDouble() % mode)
+        return minOf(err, mode - err).toFloat()
     }
 
     private fun angleDiff(a: Float, b: Float): Float {

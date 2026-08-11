@@ -54,6 +54,8 @@ class HologramManager(private val plugin: GuardAC) {
     private val entityIdCounter = AtomicInteger(ENTITY_ID_START)
     private var task: TaskHandle? = null
 
+    private val lineCache = HashMap<UUID, List<String>>()
+
     fun start() {
         if (!plugin.hologramConfig.enabled) return
 
@@ -65,6 +67,7 @@ class HologramManager(private val plugin: GuardAC) {
     fun stop() {
         task?.cancel()
         task = null
+        lineCache.clear()
         viewers.keys.toList().forEach { viewerId ->
             val state = viewers.remove(viewerId) ?: return@forEach
             val viewer = Bukkit.getPlayer(viewerId) ?: return@forEach
@@ -107,6 +110,8 @@ class HologramManager(private val plugin: GuardAC) {
         }
         if (staffList.isEmpty()) return
 
+        lineCache.clear()
+
         for (viewer in staffList) {
             if (!plugin.alertManager.hasOverhead(viewer.uniqueId)) {
                 viewers.remove(viewer.uniqueId)?.let { destroyAll(viewer, it) }
@@ -127,7 +132,7 @@ class HologramManager(private val plugin: GuardAC) {
                     val targetLoc = target.location
                     if (viewerLoc.distanceSquared(targetLoc) > viewDistSq) continue
 
-                    if (gp.getHitProbHistory().isEmpty()) continue
+                    if (!gp.hasHitFeed()) continue
 
                     alive += target.uniqueId
 
@@ -144,7 +149,7 @@ class HologramManager(private val plugin: GuardAC) {
         viewer: Player, targetId: UUID, loc: Location,
         gp: GuardPlayer, state: ViewerState, cfg: HologramConfig,
     ) {
-        val texts = buildLines(gp, cfg)
+        val texts = lineCache.getOrPut(targetId) { buildLines(gp, cfg) }
         val cache = state.targets.getOrPut(targetId) { EntityCache() }
         val lh    = cfg.lineHeight
 

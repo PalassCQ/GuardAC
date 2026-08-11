@@ -529,28 +529,33 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
     }
 
     private fun handleHistory(sender: CommandSender, args: Array<out String>) {
+        val who = if (args.size >= 2) args[1] else null
 
-        val entries = if (args.size >= 2) {
-            plugin.punishmentHistory.forPlayer(args[1], 20)
-        } else {
-            plugin.punishmentHistory.recent(20)
-        }
-        if (entries.isEmpty()) {
-            sender.sendMessage(plugin.locale.get(Message.HISTORY_EMPTY))
-            return
-        }
-        sender.sendMessage(plugin.locale.get(Message.HISTORY_HEADER, "count", entries.size.toString()))
-        entries.forEach { e ->
-            sender.sendMessage(plugin.locale.get(
-                Message.HISTORY_ENTRY,
-                "time",   HISTORY_TIME_FMT.format(Instant.ofEpochMilli(e.epochMillis)),
-                "player", e.playerName,
-                "check",  e.check,
-                "vl",     e.vl.toString(),
-                "prob",   "%.0f".format(e.probability * 100.0),
-                "action", e.action,
-            ))
-        }
+        plugin.scheduler.async(Runnable {
+            val entries = if (who != null) {
+                plugin.punishmentHistory.forPlayer(who, 20)
+            } else {
+                plugin.punishmentHistory.recent(20)
+            }
+            plugin.scheduler.global(Runnable {
+                if (entries.isEmpty()) {
+                    sender.sendMessage(plugin.locale.get(Message.HISTORY_EMPTY))
+                    return@Runnable
+                }
+                sender.sendMessage(plugin.locale.get(Message.HISTORY_HEADER, "count", entries.size.toString()))
+                entries.forEach { e ->
+                    sender.sendMessage(plugin.locale.get(
+                        Message.HISTORY_ENTRY,
+                        "time",   HISTORY_TIME_FMT.format(Instant.ofEpochMilli(e.epochMillis)),
+                        "player", e.playerName,
+                        "check",  e.check,
+                        "vl",     e.vl.toString(),
+                        "prob",   "%.0f".format(e.probability * 100.0),
+                        "action", e.action,
+                    ))
+                }
+            })
+        })
     }
 
     private fun handleResults(sender: CommandSender, args: Array<out String>) {
@@ -559,9 +564,18 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
             ?: return sender.sendMessage(plugin.locale.get(Message.USAGE_RESULTS))
 
         val ourServer = plugin.reputationClient.displayName
-        val local = plugin.punishmentHistory.resultsFor(name, ResultsMenu.CAPACITY)
-            .map { ResultsMenu.Row(it.uuid, it.playerName, it.model, ourServer, it.probability, it.epochMillis) }
+        plugin.scheduler.async(Runnable {
+            val local = plugin.punishmentHistory.resultsFor(name, ResultsMenu.CAPACITY)
+                .map { ResultsMenu.Row(it.uuid, it.playerName, it.model, ourServer, it.probability, it.epochMillis) }
+            plugin.scheduler.entity(sender, Runnable {
+                if (sender.isOnline) continueResults(sender, name, ourServer, local)
+            })
+        })
+    }
 
+    private fun continueResults(
+        sender: Player, name: String, ourServer: String, local: List<ResultsMenu.Row>,
+    ) {
         if (!plugin.configManager.crossServerEnabled) {
             openResultsMenu(sender, name, local, showServer = false)
             return

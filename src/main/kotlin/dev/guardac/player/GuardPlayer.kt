@@ -144,6 +144,9 @@ class GuardPlayer(
     fun getHitProbHistory(): List<Double> = hitHistory.probabilities()
 
     @Synchronized
+    fun hasHitFeed(): Boolean = !hitHistory.isEmpty()
+
+    @Synchronized
     fun getHitFeed(): List<HitFeed.Sample> = hitHistory.samples()
 
     @Synchronized
@@ -166,7 +169,8 @@ class GuardPlayer(
         }
 
         tickBuffer.addLast(tick)
-        while (tickBuffer.size > sequenceSize * 2) tickBuffer.removeFirst()
+        val maxBuffered = sequenceSize * 2
+        while (tickBuffer.size > maxBuffered) tickBuffer.removeFirst()
         samplesSinceSend++
 
         deepBuffer.addLast(tick)
@@ -196,12 +200,14 @@ class GuardPlayer(
         samplesSinceSend = 0
         ticksSinceSend   = 0
         lastSendMs = now
-        return tickBuffer.takeLast(sequenceSize).toTypedArray()
+        val size   = sequenceSize
+        val offset = tickBuffer.size - size
+        return Array(size) { tickBuffer[offset + it] }
     }
 
     fun pollDeepSequence(): Array<AimSample>? {
         if (!judgeGate.poll(deepBuffer.size, combat.totalAttacks, lastSendSamples)) return null
-        return deepBuffer.toTypedArray()
+        return Array(deepBuffer.size) { deepBuffer[it] }
     }
 
     var aiBuffer: Double = 0.0
@@ -445,11 +451,23 @@ class GuardPlayer(
         }
     }
 
+    @Volatile private var bypassCachedAtMs: Long = 0L
+    @Volatile private var bypassCached: Boolean = false
+
+    private fun hasBypassPermission(): Boolean {
+        val now = System.currentTimeMillis()
+        if (now - bypassCachedAtMs < BYPASS_CACHE_MS) return bypassCached
+        val value = player.hasPermission("guardac.bypass")
+        bypassCached = value
+        bypassCachedAtMs = now
+        return value
+    }
+
     val isExempt: Boolean
         get() = !player.isOnline
-            || player.hasPermission("guardac.bypass")
             || plugin.exemptManager.isExempt(uuid)
             || plugin.exemptManager.isGloballyExempt(player.name)
+            || hasBypassPermission()
 
     private companion object {
         const val ATTACK_MIN_GAP_MS        = 250L
@@ -474,6 +492,8 @@ class GuardPlayer(
         const val FP_FAST                  = 0.25
         const val FP_SLOW                  = 0.03
         const val FP_THROTTLE_MS           = 30_000L
+
+        const val BYPASS_CACHE_MS          = 1_000L
 
         const val DEEP_WINDOW_TICKS        = 160
         const val DEEP_TRIGGER_ATTACKS     = 3

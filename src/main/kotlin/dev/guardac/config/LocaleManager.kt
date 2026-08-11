@@ -33,7 +33,12 @@ class LocaleManager(private val plugin: GuardAC) {
     private var messages: YamlConfiguration = YamlConfiguration()
     private var fallback: YamlConfiguration = YamlConfiguration()
 
+    private val rawCache = java.util.EnumMap<Message, String>(Message::class.java)
+    @Volatile private var prefixCache: String? = null
+
     fun reload() {
+        synchronized(rawCache) { rawCache.clear() }
+        prefixCache = null
         val locale      = plugin.configManager.locale
         val messagesDir = File(plugin.dataFolder, "messages")
         messagesDir.mkdirs()
@@ -110,20 +115,35 @@ class LocaleManager(private val plugin: GuardAC) {
         return changed
     }
 
+    private fun raw(message: Message): String =
+        synchronized(rawCache) {
+            rawCache.getOrPut(message) {
+                messages.getString(message.key)
+                    ?: fallback.getString(message.key)
+                    ?: "§c[Missing: ${message.key}]"
+            }
+        }
+
+    private fun prefix(): String {
+        prefixCache?.let { return it }
+        val value = Colors.translate(raw(Message.PREFIX))
+        prefixCache = value
+        return value
+    }
+
     fun get(message: Message, vararg placeholders: String): String {
         require(placeholders.size % 2 == 0) { "Placeholders must come in key-value pairs" }
 
-        val raw = messages.getString(message.key)
-            ?: fallback.getString(message.key)
-            ?: "§c[Missing: ${message.key}]"
+        var result = raw(message)
+        if (message == Message.PREFIX) return prefix()
 
-        var result = raw
-        if (message != Message.PREFIX) {
-            result = result.replace("{prefix}", get(Message.PREFIX))
+        if (result.contains("{prefix}")) {
+            result = result.replace("{prefix}", prefix())
         }
         var i = 0
         while (i < placeholders.size) {
-            result = result.replace("{${placeholders[i]}}", placeholders[i + 1])
+            val token = "{${placeholders[i]}}"
+            if (result.contains(token)) result = result.replace(token, placeholders[i + 1])
             i += 2
         }
         return Colors.translate(result)

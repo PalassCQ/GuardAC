@@ -54,6 +54,15 @@ class PunishmentHistory(private val plugin: GuardAC) {
     private var connection: Connection? = null
     private val resultInserts = AtomicLong(0)
 
+    private class PendingResult(
+        val uuid: String, val name: String, val model: String,
+        val probability: Double, val ts: Long,
+    )
+
+    private val pendingResults = java.util.concurrent.ConcurrentLinkedQueue<PendingResult>()
+    private val pendingCount = java.util.concurrent.atomic.AtomicInteger(0)
+    private var flushTask: dev.guardac.util.TaskHandle? = null
+
     fun initialize() {
         try {
             val dataFolder = plugin.dataFolder.also { if (!it.exists()) it.mkdirs() }
@@ -61,6 +70,11 @@ class PunishmentHistory(private val plugin: GuardAC) {
             connection = DriverManager.getConnection("jdbc:sqlite:$dbPath")
             synchronized(lock) {
                 connection?.createStatement()?.use { st ->
+                    runCatching {
+                        st.execute("PRAGMA journal_mode=WAL")
+                        st.execute("PRAGMA synchronous=NORMAL")
+                        st.execute("PRAGMA busy_timeout=5000")
+                    }
                     st.execute(
                         """
                         CREATE TABLE IF NOT EXISTS punishments (
@@ -128,9 +142,15 @@ class PunishmentHistory(private val plugin: GuardAC) {
                 }
             }
             plugin.logger.info("[History] Punishment history database initialized.")
+            startResultFlusher()
         } catch (e: SQLException) {
             plugin.logger.warning("[History] Failed to initialize history database: ${e.message}")
         }
+    }
+
+    private fun startResultFlusher() {
+        flushTask?.cancel()
+        flushTask = plugin.scheduler.asyncTimer(RESULT_FLUSH_TICKS, RESULT_FLUSH_TICKS) { flushResults() }
     }
 
     fun record(uuid: UUID, name: String, check: String, vl: Int, probability: Double, action: String) {
@@ -333,38 +353,77 @@ class PunishmentHistory(private val plugin: GuardAC) {
 
     fun recordResult(uuid: UUID, name: String, model: String, probability: Double) {
         if (connection == null) return
-        val ts = Instant.now().toEpochMilli()
-        plugin.scheduler.async(Runnable {
-            try {
-                synchronized(lock) {
-                    val conn = connection ?: return@Runnable
+        if (pendingCount.get() >= RESULTS_QUEUE_MAX) {
+            if (pendingResults.poll() != null) pendingCount.decrementAndGet()
+        }
+        pendingResults.add(
+            PendingResult(uuid.toString(), name, model, probability, Instant.now().toEpochMilli())
+        )
+        pendingCount.incrementAndGet()
+    }
+
+    private fun flushResults() {
+        if (pendingCount.get() == 0) return
+        val batch = ArrayList<PendingResult>(RESULTS_FLUSH_MAX)
+        while (batch.size < RESULTS_FLUSH_MAX) {
+            val r = pendingResults.poll() ?: break
+            pendingCount.decrementAndGet()
+            batch.add(r)
+        }
+        if (batch.isEmpty()) return
+
+        try {
+            synchronized(lock) {
+                val conn = connection ?: return
+                val autoCommit = conn.autoCommit
+                conn.autoCommit = false
+                try {
                     conn.prepareStatement(
                         "INSERT INTO results (uuid, name, model, prob, ts) VALUES (?, ?, ?, ?, ?)"
                     ).use { ps ->
-                        ps.setString(1, uuid.toString())
-                        ps.setString(2, name)
-                        ps.setString(3, model)
-                        ps.setDouble(4, probability)
-                        ps.setLong(5, ts)
-                        ps.executeUpdate()
-                    }
-
-                    if (resultInserts.incrementAndGet() % RESULTS_TRIM_EVERY == 0L) {
-                        conn.prepareStatement(
-                            "DELETE FROM results WHERE uuid = ? AND id NOT IN " +
-                                "(SELECT id FROM results WHERE uuid = ? ORDER BY id DESC LIMIT ?)"
-                        ).use { ps ->
-                            ps.setString(1, uuid.toString())
-                            ps.setString(2, uuid.toString())
-                            ps.setInt(3, RESULTS_CAP_PER_PLAYER)
-                            ps.executeUpdate()
+                        for (r in batch) {
+                            ps.setString(1, r.uuid)
+                            ps.setString(2, r.name)
+                            ps.setString(3, r.model)
+                            ps.setDouble(4, r.probability)
+                            ps.setLong(5, r.ts)
+                            ps.addBatch()
                         }
+                        ps.executeBatch()
                     }
+                    conn.commit()
+                } catch (e: SQLException) {
+                    runCatching { conn.rollback() }
+                    throw e
+                } finally {
+                    conn.autoCommit = autoCommit
                 }
-            } catch (e: SQLException) {
-                plugin.logger.warning("[History] Failed to record AI result: ${e.message}")
+
+                if (resultInserts.addAndGet(batch.size.toLong()) >= RESULTS_TRIM_EVERY) {
+                    resultInserts.set(0)
+                    trimResults(conn, batch)
+                }
             }
-        })
+        } catch (e: SQLException) {
+            plugin.logger.warning("[History] Failed to record AI results: ${e.message}")
+        }
+    }
+
+    private fun trimResults(conn: Connection, batch: List<PendingResult>) {
+        val uuids = HashSet<String>(batch.size)
+        for (r in batch) uuids.add(r.uuid)
+        conn.prepareStatement(
+            "DELETE FROM results WHERE uuid = ? AND id NOT IN " +
+                "(SELECT id FROM results WHERE uuid = ? ORDER BY id DESC LIMIT ?)"
+        ).use { ps ->
+            for (uuid in uuids) {
+                ps.setString(1, uuid)
+                ps.setString(2, uuid)
+                ps.setInt(3, RESULTS_CAP_PER_PLAYER)
+                ps.addBatch()
+            }
+            ps.executeBatch()
+        }
     }
 
     data class TopEntry(
@@ -444,6 +503,15 @@ class PunishmentHistory(private val plugin: GuardAC) {
     }
 
     fun shutdown() {
+        flushTask?.cancel()
+        flushTask = null
+        runCatching {
+            var rounds = 0
+            while (pendingCount.get() > 0 && rounds++ < SHUTDOWN_FLUSH_ROUNDS) {
+                if (pendingResults.peek() == null) break
+                flushResults()
+            }
+        }
         synchronized(lock) {
             try { connection?.close() } catch (_: SQLException) {}
             connection = null
@@ -453,7 +521,12 @@ class PunishmentHistory(private val plugin: GuardAC) {
     private companion object {
 
         const val RESULTS_CAP_PER_PLAYER = 450
-        const val RESULTS_TRIM_EVERY     = 64L
+        const val RESULTS_TRIM_EVERY     = 512L
         const val RESULTS_TTL_MS         = 7L * 24 * 60 * 60 * 1000
+
+        const val RESULT_FLUSH_TICKS = 40L
+        const val RESULTS_FLUSH_MAX  = 512
+        const val RESULTS_QUEUE_MAX  = 20_000
+        const val SHUTDOWN_FLUSH_ROUNDS = 64
     }
 }
