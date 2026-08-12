@@ -24,12 +24,12 @@ ai:
   # Your personal API key from the dashboard at https://guardac.net
   api-key: "PASTE-YOUR-GUARDAC-KEY"
   # true = staff get alerts but nobody is punished automatically.
-  # Recommended while you are still evaluating the detections.
+  # Handy if you want your team to handle punishments by hand.
   only-alert: false
 
 alerts:
   # Show a hit to staff when the AI is at least this confident (0-100).
-  # Lower values report more, including some ordinary aggressive PvP.
+  # 85 is the tuned default: lower reports more, higher only the clearest hits.
   min-hit-confidence: 85
   # One alert per this many suspicious hits: x3, then x6, x9 and so on. Each of
   # those steps is exactly one violation level (x3 = VL1, x6 = VL2, ...). A lone
