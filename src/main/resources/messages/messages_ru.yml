@@ -23,7 +23,7 @@ alerts-console-format: "[GuardAC] {player} | {verbose} | buffer {buffer}"
 # Авто-обновление: новая версия скачана и применится после перезапуска. Плейсхолдер: {tag}
 update-downloaded: "{prefix} &#4ADE80Обновление GuardAC &#AEB8C4{tag} &#4ADE80загружено &8- &7применится после перезапуска сервера."
 # Aim Fingerprint: почерк прицела игрока резко изменился. Плейсхолдеры: {player} {base} {now}
-fingerprint-alert: "{prefix} &8[&#A78BFAПОЧЕРК&8] &#FF4D6D&l{player} &7- стиль прицела резко изменился &8(&7{base}% &8→ &c{now}%&8)&7, возможен включённый чит."
+fingerprint-alert: "{prefix} &8[&#A78BFAПОЧЕРК&8] &#FF4D6D{player} &7- стиль прицела резко изменился &8(&7{base}% &8→ &c{now}%&8)&7, возможен включённый чит."
 # Раннее предупреждение стаффу. Плейсхолдеры: {player} {buffer} {flag}
 suspicious-alert: "{prefix} &8[&#FFC857НАБЛЮДЕНИЕ&8] &#AEB8C4{player} &7становится подозрительным &8(&#FFC857{buffer} &8/ &7{flag}&8)"
 # Сообщение игроку, когда включается доп. защита в бою (combat-suppression в config.yml).
@@ -34,7 +34,7 @@ monitor-disabled: "&#FFC857● &7Монитор &8выключен&7."
 # Плейсхолдеры: {player} {model} {color} {detailed} {buffer} {prob} {avg} {avg_color} {vl} {ping} {peak} {high_count} {suppression}
 monitor-hit: "{prefix} &7{model} {color}{player} &8• {color}{detailed} &8• &7буфер {buffer}{suppression}"
 
-profile-header: "&8&m        &r {prefix} &#67E8F9&l{player} &8&m        "
+profile-header: "&8&m        &r {prefix} &#67E8F9{player} &8&m        "
 profile-ping: " &8▏ &7Пинг&8: &f{ping}мс"
 profile-session: " &8▏ &7Сессия&8: &f{session}"
 profile-ai-buffer: " &8▏ &7AI-буфер&8: &#67E8F9{buffer} &8/ &#3B82F6{flag}"
@@ -109,7 +109,7 @@ punish-no-data: "&#FF4D6D✖ &7Данные игрока не найдены."
 unsafe-name-kick: "&cВы были исключены с сервера."
 
 # Самодиагностика анти-чита (/guardac health).
-health-header: "{prefix} &#67E8F9&lСостояние GuardAC &8- &#AEB8C4v{version}"
+health-header: "{prefix} &#67E8F9Состояние GuardAC &8- &#AEB8C4v{version}"
 health-backend: " &8▏ &7Бэкенд ИИ&8: {status} &8({server})"
 health-mode: " &8▏ &7Режим&8: {mode}"
 health-key: " &8▏ &7Ключ доступа&8: {status}"
@@ -127,7 +127,7 @@ health-missing: "&#FF4D6D● не задан"
 health-enforcing: "&#FFC857наказания"
 health-alert-only: "&#4ADE80только алерты"
 
-stats-header: "&8&m        &r {prefix} &#67E8F9&lСтатистика &8({period}) &8&m        "
+stats-header: "&8&m        &r {prefix} &#67E8F9Статистика &8({period}) &8&m        "
 stats-online: " &8▏ &7Онлайн&8: &f{online}"
 stats-suspicious: " &8▏ &7Подозрительных&8: &#FFC857{suspicious} &8(&7{pct}%&8)"
 stats-total-flags: " &8▏ &7Флаги сессии&8: &#FF4D6D{flags} &8(&7{per_hour}/ч&8)"
@@ -137,7 +137,7 @@ stats-uptime: " &8▏ &7Аптайм&8: &f{uptime}"
 
 # /guard top - кого модель чаще всего отмечала за период.
 # Считаются только результаты выше alerts.min-hit-confidence.
-top-header: "&8&m        &r {prefix} &#67E8F9&lСамые подозрительные &8({period}) &8&m        "
+top-header: "&8&m        &r {prefix} &#67E8F9Самые подозрительные &8({period}) &8&m        "
 top-entry: " &8{rank}. &#AEB8C4{player} &8• {color}{hits} &7из &#AEB8C4{total} &8• &7средняя &#67E8F9{avg}% &8• &7пик {color}{max}%"
 top-empty: "&#4ADE80✔ &7За &#AEB8C4{period} &7никого подозрительного."
 
@@ -146,21 +146,21 @@ datacollect-start-restarted: "&#FFC857● &7Сбор данных для &f{play
 datacollect-stop-success: "&#4ADE80✔ &7Сбор для &f{player} &7сохранён &8(&f{ticks} &7тиков&8)"
 datacollect-stop-fail: "&#FF4D6D✖ &7Сбор для &f{player} &7не запущен."
 datacollect-cancel-success: "&#FFC857● &7Сбор для &f{player} &7отменён без сохранения."
-datacollect-status-header: "&8&m        &r {prefix} &#67E8F9&lАктивные DC-сессии &8&m        "
+datacollect-status-header: "&8&m        &r {prefix} &#67E8F9Активные DC-сессии &8&m        "
 datacollect-status-entry: " &#22D3EE▸ &f{player} &8• &7{status} &8• &7время &f{time}с &8• &7тиков &f{ticks}"
 datacollect-status-empty: "&7Активных сессий нет."
 datacollect-status-no-session: "&#FF4D6D✖ &7Нет активной сессии для &f{player}&7."
 datacollect-invalid-type: "&#FF4D6D✖ &7Неверный тип. Используйте &#4ADE80LEGIT &7или &#FF4D6DCHEAT&7."
 datacollect-details-required: "&#FF4D6D✖ &7Формат&8: &f/guarddc start <ник> <LEGIT|CHEAT> <комментарий>"
 
-crossserver-alert: "{prefix} &8[&#22D3EE{server}&8] &#FF4D6D&l{player} &8- &7подозрение &#22D3EEAI &8• &7{verbose} &8• &#FF4D6DVL {vl}"
+crossserver-alert: "{prefix} &8[&#22D3EE{server}&8] &#FF4D6D{player} &8- &7подозрение &#22D3EEAI &8• &7{verbose} &8• &#FF4D6DVL {vl}"
 crossserver-enabled: "&#4ADE80✔ &7Межсерверные алерты &#4ADE80включены&7."
 crossserver-disabled: "&#FFC857● &7Межсерверные алерты &8выключены&7."
 
 menu-prev: "&#67E8F9← Предыдущая страница"
 menu-next: "&#67E8F9Следующая страница →"
 menu-close: "&#FF4D6D✖ Закрыть"
-menu-empty-title: "&e&lПусто"
+menu-empty-title: "&eПусто"
 menu-page: "&8Страница &7{page}"
 menu-player-offline: "&cИгрок &#AEB8C4{player} &cуже не в сети."
 
@@ -194,7 +194,7 @@ common-on: "&aВКЛ"
 common-off: "&cВЫКЛ"
 stats-detections: " &8▏ &7Детекций сегодня&8: &e{detections} &8(&7запросов&8: &f{requests}&8)"
 
-help-header: "&8&m        &r {prefix} &#67E8F9&lСправка &8&m        "
+help-header: "&8&m        &r {prefix} &#67E8F9Справка &8&m        "
 help-reload: " &#22D3EE/guardac reload &8- &7перезагрузить конфигурацию"
 help-alerts: " &#22D3EE/guardac alerts &8- &7подписка на оповещения"
 help-monitor: " &#22D3EE/guardac monitor &8- &7монитор всех ударов с вероятностью AI"
@@ -225,17 +225,17 @@ usage-top: "&#FFC857● &7Использование&8: &#AEB8C4/guardac top [1h
 usage-dc-stop: "&#FFC857● &7Использование&8: &#AEB8C4/guarddc stop <ник>"
 usage-dc-cancel: "&#FFC857● &7Использование&8: &#AEB8C4/guarddc cancel <ник>"
 
-dc-help-header: "&8&m        &r {prefix} &#67E8F9&lСбор данных &8&m        "
+dc-help-header: "&8&m        &r {prefix} &#67E8F9Сбор данных &8&m        "
 dc-help-start: " &#22D3EE/guarddc start &#AEB8C4<ник> &#4ADE80<CHEAT|LEGIT> &7<комментарий> &8- &7начать"
 dc-help-stop: " &#22D3EE/guarddc stop &#AEB8C4<ник> &8- &7остановить и сохранить"
 dc-help-cancel: " &#22D3EE/guarddc cancel &#AEB8C4<ник> &8- &7отменить без сохранения"
 dc-help-status: " &#22D3EE/guarddc status &7[ник] &8- &7статус активных сессий"
 dc-help-footer: "&8&m                                          "
 
-log-header: "&8&m        &r {prefix} &#67E8F9&lПоследние наказания &8(&#AEB8C4{count}&8) &8&m        "
+log-header: "&8&m        &r {prefix} &#67E8F9Последние наказания &8(&#AEB8C4{count}&8) &8&m        "
 log-empty: "&7Записей в логе наказаний нет."
 
-history-header: "&8&m        &r {prefix} &#67E8F9&lИстория наказаний &8(&#AEB8C4{count}&8) &8&m        "
+history-header: "&8&m        &r {prefix} &#67E8F9История наказаний &8(&#AEB8C4{count}&8) &8&m        "
 history-entry: " &#22D3EE▸ &7{time} &8• &#AEB8C4{player} &8• &7{check} &8• &#FF4D6DVL {vl} &8• &7{prob}% &8• &#AEB8C4{action}"
 history-empty: "&7В истории наказаний пусто."
 usage-history: "&#FFC857● &7Использование&8: &#AEB8C4/guardac history [ник]"

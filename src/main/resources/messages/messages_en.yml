@@ -23,7 +23,7 @@ alerts-console-format: "[GuardAC] {player} | {verbose} | buffer {buffer}"
 # Auto-update: a new version was downloaded and applies after a restart. Placeholder: {tag}
 update-downloaded: "{prefix} &#4ADE80GuardAC update &#AEB8C4{tag} &#4ADE80downloaded &8- &7it will apply after a server restart."
 # Aim Fingerprint: player's aim style shifted sharply. Placeholders: {player} {base} {now}
-fingerprint-alert: "{prefix} &8[&#A78BFAFINGERPRINT&8] &#FF4D6D&l{player} &7- aim style shifted sharply &8(&7{base}% &8→ &c{now}%&8)&7, possible cheat toggle."
+fingerprint-alert: "{prefix} &8[&#A78BFAFINGERPRINT&8] &#FF4D6D{player} &7- aim style shifted sharply &8(&7{base}% &8→ &c{now}%&8)&7, possible cheat toggle."
 # Early warning to staff. Placeholders: {player} {buffer} {flag}
 suspicious-alert: "{prefix} &8[&#FFC857WATCH&8] &#AEB8C4{player} &7is becoming suspicious &8(&#FFC857{buffer} &8/ &7{flag}&8)"
 # Shown to the player when the extra in-combat protection kicks in (combat-suppression in config.yml).
@@ -34,7 +34,7 @@ monitor-disabled: "&#FFC857● &7Monitor &8disabled&7."
 # Placeholders: {player} {model} {color} {detailed} {buffer} {prob} {avg} {avg_color} {vl} {ping} {peak} {high_count} {suppression}
 monitor-hit: "{prefix} &7{model} {color}{player} &8• {color}{detailed} &8• &7buffer {buffer}{suppression}"
 
-profile-header: "&8&m        &r {prefix} &#67E8F9&l{player} &8&m        "
+profile-header: "&8&m        &r {prefix} &#67E8F9{player} &8&m        "
 profile-ping: " &8▏ &7Ping&8: &f{ping}ms"
 profile-session: " &8▏ &7Session&8: &f{session}"
 profile-ai-buffer: " &8▏ &7AI buffer&8: &#67E8F9{buffer} &8/ &#3B82F6{flag}"
@@ -110,7 +110,7 @@ punish-no-data: "&#FF4D6D✖ &7Player data not found."
 unsafe-name-kick: "&cYou have been removed from the server."
 
 # Anticheat self-diagnostic (/guardac health).
-health-header: "{prefix} &#67E8F9&lGuardAC status &8- &#AEB8C4v{version}"
+health-header: "{prefix} &#67E8F9GuardAC status &8- &#AEB8C4v{version}"
 health-backend: " &8▏ &7AI backend&8: {status} &8({server})"
 health-mode: " &8▏ &7Mode&8: {mode}"
 health-key: " &8▏ &7API key&8: {status}"
@@ -128,7 +128,7 @@ health-missing: "&#FF4D6D● not set"
 health-enforcing: "&#FFC857enforcing"
 health-alert-only: "&#4ADE80alert-only"
 
-stats-header: "&8&m        &r {prefix} &#67E8F9&lServer Stats &8({period}) &8&m        "
+stats-header: "&8&m        &r {prefix} &#67E8F9Server Stats &8({period}) &8&m        "
 stats-online: " &8▏ &7Players online&8: &f{online}"
 stats-suspicious: " &8▏ &7Suspicious&8: &#FFC857{suspicious} &8(&7{pct}%&8)"
 stats-total-flags: " &8▏ &7Session flags&8: &#FF4D6D{flags} &8(&7{per_hour}/h&8)"
@@ -138,7 +138,7 @@ stats-uptime: " &8▏ &7Uptime&8: &f{uptime}"
 
 # /guard top - who the model flagged most over the period.
 # Only results above alerts.min-hit-confidence are counted.
-top-header: "&8&m        &r {prefix} &#67E8F9&lMost suspicious &8({period}) &8&m        "
+top-header: "&8&m        &r {prefix} &#67E8F9Most suspicious &8({period}) &8&m        "
 top-entry: " &8{rank}. &#AEB8C4{player} &8• {color}{hits} &7of &#AEB8C4{total} &8• &7avg &#67E8F9{avg}% &8• &7peak {color}{max}%"
 top-empty: "&#4ADE80✔ &7Nobody suspicious in the last &#AEB8C4{period}&7."
 
@@ -147,21 +147,21 @@ datacollect-start-restarted: "&#FFC857● &7Data collection for &f{player} &7res
 datacollect-stop-success: "&#4ADE80✔ &7Collection for &f{player} &7saved &8(&f{ticks} &7ticks&8)"
 datacollect-stop-fail: "&#FF4D6D✖ &7Collection for &f{player} &7was not running."
 datacollect-cancel-success: "&#FFC857● &7Collection for &f{player} &7cancelled without saving."
-datacollect-status-header: "&8&m        &r {prefix} &#67E8F9&lActive DC Sessions &8&m        "
+datacollect-status-header: "&8&m        &r {prefix} &#67E8F9Active DC Sessions &8&m        "
 datacollect-status-entry: " &#22D3EE▸ &f{player} &8• &7{status} &8• &7time &f{time}s &8• &7ticks &f{ticks}"
 datacollect-status-empty: "&7No active sessions."
 datacollect-status-no-session: "&#FF4D6D✖ &7No active session for &f{player}&7."
 datacollect-invalid-type: "&#FF4D6D✖ &7Invalid type. Use &#4ADE80LEGIT &7or &#FF4D6DCHEAT&7."
 datacollect-details-required: "&#FF4D6D✖ &7Usage&8: &f/guarddc start <player> <LEGIT|CHEAT> <comment>"
 
-crossserver-alert: "{prefix} &8[&#22D3EE{server}&8] &#FF4D6D&l{player} &8- flagged by &#22D3EEAI &8• &7{verbose} &8• &#FF4D6DVL {vl}"
+crossserver-alert: "{prefix} &8[&#22D3EE{server}&8] &#FF4D6D{player} &8- flagged by &#22D3EEAI &8• &7{verbose} &8• &#FF4D6DVL {vl}"
 crossserver-enabled: "&#4ADE80✔ &7Cross-server alerts &#4ADE80enabled&7."
 crossserver-disabled: "&#FFC857● &7Cross-server alerts &8disabled&7."
 
 menu-prev: "&#67E8F9← Previous page"
 menu-next: "&#67E8F9Next page →"
 menu-close: "&#FF4D6D✖ Close"
-menu-empty-title: "&e&lEmpty"
+menu-empty-title: "&eEmpty"
 menu-page: "&8Page &7{page}"
 menu-player-offline: "&cPlayer &#AEB8C4{player} &cis no longer online."
 
@@ -195,7 +195,7 @@ common-on: "&aON"
 common-off: "&cOFF"
 stats-detections: " &8▏ &7Detections today&8: &e{detections} &8(&7requests&8: &f{requests}&8)"
 
-help-header: "&8&m        &r {prefix} &#67E8F9&lHelp &8&m        "
+help-header: "&8&m        &r {prefix} &#67E8F9Help &8&m        "
 help-reload: " &#22D3EE/guardac reload &8- &7reload configuration"
 help-alerts: " &#22D3EE/guardac alerts &8- &7toggle alert subscription"
 help-monitor: " &#22D3EE/guardac monitor &8- &7monitor all hits with AI probability"
@@ -226,17 +226,17 @@ usage-top: "&#FFC857● &7Usage&8: &#AEB8C4/guardac top [1h|6h|24h|7d]"
 usage-dc-stop: "&#FFC857● &7Usage&8: &#AEB8C4/guarddc stop <player>"
 usage-dc-cancel: "&#FFC857● &7Usage&8: &#AEB8C4/guarddc cancel <player>"
 
-dc-help-header: "&8&m        &r {prefix} &#67E8F9&lData Collection &8&m        "
+dc-help-header: "&8&m        &r {prefix} &#67E8F9Data Collection &8&m        "
 dc-help-start: " &#22D3EE/guarddc start &#AEB8C4<player> &#4ADE80<CHEAT|LEGIT> &7<comment> &8- &7start"
 dc-help-stop: " &#22D3EE/guarddc stop &#AEB8C4<player> &8- &7stop and save"
 dc-help-cancel: " &#22D3EE/guarddc cancel &#AEB8C4<player> &8- &7cancel without saving"
 dc-help-status: " &#22D3EE/guarddc status &7[player] &8- &7active session status"
 dc-help-footer: "&8&m                                          "
 
-log-header: "&8&m        &r {prefix} &#67E8F9&lRecent Punishments &8(&#AEB8C4{count}&8) &8&m        "
+log-header: "&8&m        &r {prefix} &#67E8F9Recent Punishments &8(&#AEB8C4{count}&8) &8&m        "
 log-empty: "&7No punishment log entries found."
 
-history-header: "&8&m        &r {prefix} &#67E8F9&lPunishment History &8(&#AEB8C4{count}&8) &8&m        "
+history-header: "&8&m        &r {prefix} &#67E8F9Punishment History &8(&#AEB8C4{count}&8) &8&m        "
 history-entry: " &#22D3EE▸ &7{time} &8• &#AEB8C4{player} &8• &7{check} &8• &#FF4D6DVL {vl} &8• &7{prob}% &8• &#AEB8C4{action}"
 history-empty: "&7Punishment history is empty."
 usage-history: "&#FFC857● &7Usage&8: &#AEB8C4/guardac history [player]"

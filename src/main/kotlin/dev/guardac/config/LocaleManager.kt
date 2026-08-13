@@ -89,7 +89,7 @@ class LocaleManager(private val plugin: GuardAC) {
                     added++
                 }
             }
-            val healed = healOldDefaults(onDisk)
+            val healed = healOldDefaults(onDisk, defaults)
             if (added > 0 || healed > 0) {
                 onDisk.save(file)
                 if (added > 0) {
@@ -97,8 +97,8 @@ class LocaleManager(private val plugin: GuardAC) {
                 }
                 if (healed > 0) {
                     plugin.logger.info(
-                        "[GuardAC] messages_$locale.yml: dropped the heavy bar from the message " +
-                        "prefix. Edit `prefix` if you want your own."
+                        "[GuardAC] messages_$locale.yml: healed $healed line(s) that still carried " +
+                        "an old default. Lines you edited yourself are never touched."
                     )
                 }
             }
@@ -107,12 +107,22 @@ class LocaleManager(private val plugin: GuardAC) {
         }
     }
 
-    private fun healOldDefaults(onDisk: YamlConfiguration): Int {
+    private fun healOldDefaults(onDisk: YamlConfiguration, defaults: YamlConfiguration): Int {
         var changed = 0
         val prefix = onDisk.getString("prefix")
         if (prefix != null && prefix.contains(LEGACY_PREFIX_BAR)) {
             onDisk.set("prefix", prefix.replace(LEGACY_PREFIX_BAR, ""))
             changed++
+        }
+        for (key in defaults.getKeys(false)) {
+            val mine = onDisk.getString(key) ?: continue
+            if (!mine.contains(BOLD_CODE)) continue
+            val theirs = defaults.getString(key) ?: continue
+            val stripped = mine.replace(BOLD_CODE, "")
+            if (stripped == theirs) {
+                onDisk.set(key, stripped)
+                changed++
+            }
         }
         return changed
     }
@@ -154,6 +164,7 @@ class LocaleManager(private val plugin: GuardAC) {
     private companion object {
 
         const val LEGACY_PREFIX_BAR = "&#22D3EE▍ "
+        const val BOLD_CODE = "&l"
 
         val BUNDLED = listOf("en", "ru", "kk", "vi", "tr")
     }

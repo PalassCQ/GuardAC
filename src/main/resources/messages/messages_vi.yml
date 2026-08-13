@@ -23,7 +23,7 @@ alerts-console-format: "[GuardAC] {player} | {verbose} | buffer {buffer}"
 # Tự cập nhật: đã tải phiên bản mới, áp dụng sau khi khởi động lại. Tham số: {tag}
 update-downloaded: "{prefix} &#4ADE80Bản cập nhật GuardAC &#AEB8C4{tag} &#4ADE80đã tải xong &8- &7sẽ áp dụng sau khi khởi động lại máy chủ."
 # Aim Fingerprint: cách ngắm của người chơi đổi đột ngột. Tham số: {player} {base} {now}
-fingerprint-alert: "{prefix} &8[&#A78BFACHỮ KÝ&8] &#FF4D6D&l{player} &7- cách ngắm đổi đột ngột &8(&7{base}% &8→ &c{now}%&8)&7, có thể vừa bật hack."
+fingerprint-alert: "{prefix} &8[&#A78BFACHỮ KÝ&8] &#FF4D6D{player} &7- cách ngắm đổi đột ngột &8(&7{base}% &8→ &c{now}%&8)&7, có thể vừa bật hack."
 # Cảnh báo sớm cho nhân viên. Tham số: {player} {buffer} {flag}
 suspicious-alert: "{prefix} &8[&#FFC857THEO DÕI&8] &#AEB8C4{player} &7đang trở nên đáng ngờ &8(&#FFC857{buffer} &8/ &7{flag}&8)"
 # Hiện cho người chơi khi lớp bảo vệ thêm trong giao tranh bật lên (combat-suppression trong config.yml).
@@ -34,7 +34,7 @@ monitor-disabled: "&#FFC857● &7Giám sát &8đang tắt&7."
 # Tham số: {player} {model} {color} {detailed} {buffer} {prob} {avg} {avg_color} {vl} {ping} {peak} {high_count} {suppression}
 monitor-hit: "{prefix} &7{model} {color}{player} &8• {color}{detailed} &8• &7bộ đệm {buffer}{suppression}"
 
-profile-header: "&8&m        &r {prefix} &#67E8F9&l{player} &8&m        "
+profile-header: "&8&m        &r {prefix} &#67E8F9{player} &8&m        "
 profile-ping: " &8▏ &7Ping&8: &f{ping}ms"
 profile-session: " &8▏ &7Phiên&8: &f{session}"
 profile-ai-buffer: " &8▏ &7Bộ đệm AI&8: &#67E8F9{buffer} &8/ &#3B82F6{flag}"
@@ -110,7 +110,7 @@ punish-no-data: "&#FF4D6D✖ &7Không tìm thấy dữ liệu người chơi."
 unsafe-name-kick: "&cBạn đã bị đưa ra khỏi máy chủ."
 
 # Tự kiểm tra của anti-cheat (/guardac health).
-health-header: "{prefix} &#67E8F9&lTrạng thái GuardAC &8- &#AEB8C4v{version}"
+health-header: "{prefix} &#67E8F9Trạng thái GuardAC &8- &#AEB8C4v{version}"
 health-backend: " &8▏ &7Máy chủ AI&8: {status} &8({server})"
 health-mode: " &8▏ &7Chế độ&8: {mode}"
 health-key: " &8▏ &7Khóa API&8: {status}"
@@ -128,7 +128,7 @@ health-missing: "&#FF4D6D● chưa đặt"
 health-enforcing: "&#FFC857có xử phạt"
 health-alert-only: "&#4ADE80chỉ cảnh báo"
 
-stats-header: "&8&m        &r {prefix} &#67E8F9&lThống kê máy chủ &8({period}) &8&m        "
+stats-header: "&8&m        &r {prefix} &#67E8F9Thống kê máy chủ &8({period}) &8&m        "
 stats-online: " &8▏ &7Người chơi trực tuyến&8: &f{online}"
 stats-suspicious: " &8▏ &7Đáng ngờ&8: &#FFC857{suspicious} &8(&7{pct}%&8)"
 stats-total-flags: " &8▏ &7Đánh dấu trong phiên&8: &#FF4D6D{flags} &8(&7{per_hour}/giờ&8)"
@@ -138,7 +138,7 @@ stats-uptime: " &8▏ &7Thời gian hoạt động&8: &f{uptime}"
 
 # /guard top - ai bị mô hình đánh dấu nhiều nhất trong khoảng thời gian.
 # Chỉ tính các kết quả trên alerts.min-hit-confidence.
-top-header: "&8&m        &r {prefix} &#67E8F9&lĐáng ngờ nhất &8({period}) &8&m        "
+top-header: "&8&m        &r {prefix} &#67E8F9Đáng ngờ nhất &8({period}) &8&m        "
 top-entry: " &8{rank}. &#AEB8C4{player} &8• {color}{hits} &7trên &#AEB8C4{total} &8• &7trung bình &#67E8F9{avg}% &8• &7đỉnh {color}{max}%"
 top-empty: "&#4ADE80✔ &7Không có ai đáng ngờ trong &#AEB8C4{period} &7vừa qua."
 
@@ -147,21 +147,21 @@ datacollect-start-restarted: "&#FFC857● &7Thu dữ liệu cho &f{player} &7đ�
 datacollect-stop-success: "&#4ADE80✔ &7Đã lưu dữ liệu của &f{player} &8(&f{ticks} &7tick&8)"
 datacollect-stop-fail: "&#FF4D6D✖ &7Không có phiên thu dữ liệu nào cho &f{player}&7."
 datacollect-cancel-success: "&#FFC857● &7Đã hủy thu dữ liệu của &f{player} &7mà không lưu."
-datacollect-status-header: "&8&m        &r {prefix} &#67E8F9&lPhiên DC đang chạy &8&m        "
+datacollect-status-header: "&8&m        &r {prefix} &#67E8F9Phiên DC đang chạy &8&m        "
 datacollect-status-entry: " &#22D3EE▸ &f{player} &8• &7{status} &8• &7thời gian &f{time}s &8• &7tick &f{ticks}"
 datacollect-status-empty: "&7Không có phiên nào đang chạy."
 datacollect-status-no-session: "&#FF4D6D✖ &7Không có phiên nào đang chạy cho &f{player}&7."
 datacollect-invalid-type: "&#FF4D6D✖ &7Loại không hợp lệ. Dùng &#4ADE80LEGIT &7hoặc &#FF4D6DCHEAT&7."
 datacollect-details-required: "&#FF4D6D✖ &7Cách dùng&8: &f/guarddc start <người chơi> <LEGIT|CHEAT> <ghi chú>"
 
-crossserver-alert: "{prefix} &8[&#22D3EE{server}&8] &#FF4D6D&l{player} &8- &7bị &#22D3EEAI &7đánh dấu &8• &7{verbose} &8• &#FF4D6DVL {vl}"
+crossserver-alert: "{prefix} &8[&#22D3EE{server}&8] &#FF4D6D{player} &8- &7bị &#22D3EEAI &7đánh dấu &8• &7{verbose} &8• &#FF4D6DVL {vl}"
 crossserver-enabled: "&#4ADE80✔ &7Cảnh báo liên máy chủ &#4ADE80đang bật&7."
 crossserver-disabled: "&#FFC857● &7Cảnh báo liên máy chủ &8đang tắt&7."
 
 menu-prev: "&#67E8F9← Trang trước"
 menu-next: "&#67E8F9Trang sau →"
 menu-close: "&#FF4D6D✖ Đóng"
-menu-empty-title: "&e&lTrống"
+menu-empty-title: "&eTrống"
 menu-page: "&8Trang &7{page}"
 menu-player-offline: "&cNgười chơi &#AEB8C4{player} &cđã rời máy chủ."
 
@@ -195,7 +195,7 @@ common-on: "&aBẬT"
 common-off: "&cTẮT"
 stats-detections: " &8▏ &7Phát hiện hôm nay&8: &e{detections} &8(&7yêu cầu&8: &f{requests}&8)"
 
-help-header: "&8&m        &r {prefix} &#67E8F9&lTrợ giúp &8&m        "
+help-header: "&8&m        &r {prefix} &#67E8F9Trợ giúp &8&m        "
 help-reload: " &#22D3EE/guardac reload &8- &7tải lại cấu hình"
 help-alerts: " &#22D3EE/guardac alerts &8- &7bật/tắt nhận cảnh báo"
 help-monitor: " &#22D3EE/guardac monitor &8- &7xem mọi cú đánh kèm xác suất AI"
@@ -226,17 +226,17 @@ usage-top: "&#FFC857● &7Cách dùng&8: &#AEB8C4/guardac top [1h|6h|24h|7d]"
 usage-dc-stop: "&#FFC857● &7Cách dùng&8: &#AEB8C4/guarddc stop <người chơi>"
 usage-dc-cancel: "&#FFC857● &7Cách dùng&8: &#AEB8C4/guarddc cancel <người chơi>"
 
-dc-help-header: "&8&m        &r {prefix} &#67E8F9&lThu thập dữ liệu &8&m        "
+dc-help-header: "&8&m        &r {prefix} &#67E8F9Thu thập dữ liệu &8&m        "
 dc-help-start: " &#22D3EE/guarddc start &#AEB8C4<người chơi> &#4ADE80<CHEAT|LEGIT> &7<ghi chú> &8- &7bắt đầu"
 dc-help-stop: " &#22D3EE/guarddc stop &#AEB8C4<người chơi> &8- &7dừng và lưu"
 dc-help-cancel: " &#22D3EE/guarddc cancel &#AEB8C4<người chơi> &8- &7hủy, không lưu"
 dc-help-status: " &#22D3EE/guarddc status &7[người chơi] &8- &7trạng thái phiên đang chạy"
 dc-help-footer: "&8&m                                          "
 
-log-header: "&8&m        &r {prefix} &#67E8F9&lXử phạt gần đây &8(&#AEB8C4{count}&8) &8&m        "
+log-header: "&8&m        &r {prefix} &#67E8F9Xử phạt gần đây &8(&#AEB8C4{count}&8) &8&m        "
 log-empty: "&7Chưa có mục nào trong nhật ký xử phạt."
 
-history-header: "&8&m        &r {prefix} &#67E8F9&lLịch sử xử phạt &8(&#AEB8C4{count}&8) &8&m        "
+history-header: "&8&m        &r {prefix} &#67E8F9Lịch sử xử phạt &8(&#AEB8C4{count}&8) &8&m        "
 history-entry: " &#22D3EE▸ &7{time} &8• &#AEB8C4{player} &8• &7{check} &8• &#FF4D6DVL {vl} &8• &7{prob}% &8• &#AEB8C4{action}"
 history-empty: "&7Lịch sử xử phạt trống."
 usage-history: "&#FFC857● &7Cách dùng&8: &#AEB8C4/guardac history [người chơi]"
