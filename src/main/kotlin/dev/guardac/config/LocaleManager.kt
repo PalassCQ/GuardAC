@@ -44,19 +44,21 @@ class LocaleManager(private val plugin: GuardAC) {
         messagesDir.mkdirs()
 
         saveDefault("en")
-        saveDefault("ru")
-        if (!locale.equals("en", ignoreCase = true) && !locale.equals("ru", ignoreCase = true)) {
-            saveDefault(locale)
-        }
-        mergeMissingKeys("en")
-        mergeMissingKeys("ru")
-        if (!locale.equals("en", ignoreCase = true) && !locale.equals("ru", ignoreCase = true)) {
-            mergeMissingKeys(locale)
+        saveDefault(locale)
+        for (bundled in BUNDLED) {
+            if (File(messagesDir, "messages_$bundled.yml").exists()) mergeMissingKeys(bundled)
         }
 
         val localeFile = File(messagesDir, "messages_$locale.yml")
         val targetFile = if (localeFile.exists()) localeFile
                          else File(messagesDir, "messages_en.yml")
+        if (!localeFile.exists()) {
+            plugin.logger.warning(
+                "[GuardAC] No messages_$locale.yml found, falling back to English. " +
+                "Bundled languages: ${BUNDLED.joinToString(", ")}. " +
+                "To add your own, copy messages/messages_en.yml to messages_$locale.yml and translate it."
+            )
+        }
 
         messages = YamlConfiguration.loadConfiguration(targetFile)
 
@@ -152,5 +154,7 @@ class LocaleManager(private val plugin: GuardAC) {
     private companion object {
 
         const val LEGACY_PREFIX_BAR = "&#22D3EE▍ "
+
+        val BUNDLED = listOf("en", "ru", "kk", "vi", "tr")
     }
 }

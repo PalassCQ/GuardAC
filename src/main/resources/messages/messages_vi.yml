@@ -1,0 +1,261 @@
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  GuardAC · Bản dịch tiếng Việt                                 ║
+# ║  Hỗ trợ mã màu & và mã HEX dạng &#22D3EE                        ║
+# ╚══════════════════════════════════════════════════════════════╝
+
+prefix: "&#22D3EEG&#34C2E8u&#46B1E2a&#58A0DCr&#6A8FD6d&#4D86EEA&#3B82F6C &8»&r"
+
+no-permission: "&#FF4D6D✖ &7Bạn không có quyền dùng lệnh này."
+player-not-found: "&#FF4D6D✖ &7Không tìm thấy người chơi &#AEB8C4{player} &7hoặc họ đang ngoại tuyến."
+run-as-player: "&#FF4D6D✖ &7Lệnh này chỉ dành cho người chơi."
+reload-success: "&#4ADE80✔ &7Đã tải lại cấu hình."
+
+alerts-enabled: "&#4ADE80✔ &7Cảnh báo &#4ADE80đang bật&7."
+alerts-disabled: "&#FFC857● &7Cảnh báo &8đang tắt&7."
+# Gửi cho MỌI cú đánh đáng ngờ (ngưỡng - alerts.min-hit-confidence trong config.yml).
+# Tham số: {player} {check} {vl} {verbose} {prob_color} {buffer} {avg} {peak}
+# (thẻ mô hình [Def]/[Extreme] cố tình không hiện ở đây - chỉ có trong /guard monitor)
+alerts-format: "{prefix} &8[&#FF4D6DPHÁT HIỆN&8] {prob_color}{player} &7không qua được kiểm tra &8• {prob_color}{verbose} &8• &7bộ đệm {buffer}"
+# Cảnh báo gộp: cứ mỗi min-hits cú đánh (×3, ×6, ×9...) kèm đỉnh của đợt.
+# Tham số: {player} {model} {count} {max} {prob_color} {buffer}
+alerts-digest-format: "{prefix} &8[&#FF4D6DPHÁT HIỆN&8] {prob_color}{player} &7không qua được kiểm tra {prob_color}×{count} &8• &7cao nhất {prob_color}{max} &8• &7bộ đệm {buffer}"
+alerts-console-format: "[GuardAC] {player} | {verbose} | buffer {buffer}"
+# Tự cập nhật: đã tải phiên bản mới, áp dụng sau khi khởi động lại. Tham số: {tag}
+update-downloaded: "{prefix} &#4ADE80Bản cập nhật GuardAC &#AEB8C4{tag} &#4ADE80đã tải xong &8- &7sẽ áp dụng sau khi khởi động lại máy chủ."
+# Aim Fingerprint: cách ngắm của người chơi đổi đột ngột. Tham số: {player} {base} {now}
+fingerprint-alert: "{prefix} &8[&#A78BFACHỮ KÝ&8] &#FF4D6D&l{player} &7- cách ngắm đổi đột ngột &8(&7{base}% &8→ &c{now}%&8)&7, có thể vừa bật hack."
+# Cảnh báo sớm cho nhân viên. Tham số: {player} {buffer} {flag}
+suspicious-alert: "{prefix} &8[&#FFC857THEO DÕI&8] &#AEB8C4{player} &7đang trở nên đáng ngờ &8(&#FFC857{buffer} &8/ &7{flag}&8)"
+# Hiện cho người chơi khi lớp bảo vệ thêm trong giao tranh bật lên (combat-suppression trong config.yml).
+suppression-isolate-notice: "&7Kết nối không ổn định &8- &7đòn đánh tạm thời không được tính."
+
+monitor-enabled: "&#4ADE80✔ &7Giám sát &#4ADE80đang bật&7 &8- &7hiện mọi kết quả của mô hình."
+monitor-disabled: "&#FFC857● &7Giám sát &8đang tắt&7."
+# Tham số: {player} {model} {color} {detailed} {buffer} {prob} {avg} {avg_color} {vl} {ping} {peak} {high_count} {suppression}
+monitor-hit: "{prefix} &7{model} {color}{player} &8• {color}{detailed} &8• &7bộ đệm {buffer}{suppression}"
+
+profile-header: "&8&m        &r {prefix} &#67E8F9&l{player} &8&m        "
+profile-ping: " &8▏ &7Ping&8: &f{ping}ms"
+profile-session: " &8▏ &7Phiên&8: &f{session}"
+profile-ai-buffer: " &8▏ &7Bộ đệm AI&8: &#67E8F9{buffer} &8/ &#3B82F6{flag}"
+profile-ai-vl: " &8▏ &7Lần bị đánh dấu&8: &#FF4D6D{vl} &8(tổng&8: &7{total}&8)"
+profile-no-data: "&#FF4D6D✖ &7Không có dữ liệu về người chơi này."
+profile-sensitivity: " &8▏ &7Độ nhạy&8: &f{sens_x} &8/ &f{sens_y}"
+profile-riding: " &8▏ &7Đang cưỡi&8: {riding}"
+profile-brand: " &8▏ &7Client&8: &f{brand}"
+profile-avg-prob: " &8▏ &7Xác suất trung bình&8: &#67E8F9{avg}% &8(đỉnh&8: &#FF4D6D{peak}%&8)"
+# Phán quyết của trọng tài - đây là thứ quyết định một cú đánh có tính vào VL hay không.
+# CHỈ hiện khi người chơi không được kiểm tra, để giải thích vì sao không có kết quả.
+# Bình thường dòng này không xuất hiện trong hồ sơ.
+profile-not-checked: " &8| &#FF4D6DKhông kiểm tra&8: &7{reason}"
+skip-ai-off: "kiểm tra bị tắt trong cấu hình"
+skip-bypass: "có quyền guardac.bypass"
+skip-exempt: "đã thêm vào danh sách miễn trừ bằng /guard exempt"
+skip-exempt-global: "nằm trong danh sách miễn trừ toàn mạng lưới"
+skip-bedrock: "vào bằng Bedrock"
+skip-region: "đang đứng trong khu vực không kiểm tra"
+skip-riding: "đang cưỡi phương tiện"
+profile-judge: " &8▏ &7Trọng tài&8: &#A78BFA{verdict}"
+profile-judge-local: "&8theo các cú đánh gần đây"
+# Tham số: {stage} {penalty}
+profile-suppression: " &8▏ &7Kìm hãm&8: {stage} &8(&7đòn đánh &8-&#AEB8C4{penalty}%&8)"
+
+
+debug-header: "&8&m        &r {prefix} &7Debug &#67E8F9{player} &8&m        "
+debug-rotation: " &8▏ &7Yaw / Pitch&8: &f{yaw} &8/ &f{pitch}"
+debug-delta: " &8▏ &7ΔYaw / ΔPitch&8: &f{dyaw} &8/ &f{dpitch}"
+debug-accel: " &8▏ &7Gia tốc Yaw&8: &f{accel}"
+debug-jerk: " &8▏ &7Giật Yaw&8: &f{jerk}"
+debug-gcd: " &8▏ &7Sai số GCD&8: &f{gcd_yaw} &8/ &f{gcd_pitch}"
+debug-mode-xy: " &8▏ &7Mode X / Y&8: &f{mx} &8/ &f{my}"
+debug-ai-buffer: " &8▏ &7Bộ đệm AI&8: &#67E8F9{buffer}"
+debug-riding: " &8▏ &7Đang cưỡi&8: {riding}"
+debug-mode-status: " &8▏ &7Chế độ debug&8: {status}"
+debug-mode-on: "&#4ADE80đang bật"
+debug-mode-off: "&8đang tắt"
+debug-idle: " &8▏ &7Tick nghỉ / tổng&8: &f{idle} &8/ &f{total}"
+# Tham số: {stage} {penalty} {isolated}
+debug-suppression: " &8▏ &7Kìm hãm&8: {stage} &8(&7đòn đánh &8-&f{penalty}%&8, &7cô lập&8: {isolated}&8)"
+
+# HUD xác suất trực tiếp (action bar). {bar} là thanh 10 đoạn có màu.
+# Tham số: {player} {bar} {prob} {prob_color} {avg} {avg_color} {peak} {buffer} {vl} {ping} {ping_color}
+prob-started: "&#4ADE80✔ &7Đang theo dõi &#AEB8C4{player}&7 - action bar đã bật."
+prob-stopped: "&#FFC857● &7Đã dừng theo dõi."
+prob-display: "&#3B82F6◈ &f{player} {bar} {prob_color}{prob}% &8▏ &7trung bình {avg_color}{avg}%"
+prob-no-data: "&#FF4D6D✖ &7Không có dữ liệu cho &#AEB8C4{player}&7."
+
+# Lệnh cấm ra từ trang quản lý, do máy chủ này thực hiện.
+# Tham số: {player} {staff} {reason} {duration} (∞ = vĩnh viễn)
+web-ban-executed: "{prefix} &8[&#FF4D6DBAN TỪ WEB&8] &#AEB8C4{player} &7bị cấm từ trang quản lý bởi &#AEB8C4{staff} &8• &7{reason} &8• &#AEB8C4{duration}"
+web-ban-kick: "&#FF4D6DBạn đã bị cấm.\n&7Lý do: &#AEB8C4{reason}"
+web-unban-executed: "{prefix} &8[&#22D3EEGỠ BAN TỪ WEB&8] &#AEB8C4{player} &7được gỡ cấm từ trang quản lý bởi &#AEB8C4{staff}"
+
+exempt-added: "&#4ADE80✔ &7Đã thêm &#AEB8C4{player} &7vào danh sách miễn trừ."
+exempt-removed: "&#FFC857● &7Đã xóa &#AEB8C4{player} &7khỏi danh sách miễn trừ."
+exempt-status-exempt: " &7{player}&8: &#4ADE80được miễn &7mọi kiểm tra."
+exempt-status-not-exempt: " &7{player}&8: &#67E8F9đang được kiểm tra&7."
+exempt-already: "&#FFC857● &#AEB8C4{player} &7đã nằm trong danh sách miễn trừ."
+exempt-not-found: "&#FFC857● &7Không thấy &#AEB8C4{player} &7trong danh sách miễn trừ."
+
+# Dữ liệu hiện trên đầu người chơi - tùy chọn riêng của từng nhân viên (/guard avg on|off).
+# Tắt = không vẽ gì trên đầu cả.
+overhead-shown: "&#4ADE80✔ &7Dữ liệu trên đầu người chơi &#4ADE80đang hiện&7."
+overhead-hidden: "&#FFC857● &7Dữ liệu trên đầu người chơi &8đã ẩn&7 &8- &7không vẽ gì trên đầu."
+
+punish-success: "&#4ADE80✔ &7Đã xử phạt &#AEB8C4{player}&7."
+punish-success-animated: "&#4ADE80✔ &7Đã xử phạt &#AEB8C4{player}&7. Hiệu ứng&8: &#22D3EE{animation}&7."
+punish-unknown-animation: "&#FF4D6D✖ &7Hiệu ứng &#AEB8C4{animation} &7không tồn tại. Có thể dùng&8: &#AEB8C4{list}&7."
+punish-disabled-animation: "&#FF4D6D✖ &7Hiệu ứng &#AEB8C4{animation} &7đã tắt trong cấu hình. Có thể dùng&8: &#AEB8C4{list}&7."
+punish-no-data: "&#FF4D6D✖ &7Không tìm thấy dữ liệu người chơi."
+unsafe-name-kick: "&cBạn đã bị đưa ra khỏi máy chủ."
+
+# Tự kiểm tra của anti-cheat (/guardac health).
+health-header: "{prefix} &#67E8F9&lTrạng thái GuardAC &8- &#AEB8C4v{version}"
+health-backend: " &8▏ &7Máy chủ AI&8: {status} &8({server})"
+health-mode: " &8▏ &7Chế độ&8: {mode}"
+health-key: " &8▏ &7Khóa API&8: {status}"
+health-judge: " &8▏ &7Trọng tài &8(&7cửa sổ dài&8)&8: {status}"
+health-judge-active: "&#4ADE80● đang chạy"
+health-judge-none: "&#FFC857● không có trong gói của bạn &8- &7trọng tài nội bộ quyết định"
+health-judge-unknown: "&8● đang kiểm tra"
+health-tps: " &8▏ &7TPS máy chủ&8: &#AEB8C4{tps}"
+health-tracked: " &8▏ &7Đang theo dõi&8: &#AEB8C4{tracked} &8• &7đáng ngờ&8: &#FFC857{suspicious}"
+health-modules: " &8▏ &7Liên máy chủ&8: {crossserver} &8• &7ảnh nổi&8: {holograms} &8• &7âm thanh&8: {sound}"
+health-ok: "&#4ADE80● trực tuyến"
+health-degraded: "&#FF4D6D● trục trặc - đang kết nối lại"
+health-off: "&8● tắt"
+health-missing: "&#FF4D6D● chưa đặt"
+health-enforcing: "&#FFC857có xử phạt"
+health-alert-only: "&#4ADE80chỉ cảnh báo"
+
+stats-header: "&8&m        &r {prefix} &#67E8F9&lThống kê máy chủ &8({period}) &8&m        "
+stats-online: " &8▏ &7Người chơi trực tuyến&8: &f{online}"
+stats-suspicious: " &8▏ &7Đáng ngờ&8: &#FFC857{suspicious} &8(&7{pct}%&8)"
+stats-total-flags: " &8▏ &7Đánh dấu trong phiên&8: &#FF4D6D{flags} &8(&7{per_hour}/giờ&8)"
+stats-ai-status: " &8▏ &7Bộ máy AI&8: {status}"
+stats-dc-sessions: " &8▏ &7Phiên DC đang chạy&8: &f{sessions}"
+stats-uptime: " &8▏ &7Thời gian hoạt động&8: &f{uptime}"
+
+# /guard top - ai bị mô hình đánh dấu nhiều nhất trong khoảng thời gian.
+# Chỉ tính các kết quả trên alerts.min-hit-confidence.
+top-header: "&8&m        &r {prefix} &#67E8F9&lĐáng ngờ nhất &8({period}) &8&m        "
+top-entry: " &8{rank}. &#AEB8C4{player} &8• {color}{hits} &7trên &#AEB8C4{total} &8• &7trung bình &#67E8F9{avg}% &8• &7đỉnh {color}{max}%"
+top-empty: "&#4ADE80✔ &7Không có ai đáng ngờ trong &#AEB8C4{period} &7vừa qua."
+
+datacollect-start-success: "&#4ADE80✔ &7Bắt đầu thu dữ liệu cho &f{player} &8• &7{status}"
+datacollect-start-restarted: "&#FFC857● &7Thu dữ liệu cho &f{player} &7đã khởi động lại &8• &7{status}"
+datacollect-stop-success: "&#4ADE80✔ &7Đã lưu dữ liệu của &f{player} &8(&f{ticks} &7tick&8)"
+datacollect-stop-fail: "&#FF4D6D✖ &7Không có phiên thu dữ liệu nào cho &f{player}&7."
+datacollect-cancel-success: "&#FFC857● &7Đã hủy thu dữ liệu của &f{player} &7mà không lưu."
+datacollect-status-header: "&8&m        &r {prefix} &#67E8F9&lPhiên DC đang chạy &8&m        "
+datacollect-status-entry: " &#22D3EE▸ &f{player} &8• &7{status} &8• &7thời gian &f{time}s &8• &7tick &f{ticks}"
+datacollect-status-empty: "&7Không có phiên nào đang chạy."
+datacollect-status-no-session: "&#FF4D6D✖ &7Không có phiên nào đang chạy cho &f{player}&7."
+datacollect-invalid-type: "&#FF4D6D✖ &7Loại không hợp lệ. Dùng &#4ADE80LEGIT &7hoặc &#FF4D6DCHEAT&7."
+datacollect-details-required: "&#FF4D6D✖ &7Cách dùng&8: &f/guarddc start <người chơi> <LEGIT|CHEAT> <ghi chú>"
+
+crossserver-alert: "{prefix} &8[&#22D3EE{server}&8] &#FF4D6D&l{player} &8- &7bị &#22D3EEAI &7đánh dấu &8• &7{verbose} &8• &#FF4D6DVL {vl}"
+crossserver-enabled: "&#4ADE80✔ &7Cảnh báo liên máy chủ &#4ADE80đang bật&7."
+crossserver-disabled: "&#FFC857● &7Cảnh báo liên máy chủ &8đang tắt&7."
+
+menu-prev: "&#67E8F9← Trang trước"
+menu-next: "&#67E8F9Trang sau →"
+menu-close: "&#FF4D6D✖ Đóng"
+menu-empty-title: "&e&lTrống"
+menu-page: "&8Trang &7{page}"
+menu-player-offline: "&cNgười chơi &#AEB8C4{player} &cđã rời máy chủ."
+
+# Cửa sổ /guard menu - danh sách trực tiếp những ai đang đánh nhau.
+# Màu kết quả lấy từ monitor.yml, giống /guard monitor.
+live-menu-open: "&#4ADE80✔ &7Đang mở danh sách giao tranh…"
+live-menu-title: "&#22D3EEGuardAC &8• &7Đang giao tranh"
+live-menu-empty: "&7Hiện không có ai đang đánh nhau."
+live-menu-hits-header: "&7Các cú đánh gần đây &8(&#AEB8C4{count}&8)"
+live-menu-hit: " &8○ {color}{value} &8• {color}{pct}%"
+live-menu-avg: " &8» &7Trung bình&8: {color}{value}%"
+live-menu-vl: " &8» &7Mức&8: &#AEB8C4{value}"
+live-menu-last-hit: " &8» &7Cú đánh cuối&8: &#AEB8C4{seconds}s &7trước"
+live-menu-click: "&e▶ &7Nhấn chuột trái để xem (chế độ khán giả)"
+live-menu-info-title: "&#67E8F9Danh sách trực tiếp"
+live-menu-info-count: " &8» &7Đang đánh nhau&8: &#AEB8C4{count}"
+live-menu-info-window: " &8» &7Người chơi rời danh sách sau &#AEB8C4{seconds}s &7không có cú đánh nào"
+menu-unsafe-name: "&#FF4D6D✖ &7Tên &#AEB8C4{player} &7không an toàn cho lệnh console - đã bỏ qua thao tác."
+# Một người chơi có trong cơ sở uy tín toàn cầu vừa vào. {servers} đếm mọi máy chủ
+# trong mạng lưới đã đánh dấu họ (kể cả của bạn). Tham số: {player} {detections} {servers}
+reputation-join-notice: "{prefix} &8[&#FFC857UY TÍN&8] &f{player} &7đã bị mạng lưới GuardAC đánh dấu &8- &#FF4D6D{detections} &7lần phát hiện trên &#FFC857{servers} &7máy chủ."
+alert-click-hint: "&7Nhấn &8→ &#AEB8C4/guardac profile {player}"
+unit-d: "ngày"
+unit-h: "giờ"
+unit-m: "phút"
+unit-s: "giây"
+common-yes: "&aCó"
+common-no: "&cKhông"
+common-on: "&aBẬT"
+common-off: "&cTẮT"
+stats-detections: " &8▏ &7Phát hiện hôm nay&8: &e{detections} &8(&7yêu cầu&8: &f{requests}&8)"
+
+help-header: "&8&m        &r {prefix} &#67E8F9&lTrợ giúp &8&m        "
+help-reload: " &#22D3EE/guardac reload &8- &7tải lại cấu hình"
+help-alerts: " &#22D3EE/guardac alerts &8- &7bật/tắt nhận cảnh báo"
+help-monitor: " &#22D3EE/guardac monitor &8- &7xem mọi cú đánh kèm xác suất AI"
+help-profile: " &#22D3EE/guardac profile &7<người chơi> &8- &7hồ sơ người chơi"
+help-menu: " &#22D3EE/guardac menu &8- &7danh sách giao tranh (ai đang đánh nhau)"
+help-overhead: " &#22D3EE/guardac avg &7<on|off> &8- &7dữ liệu trên đầu người chơi"
+help-debug: " &#22D3EE/guardac debug &7[người chơi] &8- &7dữ liệu xoay ngắm trực tiếp"
+help-prob: " &#22D3EE/guardac prob &7<người chơi> &8- &7xác suất AI trên action bar"
+help-exempt: " &#22D3EE/guardac exempt &7<người chơi|remove|status> &8- &7quản lý miễn trừ"
+help-punish: " &#22D3EE/guardac punish &7<người chơi> [hiệu ứng] &8- &7xử phạt thủ công"
+help-stats: " &#22D3EE/guardac stats &7[1h|6h|24h|7d] &8- &7thống kê"
+help-top: " &#22D3EE/guardac top &7[1h|6h|24h|7d] &8- &7người chơi đáng ngờ nhất"
+help-health: " &#22D3EE/guardac health &8- &7tự kiểm tra anti-cheat"
+help-log: " &#22D3EE/guardac log &7[người chơi] &8- &720 lần xử phạt gần nhất"
+help-crossserver: " &#22D3EE/guardac crossserver &8- &7cảnh báo liên máy chủ"
+help-datacollect: " &#22D3EE/guarddc &7start · stop · cancel · status &8- &7thu thập dữ liệu"
+help-footer: "&8&m                                          "
+
+usage-profile: "&#FFC857● &7Cách dùng&8: &#AEB8C4/guardac profile <người chơi>"
+usage-prob: "&#FFC857● &7Cách dùng&8: &#AEB8C4/guardac prob <người chơi>"
+usage-exempt: "&#FFC857● &7Cách dùng&8: &#AEB8C4/guardac exempt <người chơi | remove <người chơi> | status <người chơi>>"
+usage-exempt-remove: "&#FFC857● &7Cách dùng&8: &#AEB8C4/guardac exempt remove <người chơi>"
+usage-exempt-status: "&#FFC857● &7Cách dùng&8: &#AEB8C4/guardac exempt status <người chơi>"
+usage-avg: "&#FFC857● &7Cách dùng&8: &#AEB8C4/guardac avg <on|off>"
+usage-punish: "&#FFC857● &7Cách dùng&8: &#AEB8C4/guardac punish <người chơi> [hiệu ứng]"
+usage-stats: "&#FFC857● &7Cách dùng&8: &#AEB8C4/guardac stats [1h|6h|24h|7d]"
+usage-top: "&#FFC857● &7Cách dùng&8: &#AEB8C4/guardac top [1h|6h|24h|7d]"
+usage-dc-stop: "&#FFC857● &7Cách dùng&8: &#AEB8C4/guarddc stop <người chơi>"
+usage-dc-cancel: "&#FFC857● &7Cách dùng&8: &#AEB8C4/guarddc cancel <người chơi>"
+
+dc-help-header: "&8&m        &r {prefix} &#67E8F9&lThu thập dữ liệu &8&m        "
+dc-help-start: " &#22D3EE/guarddc start &#AEB8C4<người chơi> &#4ADE80<CHEAT|LEGIT> &7<ghi chú> &8- &7bắt đầu"
+dc-help-stop: " &#22D3EE/guarddc stop &#AEB8C4<người chơi> &8- &7dừng và lưu"
+dc-help-cancel: " &#22D3EE/guarddc cancel &#AEB8C4<người chơi> &8- &7hủy, không lưu"
+dc-help-status: " &#22D3EE/guarddc status &7[người chơi] &8- &7trạng thái phiên đang chạy"
+dc-help-footer: "&8&m                                          "
+
+log-header: "&8&m        &r {prefix} &#67E8F9&lXử phạt gần đây &8(&#AEB8C4{count}&8) &8&m        "
+log-empty: "&7Chưa có mục nào trong nhật ký xử phạt."
+
+history-header: "&8&m        &r {prefix} &#67E8F9&lLịch sử xử phạt &8(&#AEB8C4{count}&8) &8&m        "
+history-entry: " &#22D3EE▸ &7{time} &8• &#AEB8C4{player} &8• &7{check} &8• &#FF4D6DVL {vl} &8• &7{prob}% &8• &#AEB8C4{action}"
+history-empty: "&7Lịch sử xử phạt trống."
+usage-history: "&#FFC857● &7Cách dùng&8: &#AEB8C4/guardac history [người chơi]"
+help-history: " &#22D3EE/guardac history &7[người chơi] &8- &7ai bị phạt khi nào và vì sao"
+
+# Cửa sổ /guardac results - lịch sử kết quả AI của một người chơi.
+# Mỗi tấm kính = 10 kết quả, tô màu theo xác suất trung bình của nhóm.
+results-menu-title: "&#22D3EEGuardAC &8• &7Lịch sử {player}"
+results-empty: "&7Chưa ghi nhận kết quả AI nào cho &#67E8F9{player}&7."
+results-head-title: "&#67E8F9{player}"
+results-head-total: " &8» &7Số kết quả&8: &7{count}"
+results-head-avg: " &8» &7Trung bình&8: {color}{avg}"
+results-head-peak: " &8» &7Đỉnh&8: {color}{peak}"
+results-head-span: " &8» &7Khoảng&8: &7{time}"
+results-pane-title: "&7TB&8: {color}{avg}"
+# Tiêu đề các cột (plugin tự tính căn lề theo pixel).
+results-col-prob: "Xác suất"
+results-col-model: "Mô hình"
+results-col-server: "Máy chủ"
+results-col-time: "Thời gian"
+results-time-now: "vừa xong"
+usage-results: "&#FFC857● &7Cách dùng&8: &#AEB8C4/guardac results <người chơi>"
+help-results: " &#22D3EE/guardac results &7<người chơi> &8- &7lịch sử kết quả AI (cửa sổ)"

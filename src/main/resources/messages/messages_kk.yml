@@ -1,0 +1,261 @@
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  GuardAC · Қазақша локализация                                 ║
+# ║  &-кодтар мен &#22D3EE түріндегі HEX-түстер қолдау табады       ║
+# ╚══════════════════════════════════════════════════════════════╝
+
+prefix: "&#22D3EEG&#34C2E8u&#46B1E2a&#58A0DCr&#6A8FD6d&#4D86EEA&#3B82F6C &8»&r"
+
+no-permission: "&#FF4D6D✖ &7Бұл команда үшін рұқсатыңыз жоқ."
+player-not-found: "&#FF4D6D✖ &7Ойыншы &#AEB8C4{player} &7табылмады немесе желіде емес."
+run-as-player: "&#FF4D6D✖ &7Бұл команда тек ойыншыға арналған."
+reload-success: "&#4ADE80✔ &7Конфигурация қайта жүктелді."
+
+alerts-enabled: "&#4ADE80✔ &7Хабарламалар &#4ADE80қосулы&7."
+alerts-disabled: "&#FFC857● &7Хабарламалар &8өшірулі&7."
+# ӘРБІР сенімді соққыға хабарлама (шек - config.yml ішіндегі alerts.min-hit-confidence).
+# Толтырғыштар: {player} {check} {vl} {verbose} {prob_color} {buffer} {avg} {peak}
+# ([Def]/[Extreme] модель тегі мұнда әдейі көрсетілмейді - ол тек /guard monitor ішінде)
+alerts-format: "{prefix} &8[&#FF4D6DАНЫҚТАУ&8] {prob_color}{player} &7тексеруден өтпеді &8• {prob_color}{verbose} &8• &7буфер {buffer}"
+# Жинақталған хабарлама: әр min-hits соққы сайын (×3, ×6, ×9...) топтың шыңымен.
+# Толтырғыштар: {player} {model} {count} {max} {prob_color} {buffer}
+alerts-digest-format: "{prefix} &8[&#FF4D6DАНЫҚТАУ&8] {prob_color}{player} &7тексеруден өтпеді {prob_color}×{count} &8• &7макс {prob_color}{max} &8• &7буфер {buffer}"
+alerts-console-format: "[GuardAC] {player} | {verbose} | buffer {buffer}"
+# Авто-жаңарту: жаңа нұсқа жүктелді, қайта қосқаннан кейін қолданылады. Толтырғыш: {tag}
+update-downloaded: "{prefix} &#4ADE80GuardAC жаңартуы &#AEB8C4{tag} &#4ADE80жүктелді &8- &7сервер қайта қосылғанда қолданылады."
+# Aim Fingerprint: ойыншының көздеу мәнері күрт өзгерді. Толтырғыштар: {player} {base} {now}
+fingerprint-alert: "{prefix} &8[&#A78BFAҚОЛТАҢБА&8] &#FF4D6D&l{player} &7- көздеу мәнері күрт өзгерді &8(&7{base}% &8→ &c{now}%&8)&7, чит қосылған болуы мүмкін."
+# Қызметкерлерге ерте ескерту. Толтырғыштар: {player} {buffer} {flag}
+suspicious-alert: "{prefix} &8[&#FFC857БАҚЫЛАУ&8] &#AEB8C4{player} &7күдік тудыра бастады &8(&#FFC857{buffer} &8/ &7{flag}&8)"
+# Шайқастағы қосымша қорғаныс іске қосылғанда ойыншыға көрсетіледі (config.yml ішіндегі combat-suppression).
+suppression-isolate-notice: "&7Байланыс тұрақсыз &8- &7соққылар уақытша есептелмейді."
+
+monitor-enabled: "&#4ADE80✔ &7Монитор &#4ADE80қосулы&7 &8- &7модельдің әр нәтижесі көрсетіледі."
+monitor-disabled: "&#FFC857● &7Монитор &8өшірулі&7."
+# Толтырғыштар: {player} {model} {color} {detailed} {buffer} {prob} {avg} {avg_color} {vl} {ping} {peak} {high_count} {suppression}
+monitor-hit: "{prefix} &7{model} {color}{player} &8• {color}{detailed} &8• &7буфер {buffer}{suppression}"
+
+profile-header: "&8&m        &r {prefix} &#67E8F9&l{player} &8&m        "
+profile-ping: " &8▏ &7Пинг&8: &f{ping}мс"
+profile-session: " &8▏ &7Сессия&8: &f{session}"
+profile-ai-buffer: " &8▏ &7AI буфері&8: &#67E8F9{buffer} &8/ &#3B82F6{flag}"
+profile-ai-vl: " &8▏ &7Белгілер&8: &#FF4D6D{vl} &8(барлығы&8: &7{total}&8)"
+profile-no-data: "&#FF4D6D✖ &7Ойыншы туралы дерек жоқ."
+profile-sensitivity: " &8▏ &7Сезімталдық&8: &f{sens_x} &8/ &f{sens_y}"
+profile-riding: " &8▏ &7Көлікте&8: {riding}"
+profile-brand: " &8▏ &7Клиент&8: &f{brand}"
+profile-avg-prob: " &8▏ &7Орташа ықтималдық&8: &#67E8F9{avg}% &8(шың&8: &#FF4D6D{peak}%&8)"
+# Төреші шешімі - соққының VL-ге есептелетінін осы шешеді.
+# Ойыншы тексерілмегенде ҒАНА көрсетіледі - неге нәтиже жоқ екенін түсіндіреді.
+# Қалыпты жағдайда бұл жол профильде мүлде болмайды.
+profile-not-checked: " &8| &#FF4D6DТексерілмейді&8: &7{reason}"
+skip-ai-off: "тексерулер конфигте өшірілген"
+skip-bypass: "guardac.bypass рұқсаты бар"
+skip-exempt: "/guard exempt арқылы ерекшелікке қосылған"
+skip-exempt-global: "желілік ерекшеліктер тізімінде"
+skip-bedrock: "Bedrock арқылы кірген"
+skip-region: "тексеру жүрмейтін аймақта тұр"
+skip-riding: "қазір көлікте"
+profile-judge: " &8▏ &7Төреші&8: &#A78BFA{verdict}"
+profile-judge-local: "&8соңғы соққылар бойынша"
+# Толтырғыштар: {stage} {penalty}
+profile-suppression: " &8▏ &7Тежеу&8: {stage} &8(&7соққы &8-&#AEB8C4{penalty}%&8)"
+
+
+debug-header: "&8&m        &r {prefix} &7Debug &#67E8F9{player} &8&m        "
+debug-rotation: " &8▏ &7Yaw / Pitch&8: &f{yaw} &8/ &f{pitch}"
+debug-delta: " &8▏ &7ΔYaw / ΔPitch&8: &f{dyaw} &8/ &f{dpitch}"
+debug-accel: " &8▏ &7Yaw үдеуі&8: &f{accel}"
+debug-jerk: " &8▏ &7Yaw серпіні&8: &f{jerk}"
+debug-gcd: " &8▏ &7GCD қатесі&8: &f{gcd_yaw} &8/ &f{gcd_pitch}"
+debug-mode-xy: " &8▏ &7Mode X / Y&8: &f{mx} &8/ &f{my}"
+debug-ai-buffer: " &8▏ &7AI буфері&8: &#67E8F9{buffer}"
+debug-riding: " &8▏ &7Көлікте&8: {riding}"
+debug-mode-status: " &8▏ &7Debug режимі&8: {status}"
+debug-mode-on: "&#4ADE80қосулы"
+debug-mode-off: "&8өшірулі"
+debug-idle: " &8▏ &7Бос / барлық тик&8: &f{idle} &8/ &f{total}"
+# Толтырғыштар: {stage} {penalty} {isolated}
+debug-suppression: " &8▏ &7Тежеу&8: {stage} &8(&7соққы &8-&f{penalty}%&8, &7оқшаулау&8: {isolated}&8)"
+
+# Ықтималдықтың тікелей HUD-ы (action bar). {bar} - 10 бөліктен тұратын түрлі-түсті шкала.
+# Толтырғыштар: {player} {bar} {prob} {prob_color} {avg} {avg_color} {peak} {buffer} {vl} {ping} {ping_color}
+prob-started: "&#4ADE80✔ &7Бақылаудамын&8: &#AEB8C4{player}&7 - action bar қосулы."
+prob-stopped: "&#FFC857● &7Бақылау тоқтатылды."
+prob-display: "&#3B82F6◈ &f{player} {bar} {prob_color}{prob}% &8▏ &7орташа {avg_color}{avg}%"
+prob-no-data: "&#FF4D6D✖ &#AEB8C4{player} &7үшін дерек жоқ."
+
+# Веб-кабинеттен берілген бан, осы сервер орындайды.
+# Толтырғыштар: {player} {staff} {reason} {duration} (∞ = мәңгілік)
+web-ban-executed: "{prefix} &8[&#FF4D6DВЕБ-БАН&8] &#AEB8C4{player} &7кабинеттен бандалды &8• &#AEB8C4{staff} &8• &7{reason} &8• &#AEB8C4{duration}"
+web-ban-kick: "&#FF4D6DСіз бандалдыңыз.\n&7Себебі: &#AEB8C4{reason}"
+web-unban-executed: "{prefix} &8[&#22D3EEВЕБ-АНБАН&8] &#AEB8C4{player} &7кабинеттен бандан шығарылды &8• &#AEB8C4{staff}"
+
+exempt-added: "&#4ADE80✔ &#AEB8C4{player} &7ерекшеліктерге қосылды."
+exempt-removed: "&#FFC857● &#AEB8C4{player} &7ерекшеліктерден алынды."
+exempt-status-exempt: " &7{player}&8: &#4ADE80барлық тексеруден босатылған&7."
+exempt-status-not-exempt: " &7{player}&8: &#67E8F9тексерулер белсенді&7."
+exempt-already: "&#FFC857● &#AEB8C4{player} &7ерекшеліктерде бұрыннан бар."
+exempt-not-found: "&#FFC857● &#AEB8C4{player} &7ерекшеліктерден табылмады."
+
+# Ойыншылардың үстіндегі деректер - әр қызметкердің жеке параметрі (/guard avg on|off).
+# Өшірулі = бастың үстінде ештеңе көрсетілмейді.
+overhead-shown: "&#4ADE80✔ &7Ойыншылар үстіндегі деректер &#4ADE80көрсетіледі&7."
+overhead-hidden: "&#FFC857● &7Ойыншылар үстіндегі деректер &8жасырылды&7 &8- &7бас үстінде ештеңе жоқ."
+
+punish-success: "&#4ADE80✔ &#AEB8C4{player} &7жазаланды."
+punish-success-animated: "&#4ADE80✔ &#AEB8C4{player} &7жазаланды. Анимация&8: &#22D3EE{animation}&7."
+punish-unknown-animation: "&#FF4D6D✖ &7Белгісіз анимация &#AEB8C4{animation}&7. Қолжетімді&8: &#AEB8C4{list}&7."
+punish-disabled-animation: "&#FF4D6D✖ &7Анимация &#AEB8C4{animation}&7 конфигте өшірілген. Қолжетімді&8: &#AEB8C4{list}&7."
+punish-no-data: "&#FF4D6D✖ &7Ойыншы туралы дерек табылмады."
+unsafe-name-kick: "&cСіз серверден шығарылдыңыз."
+
+# Анти-читтің өзін-өзі тексеруі (/guardac health).
+health-header: "{prefix} &#67E8F9&lGuardAC күйі &8- &#AEB8C4v{version}"
+health-backend: " &8▏ &7AI сервері&8: {status} &8({server})"
+health-mode: " &8▏ &7Режим&8: {mode}"
+health-key: " &8▏ &7API кілті&8: {status}"
+health-judge: " &8▏ &7Төреші &8(&7ұзын терезе&8)&8: {status}"
+health-judge-active: "&#4ADE80● жұмыста"
+health-judge-none: "&#FFC857● тарифіңізде жоқ &8- &7жергілікті төреші шешеді"
+health-judge-unknown: "&8● тексерілуде"
+health-tps: " &8▏ &7Сервер TPS&8: &#AEB8C4{tps}"
+health-tracked: " &8▏ &7Бақылауда&8: &#AEB8C4{tracked} &8• &7күдікті&8: &#FFC857{suspicious}"
+health-modules: " &8▏ &7Сервераралық&8: {crossserver} &8• &7голограммалар&8: {holograms} &8• &7дыбыс&8: {sound}"
+health-ok: "&#4ADE80● желіде"
+health-degraded: "&#FF4D6D● ақаулы - қайта қосылуда"
+health-off: "&8● өшірулі"
+health-missing: "&#FF4D6D● қойылмаған"
+health-enforcing: "&#FFC857жазалау қосулы"
+health-alert-only: "&#4ADE80тек хабарлама"
+
+stats-header: "&8&m        &r {prefix} &#67E8F9&lСервер статистикасы &8({period}) &8&m        "
+stats-online: " &8▏ &7Желідегі ойыншылар&8: &f{online}"
+stats-suspicious: " &8▏ &7Күдікті&8: &#FFC857{suspicious} &8(&7{pct}%&8)"
+stats-total-flags: " &8▏ &7Сессиядағы белгілер&8: &#FF4D6D{flags} &8(&7{per_hour}/сағ&8)"
+stats-ai-status: " &8▏ &7AI қозғалтқышы&8: {status}"
+stats-dc-sessions: " &8▏ &7Белсенді DC сессиялары&8: &f{sessions}"
+stats-uptime: " &8▏ &7Жұмыс уақыты&8: &f{uptime}"
+
+# /guard top - кезең ішінде модель ең жиі белгілегендер.
+# Тек alerts.min-hit-confidence-тен жоғары нәтижелер есептеледі.
+top-header: "&8&m        &r {prefix} &#67E8F9&lЕң күдіктілер &8({period}) &8&m        "
+top-entry: " &8{rank}. &#AEB8C4{player} &8• {color}{hits} &7/ &#AEB8C4{total} &8• &7орташа &#67E8F9{avg}% &8• &7шың {color}{max}%"
+top-empty: "&#4ADE80✔ &7Соңғы &#AEB8C4{period} &7ішінде күдікті ешкім жоқ."
+
+datacollect-start-success: "&#4ADE80✔ &f{player} &7үшін дерек жинау басталды &8• &7{status}"
+datacollect-start-restarted: "&#FFC857● &f{player} &7үшін дерек жинау қайта басталды &8• &7{status}"
+datacollect-stop-success: "&#4ADE80✔ &f{player} &7жинағы сақталды &8(&f{ticks} &7тик&8)"
+datacollect-stop-fail: "&#FF4D6D✖ &f{player} &7үшін жинау жүрген жоқ."
+datacollect-cancel-success: "&#FFC857● &f{player} &7жинағы сақталмай тоқтатылды."
+datacollect-status-header: "&8&m        &r {prefix} &#67E8F9&lБелсенді DC сессиялары &8&m        "
+datacollect-status-entry: " &#22D3EE▸ &f{player} &8• &7{status} &8• &7уақыт &f{time}с &8• &7тик &f{ticks}"
+datacollect-status-empty: "&7Белсенді сессия жоқ."
+datacollect-status-no-session: "&#FF4D6D✖ &f{player} &7үшін белсенді сессия жоқ."
+datacollect-invalid-type: "&#FF4D6D✖ &7Түрі қате. &#4ADE80LEGIT &7немесе &#FF4D6DCHEAT &7қолданыңыз."
+datacollect-details-required: "&#FF4D6D✖ &7Қолданылуы&8: &f/guarddc start <ойыншы> <LEGIT|CHEAT> <түсініктеме>"
+
+crossserver-alert: "{prefix} &8[&#22D3EE{server}&8] &#FF4D6D&l{player} &8- &#22D3EEAI &7белгіледі &8• &7{verbose} &8• &#FF4D6DVL {vl}"
+crossserver-enabled: "&#4ADE80✔ &7Сервераралық хабарламалар &#4ADE80қосулы&7."
+crossserver-disabled: "&#FFC857● &7Сервераралық хабарламалар &8өшірулі&7."
+
+menu-prev: "&#67E8F9← Алдыңғы бет"
+menu-next: "&#67E8F9Келесі бет →"
+menu-close: "&#FF4D6D✖ Жабу"
+menu-empty-title: "&e&lБос"
+menu-page: "&8Бет &7{page}"
+menu-player-offline: "&cОйыншы &#AEB8C4{player} &cенді желіде емес."
+
+# /guard menu терезесі - қазір шайқасып жүргендердің тірі тізімі.
+# Нәтиже түстері monitor.yml ішінен, /guard monitor сияқты.
+live-menu-open: "&#4ADE80✔ &7Шайқас тізімі ашылуда…"
+live-menu-title: "&#22D3EEGuardAC &8• &7Шайқаста"
+live-menu-empty: "&7Қазір ешкім шайқасып жатқан жоқ."
+live-menu-hits-header: "&7Соңғы соққылар &8(&#AEB8C4{count}&8)"
+live-menu-hit: " &8○ {color}{value} &8• {color}{pct}%"
+live-menu-avg: " &8» &7Орташа&8: {color}{value}%"
+live-menu-vl: " &8» &7Деңгей&8: &#AEB8C4{value}"
+live-menu-last-hit: " &8» &7Соңғы соққы&8: &#AEB8C4{seconds}с &7бұрын"
+live-menu-click: "&e▶ &7Бақылау үшін сол жақ батырма (spectator)"
+live-menu-info-title: "&#67E8F9Тірі тізім"
+live-menu-info-count: " &8» &7Қазір шайқасуда&8: &#AEB8C4{count}"
+live-menu-info-window: " &8» &7Ойыншы соққысыз &#AEB8C4{seconds}с &7өткенде тізімнен шығады"
+menu-unsafe-name: "&#FF4D6D✖ &#AEB8C4{player} &7есімі консоль командалары үшін қауіпсіз емес - әрекет өткізілді."
+# Жаһандық бедел базасындағы ойыншы кірді. {servers} - оны белгілеген
+# желідегі барлық сервер (сіздікі қоса). Толтырғыштар: {player} {detections} {servers}
+reputation-join-notice: "{prefix} &8[&#FFC857БЕДЕЛ&8] &f{player} &7GuardAC желісінде бұрыннан белгіленген &8- &#FF4D6D{detections} &7анықтау, &#FFC857{servers} &7серверде."
+alert-click-hint: "&7Басыңыз &8→ &#AEB8C4/guardac profile {player}"
+unit-d: "к"
+unit-h: "сағ"
+unit-m: "мин"
+unit-s: "с"
+common-yes: "&aИә"
+common-no: "&cЖоқ"
+common-on: "&aҚОСУЛЫ"
+common-off: "&cӨШІРУЛІ"
+stats-detections: " &8▏ &7Бүгінгі анықтаулар&8: &e{detections} &8(&7сұраныс&8: &f{requests}&8)"
+
+help-header: "&8&m        &r {prefix} &#67E8F9&lКөмек &8&m        "
+help-reload: " &#22D3EE/guardac reload &8- &7конфигурацияны қайта жүктеу"
+help-alerts: " &#22D3EE/guardac alerts &8- &7хабарламаларды қосу/өшіру"
+help-monitor: " &#22D3EE/guardac monitor &8- &7барлық соққыны AI ықтималдығымен көру"
+help-profile: " &#22D3EE/guardac profile &7<ойыншы> &8- &7ойыншы профилі"
+help-menu: " &#22D3EE/guardac menu &8- &7шайқас тізімі (қазір кім шайқасуда)"
+help-overhead: " &#22D3EE/guardac avg &7<on|off> &8- &7ойыншылар үстіндегі деректер"
+help-debug: " &#22D3EE/guardac debug &7[ойыншы] &8- &7бұрылыс деректері"
+help-prob: " &#22D3EE/guardac prob &7<ойыншы> &8- &7AI ықтималдығы action bar-да"
+help-exempt: " &#22D3EE/guardac exempt &7<ойыншы|remove|status> &8- &7ерекшеліктер"
+help-punish: " &#22D3EE/guardac punish &7<ойыншы> [анимация] &8- &7қолмен жазалау"
+help-stats: " &#22D3EE/guardac stats &7[1h|6h|24h|7d] &8- &7статистика"
+help-top: " &#22D3EE/guardac top &7[1h|6h|24h|7d] &8- &7ең күдікті ойыншылар"
+help-health: " &#22D3EE/guardac health &8- &7анти-читтің өзін-өзі тексеруі"
+help-log: " &#22D3EE/guardac log &7[ойыншы] &8- &7соңғы 20 жаза"
+help-crossserver: " &#22D3EE/guardac crossserver &8- &7сервераралық хабарламалар"
+help-datacollect: " &#22D3EE/guarddc &7start · stop · cancel · status &8- &7дерек жинау"
+help-footer: "&8&m                                          "
+
+usage-profile: "&#FFC857● &7Қолданылуы&8: &#AEB8C4/guardac profile <ойыншы>"
+usage-prob: "&#FFC857● &7Қолданылуы&8: &#AEB8C4/guardac prob <ойыншы>"
+usage-exempt: "&#FFC857● &7Қолданылуы&8: &#AEB8C4/guardac exempt <ойыншы | remove <ойыншы> | status <ойыншы>>"
+usage-exempt-remove: "&#FFC857● &7Қолданылуы&8: &#AEB8C4/guardac exempt remove <ойыншы>"
+usage-exempt-status: "&#FFC857● &7Қолданылуы&8: &#AEB8C4/guardac exempt status <ойыншы>"
+usage-avg: "&#FFC857● &7Қолданылуы&8: &#AEB8C4/guardac avg <on|off>"
+usage-punish: "&#FFC857● &7Қолданылуы&8: &#AEB8C4/guardac punish <ойыншы> [анимация]"
+usage-stats: "&#FFC857● &7Қолданылуы&8: &#AEB8C4/guardac stats [1h|6h|24h|7d]"
+usage-top: "&#FFC857● &7Қолданылуы&8: &#AEB8C4/guardac top [1h|6h|24h|7d]"
+usage-dc-stop: "&#FFC857● &7Қолданылуы&8: &#AEB8C4/guarddc stop <ойыншы>"
+usage-dc-cancel: "&#FFC857● &7Қолданылуы&8: &#AEB8C4/guarddc cancel <ойыншы>"
+
+dc-help-header: "&8&m        &r {prefix} &#67E8F9&lДерек жинау &8&m        "
+dc-help-start: " &#22D3EE/guarddc start &#AEB8C4<ойыншы> &#4ADE80<CHEAT|LEGIT> &7<түсініктеме> &8- &7бастау"
+dc-help-stop: " &#22D3EE/guarddc stop &#AEB8C4<ойыншы> &8- &7тоқтатып сақтау"
+dc-help-cancel: " &#22D3EE/guarddc cancel &#AEB8C4<ойыншы> &8- &7сақтамай тоқтату"
+dc-help-status: " &#22D3EE/guarddc status &7[ойыншы] &8- &7белсенді сессия күйі"
+dc-help-footer: "&8&m                                          "
+
+log-header: "&8&m        &r {prefix} &#67E8F9&lСоңғы жазалар &8(&#AEB8C4{count}&8) &8&m        "
+log-empty: "&7Жаза журналында жазба жоқ."
+
+history-header: "&8&m        &r {prefix} &#67E8F9&lЖаза тарихы &8(&#AEB8C4{count}&8) &8&m        "
+history-entry: " &#22D3EE▸ &7{time} &8• &#AEB8C4{player} &8• &7{check} &8• &#FF4D6DVL {vl} &8• &7{prob}% &8• &#AEB8C4{action}"
+history-empty: "&7Жаза тарихы бос."
+usage-history: "&#FFC857● &7Қолданылуы&8: &#AEB8C4/guardac history [ойыншы]"
+help-history: " &#22D3EE/guardac history &7[ойыншы] &8- &7ойыншылар қашан және не үшін жазаланды"
+
+# /guardac results терезесі - ойыншының AI нәтижелерінің тарихы.
+# Әр шыны панель = 10 нәтиже, топтың орташа ықтималдығымен боялған.
+results-menu-title: "&#22D3EEGuardAC &8• &7Тарих {player}"
+results-empty: "&#67E8F9{player} &7үшін әзірге AI нәтижесі жоқ."
+results-head-title: "&#67E8F9{player}"
+results-head-total: " &8» &7Нәтиже&8: &7{count}"
+results-head-avg: " &8» &7Орташа&8: {color}{avg}"
+results-head-peak: " &8» &7Шың&8: {color}{peak}"
+results-head-span: " &8» &7Аралық&8: &7{time}"
+results-pane-title: "&7ОРТ&8: {color}{avg}"
+# Кесте бағандарының атаулары (туралауды плагин өзі есептейді).
+results-col-prob: "Ықт."
+results-col-model: "Модель"
+results-col-server: "Сервер"
+results-col-time: "Уақыт"
+results-time-now: "жаңа ғана"
+usage-results: "&#FFC857● &7Қолданылуы&8: &#AEB8C4/guardac results <ойыншы>"
+help-results: " &#22D3EE/guardac results &7<ойыншы> &8- &7AI нәтижелерінің тарихы (терезе)"

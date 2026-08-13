@@ -1,0 +1,261 @@
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  GuardAC · Türkçe yerelleştirme                                ║
+# ║  &-kodları ve &#22D3EE biçimindeki HEX renkler desteklenir      ║
+# ╚══════════════════════════════════════════════════════════════╝
+
+prefix: "&#22D3EEG&#34C2E8u&#46B1E2a&#58A0DCr&#6A8FD6d&#4D86EEA&#3B82F6C &8»&r"
+
+no-permission: "&#FF4D6D✖ &7Bu komut için yetkiniz yok."
+player-not-found: "&#FF4D6D✖ &#AEB8C4{player} &7bulunamadı veya çevrimdışı."
+run-as-player: "&#FF4D6D✖ &7Bu komut yalnızca oyuncular içindir."
+reload-success: "&#4ADE80✔ &7Yapılandırma yeniden yüklendi."
+
+alerts-enabled: "&#4ADE80✔ &7Uyarılar &#4ADE80açık&7."
+alerts-disabled: "&#FFC857● &7Uyarılar &8kapalı&7."
+# HER güvenli vuruş için gönderilir (eşik - config.yml içindeki alerts.min-hit-confidence).
+# Yer tutucular: {player} {check} {vl} {verbose} {prob_color} {buffer} {avg} {peak}
+# ([Def]/[Extreme] model etiketi burada bilerek gösterilmez - yalnızca /guard monitor içinde vardır)
+alerts-format: "{prefix} &8[&#FF4D6DTESPİT&8] {prob_color}{player} &7kontrolü geçemedi &8• {prob_color}{verbose} &8• &7tampon {buffer}"
+# Toplu uyarı: her min-hits vuruşta bir (×3, ×6, ×9...) ve grubun en yükseği.
+# Yer tutucular: {player} {model} {count} {max} {prob_color} {buffer}
+alerts-digest-format: "{prefix} &8[&#FF4D6DTESPİT&8] {prob_color}{player} &7kontrolü geçemedi {prob_color}×{count} &8• &7en yüksek {prob_color}{max} &8• &7tampon {buffer}"
+alerts-console-format: "[GuardAC] {player} | {verbose} | buffer {buffer}"
+# Otomatik güncelleme: yeni sürüm indirildi, yeniden başlatınca uygulanır. Yer tutucu: {tag}
+update-downloaded: "{prefix} &#4ADE80GuardAC güncellemesi &#AEB8C4{tag} &#4ADE80indirildi &8- &7sunucu yeniden başlayınca uygulanacak."
+# Aim Fingerprint: oyuncunun nişan alma tarzı aniden değişti. Yer tutucular: {player} {base} {now}
+fingerprint-alert: "{prefix} &8[&#A78BFAİMZA&8] &#FF4D6D&l{player} &7- nişan tarzı aniden değişti &8(&7{base}% &8→ &c{now}%&8)&7, hile açılmış olabilir."
+# Yetkililere erken uyarı. Yer tutucular: {player} {buffer} {flag}
+suspicious-alert: "{prefix} &8[&#FFC857İZLEME&8] &#AEB8C4{player} &7şüpheli olmaya başladı &8(&#FFC857{buffer} &8/ &7{flag}&8)"
+# Savaş içindeki ek koruma devreye girdiğinde oyuncuya gösterilir (config.yml içindeki combat-suppression).
+suppression-isolate-notice: "&7Bağlantı dengesiz &8- &7vuruşlar geçici olarak sayılmıyor."
+
+monitor-enabled: "&#4ADE80✔ &7İzleme &#4ADE80açık&7 &8- &7modelin her sonucu gösteriliyor."
+monitor-disabled: "&#FFC857● &7İzleme &8kapalı&7."
+# Yer tutucular: {player} {model} {color} {detailed} {buffer} {prob} {avg} {avg_color} {vl} {ping} {peak} {high_count} {suppression}
+monitor-hit: "{prefix} &7{model} {color}{player} &8• {color}{detailed} &8• &7tampon {buffer}{suppression}"
+
+profile-header: "&8&m        &r {prefix} &#67E8F9&l{player} &8&m        "
+profile-ping: " &8▏ &7Ping&8: &f{ping}ms"
+profile-session: " &8▏ &7Oturum&8: &f{session}"
+profile-ai-buffer: " &8▏ &7AI tamponu&8: &#67E8F9{buffer} &8/ &#3B82F6{flag}"
+profile-ai-vl: " &8▏ &7İşaretlenme&8: &#FF4D6D{vl} &8(toplam&8: &7{total}&8)"
+profile-no-data: "&#FF4D6D✖ &7Oyuncu verisi yok."
+profile-sensitivity: " &8▏ &7Hassasiyet&8: &f{sens_x} &8/ &f{sens_y}"
+profile-riding: " &8▏ &7Binekte&8: {riding}"
+profile-brand: " &8▏ &7İstemci&8: &f{brand}"
+profile-avg-prob: " &8▏ &7Ortalama olasılık&8: &#67E8F9{avg}% &8(zirve&8: &#FF4D6D{peak}%&8)"
+# Hakem kararı - bir vuruşun VL'ye sayılıp sayılmayacağını bu belirler.
+# YALNIZCA oyuncu kontrol edilmiyorsa görünür, neden sonuç olmadığını açıklar.
+# Normal durumda bu satır profilde hiç yer almaz.
+profile-not-checked: " &8| &#FF4D6DKontrol edilmiyor&8: &7{reason}"
+skip-ai-off: "kontroller yapılandırmada kapalı"
+skip-bypass: "guardac.bypass yetkisi var"
+skip-exempt: "/guard exempt ile muafiyete eklendi"
+skip-exempt-global: "ağ genelindeki muafiyet listesinde"
+skip-bedrock: "Bedrock ile giriyor"
+skip-region: "kontrolsüz bir bölgede duruyor"
+skip-riding: "şu anda binekte"
+profile-judge: " &8▏ &7Hakem&8: &#A78BFA{verdict}"
+profile-judge-local: "&8son vuruşlara göre"
+# Yer tutucular: {stage} {penalty}
+profile-suppression: " &8▏ &7Baskılama&8: {stage} &8(&7vuruş &8-&#AEB8C4{penalty}%&8)"
+
+
+debug-header: "&8&m        &r {prefix} &7Debug &#67E8F9{player} &8&m        "
+debug-rotation: " &8▏ &7Yaw / Pitch&8: &f{yaw} &8/ &f{pitch}"
+debug-delta: " &8▏ &7ΔYaw / ΔPitch&8: &f{dyaw} &8/ &f{dpitch}"
+debug-accel: " &8▏ &7Yaw ivmesi&8: &f{accel}"
+debug-jerk: " &8▏ &7Yaw sarsıntısı&8: &f{jerk}"
+debug-gcd: " &8▏ &7GCD hatası&8: &f{gcd_yaw} &8/ &f{gcd_pitch}"
+debug-mode-xy: " &8▏ &7Mode X / Y&8: &f{mx} &8/ &f{my}"
+debug-ai-buffer: " &8▏ &7AI tamponu&8: &#67E8F9{buffer}"
+debug-riding: " &8▏ &7Binekte&8: {riding}"
+debug-mode-status: " &8▏ &7Debug modu&8: {status}"
+debug-mode-on: "&#4ADE80açık"
+debug-mode-off: "&8kapalı"
+debug-idle: " &8▏ &7Boş / toplam tick&8: &f{idle} &8/ &f{total}"
+# Yer tutucular: {stage} {penalty} {isolated}
+debug-suppression: " &8▏ &7Baskılama&8: {stage} &8(&7vuruş &8-&f{penalty}%&8, &7yalıtım&8: {isolated}&8)"
+
+# Canlı olasılık göstergesi (action bar). {bar} 10 bölmeli renkli bir ölçektir.
+# Yer tutucular: {player} {bar} {prob} {prob_color} {avg} {avg_color} {peak} {buffer} {vl} {ping} {ping_color}
+prob-started: "&#4ADE80✔ &#AEB8C4{player} &7izleniyor - action bar açık."
+prob-stopped: "&#FFC857● &7İzleme durduruldu."
+prob-display: "&#3B82F6◈ &f{player} {bar} {prob_color}{prob}% &8▏ &7ortalama {avg_color}{avg}%"
+prob-no-data: "&#FF4D6D✖ &#AEB8C4{player} &7için veri yok."
+
+# Web panelinden verilen ban, bu sunucu tarafından uygulanır.
+# Yer tutucular: {player} {staff} {reason} {duration} (∞ = kalıcı)
+web-ban-executed: "{prefix} &8[&#FF4D6DWEB BAN&8] &#AEB8C4{player} &7panelden &#AEB8C4{staff} &7tarafından banlandı &8• &7{reason} &8• &#AEB8C4{duration}"
+web-ban-kick: "&#FF4D6DBanlandınız.\n&7Sebep: &#AEB8C4{reason}"
+web-unban-executed: "{prefix} &8[&#22D3EEWEB UNBAN&8] &#AEB8C4{player} &7panelden &#AEB8C4{staff} &7tarafından banı kaldırıldı"
+
+exempt-added: "&#4ADE80✔ &#AEB8C4{player} &7muafiyet listesine eklendi."
+exempt-removed: "&#FFC857● &#AEB8C4{player} &7muafiyet listesinden çıkarıldı."
+exempt-status-exempt: " &7{player}&8: &#4ADE80tüm kontrollerden muaf&7."
+exempt-status-not-exempt: " &7{player}&8: &#67E8F9kontroller etkin&7."
+exempt-already: "&#FFC857● &#AEB8C4{player} &7zaten muafiyet listesinde."
+exempt-not-found: "&#FFC857● &#AEB8C4{player} &7muafiyet listesinde bulunamadı."
+
+# Oyuncuların üzerinde görünen veriler - her yetkilinin kendi ayarı (/guard avg on|off).
+# Kapalı = kafaların üstünde hiçbir şey çizilmez.
+overhead-shown: "&#4ADE80✔ &7Oyuncuların üstündeki veriler &#4ADE80gösteriliyor&7."
+overhead-hidden: "&#FFC857● &7Oyuncuların üstündeki veriler &8gizlendi&7 &8- &7kafaların üstünde hiçbir şey yok."
+
+punish-success: "&#4ADE80✔ &#AEB8C4{player} &7cezalandırıldı."
+punish-success-animated: "&#4ADE80✔ &#AEB8C4{player} &7cezalandırıldı. Animasyon&8: &#22D3EE{animation}&7."
+punish-unknown-animation: "&#FF4D6D✖ &7Bilinmeyen animasyon &#AEB8C4{animation}&7. Kullanılabilir&8: &#AEB8C4{list}&7."
+punish-disabled-animation: "&#FF4D6D✖ &#AEB8C4{animation} &7animasyonu yapılandırmada kapalı. Kullanılabilir&8: &#AEB8C4{list}&7."
+punish-no-data: "&#FF4D6D✖ &7Oyuncu verisi bulunamadı."
+unsafe-name-kick: "&cSunucudan çıkarıldınız."
+
+# Anti-hilenin kendi kendini kontrolü (/guardac health).
+health-header: "{prefix} &#67E8F9&lGuardAC durumu &8- &#AEB8C4v{version}"
+health-backend: " &8▏ &7AI sunucusu&8: {status} &8({server})"
+health-mode: " &8▏ &7Mod&8: {mode}"
+health-key: " &8▏ &7API anahtarı&8: {status}"
+health-judge: " &8▏ &7Hakem &8(&7uzun pencere&8)&8: {status}"
+health-judge-active: "&#4ADE80● çalışıyor"
+health-judge-none: "&#FFC857● paketinizde yok &8- &7yerel hakem karar veriyor"
+health-judge-unknown: "&8● kontrol ediliyor"
+health-tps: " &8▏ &7Sunucu TPS&8: &#AEB8C4{tps}"
+health-tracked: " &8▏ &7Takipte&8: &#AEB8C4{tracked} &8• &7şüpheli&8: &#FFC857{suspicious}"
+health-modules: " &8▏ &7Sunucular arası&8: {crossserver} &8• &7hologramlar&8: {holograms} &8• &7ses&8: {sound}"
+health-ok: "&#4ADE80● çevrimiçi"
+health-degraded: "&#FF4D6D● sorunlu - yeniden bağlanıyor"
+health-off: "&8● kapalı"
+health-missing: "&#FF4D6D● ayarlanmamış"
+health-enforcing: "&#FFC857ceza veriyor"
+health-alert-only: "&#4ADE80yalnızca uyarı"
+
+stats-header: "&8&m        &r {prefix} &#67E8F9&lSunucu istatistikleri &8({period}) &8&m        "
+stats-online: " &8▏ &7Çevrimiçi oyuncu&8: &f{online}"
+stats-suspicious: " &8▏ &7Şüpheli&8: &#FFC857{suspicious} &8(&7{pct}%&8)"
+stats-total-flags: " &8▏ &7Oturumdaki işaretler&8: &#FF4D6D{flags} &8(&7{per_hour}/sa&8)"
+stats-ai-status: " &8▏ &7AI motoru&8: {status}"
+stats-dc-sessions: " &8▏ &7Etkin DC oturumu&8: &f{sessions}"
+stats-uptime: " &8▏ &7Çalışma süresi&8: &f{uptime}"
+
+# /guard top - bu dönemde model tarafından en çok işaretlenenler.
+# Yalnızca alerts.min-hit-confidence üzerindeki sonuçlar sayılır.
+top-header: "&8&m        &r {prefix} &#67E8F9&lEn şüpheliler &8({period}) &8&m        "
+top-entry: " &8{rank}. &#AEB8C4{player} &8• {color}{hits} &7/ &#AEB8C4{total} &8• &7ortalama &#67E8F9{avg}% &8• &7zirve {color}{max}%"
+top-empty: "&#4ADE80✔ &7Son &#AEB8C4{period} &7içinde şüpheli kimse yok."
+
+datacollect-start-success: "&#4ADE80✔ &f{player} &7için veri toplama başladı &8• &7{status}"
+datacollect-start-restarted: "&#FFC857● &f{player} &7için veri toplama yeniden başladı &8• &7{status}"
+datacollect-stop-success: "&#4ADE80✔ &f{player} &7kaydı saklandı &8(&f{ticks} &7tick&8)"
+datacollect-stop-fail: "&#FF4D6D✖ &f{player} &7için çalışan bir kayıt yoktu."
+datacollect-cancel-success: "&#FFC857● &f{player} &7kaydı kaydedilmeden iptal edildi."
+datacollect-status-header: "&8&m        &r {prefix} &#67E8F9&lEtkin DC oturumları &8&m        "
+datacollect-status-entry: " &#22D3EE▸ &f{player} &8• &7{status} &8• &7süre &f{time}s &8• &7tick &f{ticks}"
+datacollect-status-empty: "&7Etkin oturum yok."
+datacollect-status-no-session: "&#FF4D6D✖ &f{player} &7için etkin oturum yok."
+datacollect-invalid-type: "&#FF4D6D✖ &7Geçersiz tür. &#4ADE80LEGIT &7veya &#FF4D6DCHEAT &7kullanın."
+datacollect-details-required: "&#FF4D6D✖ &7Kullanım&8: &f/guarddc start <oyuncu> <LEGIT|CHEAT> <not>"
+
+crossserver-alert: "{prefix} &8[&#22D3EE{server}&8] &#FF4D6D&l{player} &8- &#22D3EEAI &7tarafından işaretlendi &8• &7{verbose} &8• &#FF4D6DVL {vl}"
+crossserver-enabled: "&#4ADE80✔ &7Sunucular arası uyarılar &#4ADE80açık&7."
+crossserver-disabled: "&#FFC857● &7Sunucular arası uyarılar &8kapalı&7."
+
+menu-prev: "&#67E8F9← Önceki sayfa"
+menu-next: "&#67E8F9Sonraki sayfa →"
+menu-close: "&#FF4D6D✖ Kapat"
+menu-empty-title: "&e&lBoş"
+menu-page: "&8Sayfa &7{page}"
+menu-player-offline: "&c&#AEB8C4{player} &cartık çevrimiçi değil."
+
+# /guard menu penceresi - şu anda dövüşen herkesin canlı listesi.
+# Sonuç renkleri monitor.yml dosyasından gelir, /guard monitor ile aynı.
+live-menu-open: "&#4ADE80✔ &7Canlı dövüş listesi açılıyor…"
+live-menu-title: "&#22D3EEGuardAC &8• &7Dövüşte"
+live-menu-empty: "&7Şu anda dövüşen kimse yok."
+live-menu-hits-header: "&7Son vuruşlar &8(&#AEB8C4{count}&8)"
+live-menu-hit: " &8○ {color}{value} &8• {color}{pct}%"
+live-menu-avg: " &8» &7Ortalama&8: {color}{value}%"
+live-menu-vl: " &8» &7Seviye&8: &#AEB8C4{value}"
+live-menu-last-hit: " &8» &7Son vuruş&8: &#AEB8C4{seconds}sn &7önce"
+live-menu-click: "&e▶ &7İzlemek için sol tıkla (izleyici modu)"
+live-menu-info-title: "&#67E8F9Canlı liste"
+live-menu-info-count: " &8» &7Şu anda dövüşen&8: &#AEB8C4{count}"
+live-menu-info-window: " &8» &7Oyuncu &#AEB8C4{seconds}sn &7vuruş yapmazsa listeden düşer"
+menu-unsafe-name: "&#FF4D6D✖ &#AEB8C4{player} &7adı konsol komutları için güvenli değil - işlem atlandı."
+# Küresel itibar veritabanındaki bir oyuncu giriş yaptı. {servers}, onu işaretleyen
+# ağdaki tüm sunucuları sayar (sizinki dahil). Yer tutucular: {player} {detections} {servers}
+reputation-join-notice: "{prefix} &8[&#FFC857İTİBAR&8] &f{player} &7GuardAC ağı tarafından zaten işaretlenmiş &8- &#FF4D6D{detections} &7tespit, &#FFC857{servers} &7sunucuda."
+alert-click-hint: "&7Tıkla &8→ &#AEB8C4/guardac profile {player}"
+unit-d: "g"
+unit-h: "sa"
+unit-m: "dk"
+unit-s: "sn"
+common-yes: "&aEvet"
+common-no: "&cHayır"
+common-on: "&aAÇIK"
+common-off: "&cKAPALI"
+stats-detections: " &8▏ &7Bugünkü tespitler&8: &e{detections} &8(&7istek&8: &f{requests}&8)"
+
+help-header: "&8&m        &r {prefix} &#67E8F9&lYardım &8&m        "
+help-reload: " &#22D3EE/guardac reload &8- &7yapılandırmayı yeniden yükle"
+help-alerts: " &#22D3EE/guardac alerts &8- &7uyarı aboneliğini aç/kapat"
+help-monitor: " &#22D3EE/guardac monitor &8- &7her vuruşu AI olasılığıyla izle"
+help-profile: " &#22D3EE/guardac profile &7<oyuncu> &8- &7oyuncu profili"
+help-menu: " &#22D3EE/guardac menu &8- &7canlı dövüş listesi (şu anda kim dövüşüyor)"
+help-overhead: " &#22D3EE/guardac avg &7<on|off> &8- &7oyuncuların üstündeki veriler"
+help-debug: " &#22D3EE/guardac debug &7[oyuncu] &8- &7canlı dönüş verileri"
+help-prob: " &#22D3EE/guardac prob &7<oyuncu> &8- &7action bar'da AI olasılığı"
+help-exempt: " &#22D3EE/guardac exempt &7<oyuncu|remove|status> &8- &7muafiyetleri yönet"
+help-punish: " &#22D3EE/guardac punish &7<oyuncu> [animasyon] &8- &7elle ceza"
+help-stats: " &#22D3EE/guardac stats &7[1h|6h|24h|7d] &8- &7istatistikler"
+help-top: " &#22D3EE/guardac top &7[1h|6h|24h|7d] &8- &7en şüpheli oyuncular"
+help-health: " &#22D3EE/guardac health &8- &7anti-hile kendi kontrolü"
+help-log: " &#22D3EE/guardac log &7[oyuncu] &8- &7son 20 ceza"
+help-crossserver: " &#22D3EE/guardac crossserver &8- &7sunucular arası uyarılar"
+help-datacollect: " &#22D3EE/guarddc &7start · stop · cancel · status &8- &7veri toplama"
+help-footer: "&8&m                                          "
+
+usage-profile: "&#FFC857● &7Kullanım&8: &#AEB8C4/guardac profile <oyuncu>"
+usage-prob: "&#FFC857● &7Kullanım&8: &#AEB8C4/guardac prob <oyuncu>"
+usage-exempt: "&#FFC857● &7Kullanım&8: &#AEB8C4/guardac exempt <oyuncu | remove <oyuncu> | status <oyuncu>>"
+usage-exempt-remove: "&#FFC857● &7Kullanım&8: &#AEB8C4/guardac exempt remove <oyuncu>"
+usage-exempt-status: "&#FFC857● &7Kullanım&8: &#AEB8C4/guardac exempt status <oyuncu>"
+usage-avg: "&#FFC857● &7Kullanım&8: &#AEB8C4/guardac avg <on|off>"
+usage-punish: "&#FFC857● &7Kullanım&8: &#AEB8C4/guardac punish <oyuncu> [animasyon]"
+usage-stats: "&#FFC857● &7Kullanım&8: &#AEB8C4/guardac stats [1h|6h|24h|7d]"
+usage-top: "&#FFC857● &7Kullanım&8: &#AEB8C4/guardac top [1h|6h|24h|7d]"
+usage-dc-stop: "&#FFC857● &7Kullanım&8: &#AEB8C4/guarddc stop <oyuncu>"
+usage-dc-cancel: "&#FFC857● &7Kullanım&8: &#AEB8C4/guarddc cancel <oyuncu>"
+
+dc-help-header: "&8&m        &r {prefix} &#67E8F9&lVeri toplama &8&m        "
+dc-help-start: " &#22D3EE/guarddc start &#AEB8C4<oyuncu> &#4ADE80<CHEAT|LEGIT> &7<not> &8- &7başlat"
+dc-help-stop: " &#22D3EE/guarddc stop &#AEB8C4<oyuncu> &8- &7durdur ve kaydet"
+dc-help-cancel: " &#22D3EE/guarddc cancel &#AEB8C4<oyuncu> &8- &7kaydetmeden iptal et"
+dc-help-status: " &#22D3EE/guarddc status &7[oyuncu] &8- &7etkin oturum durumu"
+dc-help-footer: "&8&m                                          "
+
+log-header: "&8&m        &r {prefix} &#67E8F9&lSon cezalar &8(&#AEB8C4{count}&8) &8&m        "
+log-empty: "&7Ceza kaydı bulunamadı."
+
+history-header: "&8&m        &r {prefix} &#67E8F9&lCeza geçmişi &8(&#AEB8C4{count}&8) &8&m        "
+history-entry: " &#22D3EE▸ &7{time} &8• &#AEB8C4{player} &8• &7{check} &8• &#FF4D6DVL {vl} &8• &7{prob}% &8• &#AEB8C4{action}"
+history-empty: "&7Ceza geçmişi boş."
+usage-history: "&#FFC857● &7Kullanım&8: &#AEB8C4/guardac history [oyuncu]"
+help-history: " &#22D3EE/guardac history &7[oyuncu] &8- &7oyuncular ne zaman ve neden cezalandırıldı"
+
+# /guardac results penceresi - bir oyuncunun AI sonuç geçmişi.
+# Her cam panel = 10 sonuç, grubun ortalama olasılığına göre renklendirilir.
+results-menu-title: "&#22D3EEGuardAC &8• &7Geçmiş {player}"
+results-empty: "&#67E8F9{player} &7için henüz AI sonucu kaydedilmedi."
+results-head-title: "&#67E8F9{player}"
+results-head-total: " &8» &7Sonuç&8: &7{count}"
+results-head-avg: " &8» &7Ortalama&8: {color}{avg}"
+results-head-peak: " &8» &7Zirve&8: {color}{peak}"
+results-head-span: " &8» &7Aralık&8: &7{time}"
+results-pane-title: "&7ORT&8: {color}{avg}"
+# Tablo sütun başlıkları (hizalamayı eklenti kendisi piksel piksel hesaplar).
+results-col-prob: "Olasılık"
+results-col-model: "Model"
+results-col-server: "Sunucu"
+results-col-time: "Zaman"
+results-time-now: "az önce"
+usage-results: "&#FFC857● &7Kullanım&8: &#AEB8C4/guardac results <oyuncu>"
+help-results: " &#22D3EE/guardac results &7<oyuncu> &8- &7AI sonuç geçmişi (pencere)"

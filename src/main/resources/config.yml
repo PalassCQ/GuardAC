@@ -8,7 +8,9 @@
 
 config-version: 43
 
-# Language of all plugin messages: en | ru
+# Language of all plugin messages: en | ru | kk | vi | tr
+# (English, Russian, Kazakh, Vietnamese, Turkish). Your own language: copy
+# messages/messages_en.yml to messages_<code>.yml, translate it, put the code here.
 locale: "en"
 
 # Name of this server, shown in your web dashboard, in staff alerts and in
