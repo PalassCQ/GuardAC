@@ -127,42 +127,60 @@ class LiveHitsMenu(
         val meta  = skull.itemMeta as? SkullMeta ?: return skull
         runCatching { meta.owningPlayer = Bukkit.getOfflinePlayer(gp.uuid) }
 
-        val peak = feed.maxOf { it.probability }
-        val headColor = plugin.monitorConfig.colorForProbability(peak * 100.0)
-        meta.setDisplayName(Colors.translate("$headColor&l${gp.player.name}"))
+        val newestFirst = feed.asReversed()
+        val riskPct = newestFirst.sumOf { it.probability } / newestFirst.size * 100.0
+        val riskColor = plugin.monitorConfig.colorForProbability(riskPct)
 
-        val lore = ArrayList<String>(feed.size + 6)
+        meta.setDisplayName(plugin.locale.get(
+            Message.LIVE_MENU_NAME,
+            "color",  riskColor,
+            "player", gp.player.name,
+            "bar",    riskBar(riskPct),
+            "pct",    "%.0f".format(Locale.ROOT, riskPct),
+        ))
+
+        val lore = ArrayList<String>(feed.size / VALUES_PER_ROW + 8)
         lore.add("")
-        lore.add(plugin.locale.get(Message.LIVE_MENU_HITS_HEADER, "count", feed.size.toString()))
+        lore.add(plugin.locale.get(Message.LIVE_MENU_CHECKS, "count", feed.size.toString()))
 
-        for (hit in feed.asReversed()) {
-            val pct = hit.probability * 100.0
-            lore.add(plugin.locale.get(
-                Message.LIVE_MENU_HIT,
-                "color", plugin.monitorConfig.colorForProbability(pct),
-                "value", "%.4f".format(Locale.ROOT, hit.probability),
-                "pct",   "%.0f".format(pct),
-            ))
+        for (row in newestFirst.chunked(VALUES_PER_ROW)) {
+            val cells = row.joinToString(" ") { hit ->
+                plugin.monitorConfig.colorForProbability(hit.probability * 100.0) +
+                    "%.4f".format(Locale.ROOT, hit.probability)
+            }
+            lore.add(plugin.locale.get(Message.LIVE_MENU_ROW, "values", cells))
         }
 
-        val avgPct = gp.avgProbability * 100.0
         lore.add("")
         lore.add(plugin.locale.get(
-            Message.LIVE_MENU_AVG,
-            "color", plugin.monitorConfig.colorForProbability(avgPct),
-            "value", "%.0f".format(avgPct),
+            Message.LIVE_MENU_RISK,
+            "color", riskColor,
+            "value", "%.0f".format(Locale.ROOT, riskPct),
         ))
-        lore.add(plugin.locale.get(Message.LIVE_MENU_VL, "value", gp.aiViolationLevel.toString()))
+        lore.add(plugin.locale.get(Message.LIVE_MENU_LEVEL, "value", gp.aiViolationLevel.toString()))
         lore.add(plugin.locale.get(
-            Message.LIVE_MENU_LAST_HIT,
+            Message.LIVE_MENU_LAST,
             "seconds", secondsSince(feed.last().epochMillis),
         ))
         lore.add("")
-        lore.add(plugin.locale.get(Message.LIVE_MENU_CLICK))
+        lore.add(plugin.locale.get(Message.LIVE_MENU_WATCH))
 
         meta.lore = lore
         skull.itemMeta = meta
         return skull
+    }
+
+    private fun riskBar(pct: Double): String {
+        val filled = Math.ceil(pct / 10.0).toInt().coerceIn(0, BAR_SEGMENTS)
+        val sb = StringBuilder()
+        for (i in 1..BAR_SEGMENTS) {
+            if (i <= filled) {
+                sb.append(plugin.monitorConfig.colorForProbability(i * 10.0 - 5.0)).append('●')
+            } else {
+                sb.append("&8○")
+            }
+        }
+        return sb.toString()
     }
 
     private fun secondsSince(epochMillis: Long): String {
@@ -283,5 +301,7 @@ class LiveHitsMenu(
         const val NEXT_SLOT      = INV_SIZE - 1
         const val EMPTY_SLOT     = 22
         const val REFRESH_TICKS  = 20L
+        const val VALUES_PER_ROW = 5
+        const val BAR_SEGMENTS   = 10
     }
 }
