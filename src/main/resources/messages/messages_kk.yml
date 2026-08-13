@@ -170,7 +170,7 @@ menu-player-offline: "&cОйыншы &#AEB8C4{player} &cенді желіде е
 live-menu-open: "&#4ADE80✔ &7Шайқас тізімі ашылуда…"
 live-menu-title: "&#22D3EEGuardAC &8• &7Шайқаста"
 live-menu-empty: "&7Қазір ешкім шайқасып жатқан жоқ."
-live-menu-name: "{color}&l{player} &r{bar} {color}{pct}%"
+live-menu-name: "{color}{player} &r{bar} {color}{pct}%"
 live-menu-checks: "&7Соңғы тексерулер &8(&#AEB8C4{count}&8)"
 live-menu-row: " {values}"
 live-menu-risk: " &8» &7Орташа қауіп&8: {color}{value}%"

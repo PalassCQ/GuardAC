@@ -170,7 +170,7 @@ menu-player-offline: "&cNgười chơi &#AEB8C4{player} &cđã rời máy chủ.
 live-menu-open: "&#4ADE80✔ &7Đang mở danh sách giao tranh…"
 live-menu-title: "&#22D3EEGuardAC &8• &7Đang giao tranh"
 live-menu-empty: "&7Hiện không có ai đang đánh nhau."
-live-menu-name: "{color}&l{player} &r{bar} {color}{pct}%"
+live-menu-name: "{color}{player} &r{bar} {color}{pct}%"
 live-menu-checks: "&7Các lần kiểm tra gần đây &8(&#AEB8C4{count}&8)"
 live-menu-row: " {values}"
 live-menu-risk: " &8» &7Rủi ro trung bình&8: {color}{value}%"
