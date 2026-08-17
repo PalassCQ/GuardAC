@@ -4,7 +4,7 @@
 
 **ML anti-cheat for Minecraft servers**
 
-[![Discord](https://img.shields.io/badge/discord-join%20server-5865F2.svg)](https://discord.gg/pee2vTCpK)
+[![Discord](https://img.shields.io/badge/discord-join%20server-5865F2.svg)](https://discord.gg/wT2jKD7K3)
 [![Issues](https://img.shields.io/badge/bugs-report-critical.svg)](https://github.com/PalassCQ/GuardAC/issues)
 [![License](https://img.shields.io/badge/license-GPLv3-blue.svg)](LICENSE)
 
