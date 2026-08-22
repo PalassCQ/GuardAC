@@ -54,6 +54,9 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
 
 tasks {
     processResources {
+        inputs.property("version", project.version.toString())
+        inputs.property("gitHash", gitHash)
+        inputs.property("buildDate", buildDate)
         filesMatching(listOf("plugin.yml", "build-info.properties")) {
             expand(
                 "version"   to project.version,
