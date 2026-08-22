@@ -30,7 +30,7 @@ of edge cases such as lag, teleports and reconnects.
 
 - Java 17 or newer to run the plugin
 - JDK 21 or newer to build from source
-- Spigot, Paper or Folia - Minecraft 1.21.x
+- Spigot, Paper, Purpur or Folia - Minecraft 1.16 and newer
 - A GuardAC API key if the aim check is enabled
 
 No extra plugins are needed: the packet layer ships inside the jar.
@@ -63,27 +63,58 @@ specific WorldGuard regions can be excluded via the configuration.
 | `monitor.yml` | Layout of the live monitor output |
 | `hologram.yml` | Suspect hologram display |
 | `punishments.yml` | Punishment ladder and animations |
-| `messages/messages_en.yml` | English messages |
-| `messages/messages_ru.yml` | Russian messages |
+| `messages/messages_<lang>.yml` | Plugin messages - English, Russian, Kazakh, Vietnamese and Turkish ship with the jar |
 
 ## Commands
 
 | Command | Description |
 | --- | --- |
-| `/guard monitor <player>` | Follow a player's live check output |
+| `/guard monitor` | Follow live check output |
+| `/guard menu` | Live combat feed - who is fighting right now |
 | `/guard profile <player>` | Show a player's current profile |
-| `/guard suspicious` | List currently suspicious players |
-| `/guard punish <player>` | Apply the top punishment manually |
-| `/guard history <player> [page]` | Show a player's violation history |
-| `/guard log [page]` | Show recent violations |
-| `/guard stats` | Show server-side statistics |
+| `/guard punish <player> [animation]` | Apply the top punishment manually |
+| `/guard reset <player>` | Clear a player's violations, buffer and alert streak |
+| `/guard results <player>` | Recent AI results for a player |
+| `/guard history [player]` | When and why players were punished |
+| `/guard log [player]` | Recent violations |
+| `/guard stats [1h\|6h\|24h\|7d]` | Server-side statistics |
+| `/guard top [1h\|6h\|24h\|7d]` | Most suspicious players |
 | `/guard exempt <player>` | Exempt a player from checks |
 | `/guard alerts` | Toggle alerts for yourself |
+| `/guard health` | Anti-cheat self-diagnostic |
+| `/guard version` | Plugin version and build stamp |
 | `/guard reload` | Reload the configuration |
 
 The complete list is available in game via `/guard help`. Every subcommand has
 its own permission node, `guardac.command.<name>`; `guardac.admin` grants all of
 them.
+
+## PlaceholderAPI
+
+If PlaceholderAPI is installed, GuardAC registers its own expansion
+automatically - no download, no `/papi ecloud` step.
+
+| Placeholder | Value |
+| --- | --- |
+| `%guardac_status%` | `clean`, `watched`, `flagged` or `exempt` |
+| `%guardac_vl%` | Current violation level |
+| `%guardac_buffer%` | Current suspicion buffer |
+| `%guardac_probability%` | Latest verdict, in percent |
+| `%guardac_average%` | Average of the recent verdicts, in percent |
+| `%guardac_peak%` | Highest verdict this session, in percent |
+| `%guardac_detections%` | Detections for this player this session |
+| `%guardac_exempt%` | `yes` or `no` |
+| `%guardac_tracked%` | Players currently tracked |
+| `%guardac_suspicious%` | Players currently above the watch threshold |
+| `%guardac_detections_today%` | Detections on this server today |
+| `%guardac_checks_today%` | Checks performed on this server today |
+| `%guardac_backend%` | `online`, `degraded` or `off` |
+| `%guardac_mode%` | `enforcing` or `alert-only` |
+| `%guardac_version%` | Plugin version |
+| `%guardac_build%` | Build stamp of the running jar |
+
+The first nine are per-player and resolve for the player they are requested
+for; the rest describe the server.
 
 ## Building
 

@@ -4,7 +4,22 @@ plugins {
 }
 
 group = "dev.guardac"
-version = "1.8"
+version = "1.9"
+
+fun git(vararg args: String): String = try {
+    val process = ProcessBuilder(listOf("git") + args)
+        .directory(rootDir)
+        .redirectErrorStream(true)
+        .start()
+    val text = process.inputStream.bufferedReader().readText().trim()
+    process.waitFor()
+    if (process.exitValue() == 0 && text.isNotEmpty()) text else "unknown"
+} catch (e: Exception) {
+    "unknown"
+}
+
+val gitHash: String = git("rev-parse", "--short", "HEAD")
+val buildDate: String = git("log", "-1", "--format=%cd", "--date=format:%Y-%m-%d")
 
 repositories {
     mavenCentral()
@@ -13,6 +28,7 @@ repositories {
     maven("https://repo.codemc.io/repository/maven-snapshots/")
     maven("https://maven.enginehub.org/repo/")
     maven("https://jitpack.io")
+    maven("https://repo.extendedclip.com/content/repositories/placeholderapi/")
 }
 
 dependencies {
@@ -22,7 +38,8 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind:2.17.1")
     implementation("org.xerial:sqlite-jdbc:3.45.3.0")
     compileOnly("com.sk89q.worldguard:worldguard-bukkit:7.0.9")
-    compileOnly("com.sk89q.worldedit:worldedit-bukkit:7.2.15") // для BukkitAdapter
+    compileOnly("com.sk89q.worldedit:worldedit-bukkit:7.2.15")
+    compileOnly("me.clip:placeholderapi:2.11.6")
 }
 
 java {
@@ -37,8 +54,12 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
 
 tasks {
     processResources {
-        filesMatching("plugin.yml") {
-            expand("version" to project.version)
+        filesMatching(listOf("plugin.yml", "build-info.properties")) {
+            expand(
+                "version"   to project.version,
+                "gitHash"   to gitHash,
+                "buildDate" to buildDate,
+            )
         }
     }
     shadowJar {

@@ -8,6 +8,7 @@ authors:
 website: https://github.com/PalassCQ/GuardAC
 description: GuardAC - AI-powered anticheat. One smart check, zero clutter.
 softdepend:
+  - PlaceholderAPI
   - WorldGuard
   - floodgate
   - Geyser-Spigot
@@ -15,7 +16,7 @@ softdepend:
 commands:
   guard:
     description: GuardAC main administration command
-    usage: /guard <help|alerts|monitor|profile|reload|menu|avg|debug|prob|exempt|punish|stats|top|health|log|history|results|crossserver>
+    usage: /guard <help|alerts|monitor|profile|reload|menu|avg|debug|prob|exempt|punish|reset|stats|top|health|version|log|history|results|crossserver>
     aliases: [gac, guardac]
   guarddc:
     description: GuardAC dataset collection for AI training
@@ -42,9 +43,11 @@ permissions:
       guardac.command.prob: true
       guardac.command.exempt: true
       guardac.command.punish: true
+      guardac.command.reset: true
       guardac.command.stats: true
       guardac.command.top: true
       guardac.command.health: true
+      guardac.command.version: true
       guardac.command.crossserver: true
       guardac.command.log: true
       guardac.command.history: true
@@ -60,9 +63,11 @@ permissions:
   guardac.command.prob:        { description: Live probability actionbar,  default: op }
   guardac.command.exempt:      { description: Exempt players from checks,  default: op }
   guardac.command.punish:      { description: Manually punish a player,    default: op }
+  guardac.command.reset:       { description: Clear a player's violations, default: op }
   guardac.command.stats:       { description: View server AC stats,        default: op }
   guardac.command.top:         { description: Most suspicious players,     default: op }
   guardac.command.health:      { description: Anticheat self-diagnostic,   default: op }
+  guardac.command.version:     { description: Show plugin version/build,   default: op }
   guardac.command.crossserver: { description: Toggle cross-server alerts,  default: op }
   guardac.command.log:         { description: View the violation log,      default: op }
   guardac.command.history:     { description: View punishment history,     default: op }

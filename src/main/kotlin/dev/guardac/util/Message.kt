@@ -109,7 +109,12 @@ enum class Message(val key: String) {
     PUNISH_NO_DATA("punish-no-data"),
     UNSAFE_NAME_KICK("unsafe-name-kick"),
 
+    RESET_SUCCESS("reset-success"),
+    USAGE_RESET("usage-reset"),
+    HELP_RESET("help-reset"),
+
     HEALTH_HEADER("health-header"),
+    HEALTH_BUILD("health-build"),
     HEALTH_BACKEND("health-backend"),
     HEALTH_MODE("health-mode"),
     HEALTH_KEY("health-key"),
@@ -127,6 +132,12 @@ enum class Message(val key: String) {
     HEALTH_ENFORCING("health-enforcing"),
     HEALTH_ALERT_ONLY("health-alert-only"),
     HELP_HEALTH("help-health"),
+
+    VERSION_HEADER("version-header"),
+    VERSION_BUILD("version-build"),
+    VERSION_SERVER("version-server"),
+    VERSION_JAVA("version-java"),
+    HELP_VERSION("help-version"),
 
     STATS_HEADER("stats-header"),
     STATS_ONLINE("stats-online"),

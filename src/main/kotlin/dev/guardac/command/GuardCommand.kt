@@ -29,6 +29,7 @@ import dev.guardac.combat.SuppressionStage
 import dev.guardac.menu.LiveHitsMenu
 import dev.guardac.menu.ResultsMenu
 import dev.guardac.player.GuardPlayer
+import dev.guardac.util.BuildInfo
 import dev.guardac.util.Colors
 import dev.guardac.util.Message
 import org.bukkit.Bukkit
@@ -67,9 +68,11 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
             "prob"        -> handleProb(sender, args)
             "exempt"      -> handleExempt(sender, args)
             "punish"      -> handlePunish(sender, args)
+            "reset"       -> handleReset(sender, args)
             "stats"       -> handleStats(sender, args)
             "top"         -> handleTop(sender, args)
             "health"      -> handleHealth(sender)
+            "version"     -> handleVersion(sender)
             "crossserver" -> handleCrossServer(sender)
             "log"         -> handleLog(sender, args)
             "history"     -> handleHistory(sender, args)
@@ -89,7 +92,7 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
                 .filter { sender.hasPermission("guardac.command.$it") }
                 .filter { it.startsWith(args[0].lowercase()) }
             2 -> when (args[0].lowercase()) {
-                "profile", "debug", "prob", "punish", "log", "history", "results"
+                "profile", "debug", "prob", "punish", "reset", "log", "history", "results"
                     -> online.filter { it.startsWith(args[1], ignoreCase = true) }
                 "exempt"
                     -> (listOf("remove", "status") + online).filter { it.startsWith(args[1], ignoreCase = true) }
@@ -387,6 +390,32 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
         ))
     }
 
+    private fun handleReset(sender: CommandSender, args: Array<out String>) {
+        val name = args.getOrNull(1)
+            ?: return sender.sendMessage(plugin.locale.get(Message.USAGE_RESET))
+        val target = Bukkit.getPlayerExact(name)
+            ?: return sender.sendMessage(plugin.locale.get(Message.PLAYER_NOT_FOUND, "player", name))
+        val gp = plugin.playerDataManager.get(target)
+            ?: return sender.sendMessage(plugin.locale.get(Message.PUNISH_NO_DATA))
+
+        val vl     = gp.aiViolationLevel
+        val buffer = gp.aiBuffer
+
+        gp.resetAllVL()
+        plugin.alertManager.clearDigest(gp.uuid)
+        plugin.scheduler.async(Runnable { plugin.punishmentHistory.clearBuffer(gp.uuid) })
+
+        plugin.logger.info(
+            "[Reset] ${sender.name} cleared ${target.name} " +
+            "(vl=$vl, buffer=${"%.1f".format(buffer)})"
+        )
+        sender.sendMessage(plugin.locale.get(
+            Message.RESET_SUCCESS,
+            "player", target.name,
+            "vl",     vl.toString(),
+        ))
+    }
+
     private fun animationList(): String =
         (listOf(BanAnimationManager.RANDOM) + plugin.banAnimationManager.availableTypes())
             .joinToString("&8, &#AEB8C4")
@@ -482,6 +511,7 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
         val suspicious = all.count { it.aiBuffer > SUSPICIOUS_BUFFER_THRESHOLD }
 
         sender.sendMessage(plugin.locale.get(Message.HEALTH_HEADER, "version", plugin.description.version))
+        sender.sendMessage(plugin.locale.get(Message.HEALTH_BUILD, "build", BuildInfo.stamp))
         sender.sendMessage(plugin.locale.get(Message.HEALTH_BACKEND, "status", backend, "server", cfg.aiServer))
         sender.sendMessage(plugin.locale.get(Message.HEALTH_MODE, "mode", mode))
         sender.sendMessage(plugin.locale.get(Message.HEALTH_KEY, "status", keyLine))
@@ -495,6 +525,21 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
             "crossserver", onOff(cfg.crossServerEnabled),
             "holograms",   onOff(plugin.hologramConfig.enabled),
             "sound",       onOff(cfg.alertSoundEnabled),
+        ))
+    }
+
+    private fun handleVersion(sender: CommandSender) {
+        sender.sendMessage(plugin.locale.get(
+            Message.VERSION_HEADER, "version", plugin.description.version
+        ))
+        sender.sendMessage(plugin.locale.get(
+            Message.VERSION_BUILD, "build", BuildInfo.stamp
+        ))
+        sender.sendMessage(plugin.locale.get(
+            Message.VERSION_SERVER, "server", Bukkit.getVersion()
+        ))
+        sender.sendMessage(plugin.locale.get(
+            Message.VERSION_JAVA, "java", System.getProperty("java.version") ?: "unknown"
         ))
     }
 
@@ -617,9 +662,11 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
         sender.sendMessage(plugin.locale.get(Message.HELP_PROB))
         sender.sendMessage(plugin.locale.get(Message.HELP_EXEMPT))
         sender.sendMessage(plugin.locale.get(Message.HELP_PUNISH))
+        sender.sendMessage(plugin.locale.get(Message.HELP_RESET))
         sender.sendMessage(plugin.locale.get(Message.HELP_STATS))
         sender.sendMessage(plugin.locale.get(Message.HELP_TOP))
         sender.sendMessage(plugin.locale.get(Message.HELP_HEALTH))
+        sender.sendMessage(plugin.locale.get(Message.HELP_VERSION))
         sender.sendMessage(plugin.locale.get(Message.HELP_LOG))
         sender.sendMessage(plugin.locale.get(Message.HELP_HISTORY))
         sender.sendMessage(plugin.locale.get(Message.HELP_RESULTS))
@@ -650,8 +697,8 @@ class GuardCommand(private val plugin: GuardAC) : CommandExecutor, TabCompleter 
 
         val SUBCOMMANDS = listOf(
             "help", "reload", "alerts", "monitor", "profile", "menu", "avg",
-            "debug", "prob", "exempt", "punish", "stats", "top", "health",
-            "crossserver", "log", "history", "results",
+            "debug", "prob", "exempt", "punish", "reset", "stats", "top", "health",
+            "crossserver", "log", "history", "results", "version",
         )
     }
 }

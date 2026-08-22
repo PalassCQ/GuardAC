@@ -175,6 +175,10 @@ class AlertManager(private val plugin: GuardAC) {
         deliverAlert(msg, consoleLine, playerName, withSound)
     }
 
+    fun clearDigest(uuid: UUID) {
+        digests.remove(uuid)
+    }
+
     fun onPlayerQuit(uuid: UUID) {
         digests.remove(uuid)
         if (!plugin.punishmentHistory.isAvailable) return

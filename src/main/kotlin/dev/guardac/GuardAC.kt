@@ -35,6 +35,7 @@ import dev.guardac.checks.CheckRegistry
 import dev.guardac.combat.DamageListener
 import dev.guardac.combat.SuppressionManager
 import dev.guardac.compat.Compat
+import dev.guardac.compat.GuardacExpansion
 import dev.guardac.compat.WorldGuardCompat
 import dev.guardac.command.DataCollectCommand
 import dev.guardac.command.GuardCommand
@@ -93,6 +94,7 @@ class GuardAC : JavaPlugin() {
     private var combatResetTask: TaskHandle? = null
     private var ridingSyncTask: TaskHandle? = null
     private var packetListener: PacketListener? = null
+    private var placeholderExpansion: Any? = null
 
     override fun onLoad() {
         runCatching(::loadPacketEvents).onFailure {
@@ -191,6 +193,7 @@ class GuardAC : JavaPlugin() {
         playerDataManager.adoptOnline()
 
         reputationClient.startNetworkAlertPolling()
+        registerPlaceholders()
 
         if (configManager.clientBrandEnabled) {
             runCatching {
@@ -260,6 +263,25 @@ class GuardAC : JavaPlugin() {
         server.pluginManager.disablePlugin(this)
     }
 
+    private fun registerPlaceholders() {
+        if (server.pluginManager.getPlugin("PlaceholderAPI") == null) return
+        runCatching {
+            val expansion = GuardacExpansion(this)
+            if (expansion.register()) {
+                placeholderExpansion = expansion
+                logger.info("[GuardAC] PlaceholderAPI expansion registered (%guardac_...%)")
+            }
+        }.onFailure {
+            logger.warning("[GuardAC] Could not register PlaceholderAPI expansion: ${it.message}")
+        }
+    }
+
+    private fun unregisterPlaceholders() {
+        val expansion = placeholderExpansion ?: return
+        placeholderExpansion = null
+        runCatching { (expansion as GuardacExpansion).unregister() }
+    }
+
     private fun shutdownRuntime() {
         if (!runtimeStarted) return
         runtimeStarted = false
@@ -273,6 +295,7 @@ class GuardAC : JavaPlugin() {
             packetListener?.let { PacketEvents.getAPI().eventManager.unregisterListener(it) }
         }
         packetListener = null
+        unregisterPlaceholders()
         runCatching { banAnimationManager.restoreAllFrozen() }
         runCatching { banAnimationManager.removeAnimationEntities() }
         runCatching { hologramManager.stop() }
